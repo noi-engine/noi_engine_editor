@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(noi_engine_editor VERSION 0.0.1 DESCRIPTION "noi_engine" LANGUAGES CXX)
+project(noi_engine_editor VERSION 0.0.1 DESCRIPTION "noi_engine_editor" LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -19,7 +19,7 @@ set(NOI_ENGINE_EDITOR_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 if (NOI_ENGINE_EDITOR_IS_MAIN_PROJECT)
     configure_file(
             ${NOI_ENGINE_EDITOR_SOURCE_DIR}/.templates/${NOI_ENGINE_EDITOR_NAME}Config.hpp.in
-            ${NOI_ENGINE_EDITOR_SOURCE_DIR}/include/${NOI_ENGINE_EDITOR_NAME}/${NOI_ENGINE_EDITOR_NAME}Config.hpp @ONLY)
+            ${NOI_ENGINE_EDITOR_SOURCE_DIR}/sources/${NOI_ENGINE_EDITOR_NAME}Config.hpp @ONLY)
 endif ()
 
 add_subdirectory(external/Templi)
@@ -28,6 +28,7 @@ add_subdirectory(external/noi_engine)
 # QT
 set(CMAKE_AUTORCC ON)
 set(NOI_ENGINE_EDITOR_PROJECT_NAME noi_engine_editor)
+set(QML_IMPORT_PATH "${CMAKE_BINARY_DIR}" CACHE STRING "QML Import Path" FORCE)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick OpenGL)
 
@@ -94,7 +95,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         # home
         sources/components/home/RecentProjectsModel.hpp
         sources/components/home/RecentProjectsModel.cpp
-        SOURCES sources/managers/TemplateManager.hpp sources/managers/TemplateManager.cpp
+        sources/noi_engine_editorConfig.hpp
 )
 
 set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES
@@ -105,11 +106,22 @@ set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES
         WIN32_EXECUTABLE TRUE
 )
 
+# TODO(begin): find a better way
+file(GLOB_RECURSE ALL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/sources/*.hpp")
+
+set(INCLUDE_DIRS "")
+foreach(HEADER_FILE ${ALL_HEADERS})
+    get_filename_component(HEADER_DIR ${HEADER_FILE} DIRECTORY)
+    list(APPEND INCLUDE_DIRS ${HEADER_DIR})
+endforeach()
+list(REMOVE_DUPLICATES INCLUDE_DIRS)
+
 target_include_directories(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}
-        ${NOI_ENGINE_EDITOR_SOURCE_DIR}/include
+        ${INCLUDE_DIRS}
 )
+# TODO(end): find a better way
 
 target_link_directories(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         PRIVATE
