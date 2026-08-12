@@ -1,7 +1,6 @@
 #include "CurrentProjectManager.hpp"
 
 #include <QFile>
-#include <QJsonDocument>
 #include <QJsonObject>
 
 namespace noi_engine_editor
