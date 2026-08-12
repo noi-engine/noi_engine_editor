@@ -18,13 +18,12 @@ set(NOI_ENGINE_EDITOR_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
 
 if (NOI_ENGINE_EDITOR_IS_MAIN_PROJECT)
     configure_file(
-            ${NOI_ENGINE_EDITOR_SOURCE_DIR}/.templates/${NOI_ENGINE_EDITOR_LIB_NAME}Config.hpp.in
-            ${NOI_ENGINE_EDITOR_SOURCE_DIR}/include/${NOI_ENGINE_EDITOR_LIB_NAME}/${NOI_ENGINE_EDITOR_LIB_NAME}Config.hpp @ONLY)
+            ${NOI_ENGINE_EDITOR_SOURCE_DIR}/.templates/${NOI_ENGINE_EDITOR_NAME}Config.hpp.in
+            ${NOI_ENGINE_EDITOR_SOURCE_DIR}/include/${NOI_ENGINE_EDITOR_NAME}/${NOI_ENGINE_EDITOR_NAME}Config.hpp @ONLY)
 endif ()
 
-if (BUILD_SHARED_LIBS)
-    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-endif ()
+add_subdirectory(external/Templi)
+add_subdirectory(external/noi_engine)
 
 # QT
 
