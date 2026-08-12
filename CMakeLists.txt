@@ -37,9 +37,9 @@ qt_add_executable(${NOI_ENGINE_EDITOR_PROJECT_NAME} resources.qrc main.cpp)
 
 set(NOI_ENGINE_EDITOR_QML_SINGLETONS
         sources/Router.qml
-        sources/components/Theme.qml
-        sources/components/icons/IconLoader.qml
-        sources/components/fonts/CustomFont.qml
+        sources/common/components/Theme.qml
+        sources/common/components/icons/IconLoader.qml
+        sources/common/components/fonts/CustomFont.qml
 )
 
 set_source_files_properties(${NOI_ENGINE_EDITOR_QML_SINGLETONS} PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -47,55 +47,53 @@ set_source_files_properties(${NOI_ENGINE_EDITOR_QML_SINGLETONS} PROPERTIES QT_QM
 qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         URI noi_engine_editor
         VERSION 0.0.1
+
+        # Common
         QML_FILES
         Main.qml
+        sources/common/components/AppButton.qml
+        sources/common/components/IconBadge.qml
+        sources/common/components/CustomPage.qml
+        sources/common/components/SearchField.qml
+        sources/common/components/icons/MuiIcon.qml
+        sources/common/components/icons/IconLoaderCreator.js
+        sources/common/components/icons/MaterialSymbolsRegular/codepoints.js
         ${NOI_ENGINE_EDITOR_QML_SINGLETONS}
-
-        # components
-        sources/components/icons/IconLoaderCreator.js
-        sources/components/icons/MaterialSymbolsRegular/codepoints.js
-        sources/components/icons/MuiIcon.qml
-        sources/components/CustomPage.qml
-        sources/components/AppButton.qml
-        sources/components/IconBadge.qml
-        sources/components/SearchField.qml
+        SOURCES
+        sources/noi_engine_editorConfig.hpp
 
         # Pages
-        sources/pages/OpenglTestPage.qml
+        QML_FILES
+        sources/pages/HomePage.qml
         sources/pages/CreateProjectPage.qml
         sources/pages/ProjectEditorPage.qml
-        sources/pages/HomePage.qml
 
         # home
-        sources/components/home/ActionCard.qml
-        sources/components/home/EmptyState.qml
-        sources/components/home/HeroHeader.qml
-        sources/components/home/RecentProjectItem.qml
-        sources/components/home/RecentProjectsSection.qml
-        sources/components/home/QuickActionsRow.qml
+        QML_FILES
+        sources/features/home/components/ActionCard.qml
+        sources/features/home/components/EmptyState.qml
+        sources/features/home/components/HeroHeader.qml
+        sources/features/home/components/QuickActionsRow.qml
 
+        # projects
+        QML_FILES
+        sources/features/projects/components/RecentProjectItem.qml
+        sources/features/projects/components/RecentProjectsSection.qml
         SOURCES
-        # components
-        sources/components/OpenglView.hpp
-        sources/components/OpenglView.cpp
-        sources/components/OpenglRenderer.hpp
-        sources/components/OpenglRenderer.cpp
+        sources/features/projects/ProjectInfo.hpp
+        sources/features/projects/ProjectCreator.hpp
+        sources/features/projects/ProjectCreator.cpp
+        sources/features/projects/RecentProjectsManager.hpp
+        sources/features/projects/RecentProjectsManager.cpp
+        sources/features/projects/CurrentProjectManager.hpp
+        sources/features/projects/CurrentProjectManager.cpp
+        sources/features/projects/components/RecentProjectsModel.hpp
+        sources/features/projects/components/RecentProjectsModel.cpp
 
-        #managers
-        sources/managers/ProjectInfo.hpp
-        sources/managers/RecentProjectsManager.hpp
-        sources/managers/RecentProjectsManager.cpp
-        sources/managers/SettingsManager.hpp
-        sources/managers/SettingsManager.cpp
-        sources/managers/ProjectCreator.hpp
-        sources/managers/ProjectCreator.cpp
-        sources/managers/CurrentProjectManager.hpp
-        sources/managers/CurrentProjectManager.cpp
-
-        # home
-        sources/components/home/RecentProjectsModel.hpp
-        sources/components/home/RecentProjectsModel.cpp
-        sources/noi_engine_editorConfig.hpp
+        # settings
+        SOURCES
+        sources/features/settings/SettingsManager.hpp
+        sources/features/settings/SettingsManager.cpp
 )
 
 set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES

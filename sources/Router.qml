@@ -21,7 +21,6 @@ QtObject {
         "/": "pages/HomePage.qml",
         "/create": "pages/CreateProjectPage.qml",
         "/editor": "pages/ProjectEditorPage.qml",
-        "/test": "pages/OpenglTestPage.qml",
     })
 
     function updateCurrentPath() {

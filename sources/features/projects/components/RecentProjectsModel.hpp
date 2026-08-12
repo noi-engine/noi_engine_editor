@@ -3,7 +3,7 @@
 #include <QAbstractListModel>
 #include <QQmlEngine>
 
-#include "../projects/RecentProjectsManager.hpp"
+#include "../RecentProjectsManager.hpp"
 
 namespace noi_engine_editor
 {
