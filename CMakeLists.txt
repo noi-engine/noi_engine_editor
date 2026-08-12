@@ -26,7 +26,6 @@ add_subdirectory(external/Templi)
 add_subdirectory(external/noi_engine)
 
 # QT
-
 set(CMAKE_AUTORCC ON)
 set(NOI_ENGINE_EDITOR_PROJECT_NAME noi_engine_editor)
 
@@ -110,6 +109,11 @@ target_include_directories(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}
         ${NOI_ENGINE_EDITOR_SOURCE_DIR}/include
+)
+
+target_link_directories(${NOI_ENGINE_EDITOR_PROJECT_NAME}
+        PRIVATE
+        ${CMAKE_BINARY_DIR}/lib
 )
 
 target_link_libraries(${NOI_ENGINE_EDITOR_PROJECT_NAME}
