@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 
 import noi_engine_editor
 
@@ -17,6 +18,22 @@ CustomPage {
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
+    }
+
+    FolderDialog {
+        id: openProjectFolderDialog
+        title: qsTr("Sélectionner le dossier du projet")
+
+        onAccepted: {
+            var path = selectedFolder.toString().replace(/^file:\/\//, "");
+            path = path.replace(/[\/\\]+$/, "");
+
+            var folderName = path.split(/[\/\\]/).pop();
+            if (CurrentProjectManager.openProject(path)) {
+                RecentProjectsManager.addProject(folderName, path);
+                Router.push("/editor");
+            }
+        }
     }
 
     Flickable {
@@ -54,7 +71,7 @@ CustomPage {
             QuickActionsRow {
                 Layout.fillWidth: true
                 onCreateProjectRequested: Router.push("/create")
-                onOpenProjectRequested: {}
+                onOpenProjectRequested: openProjectFolderDialog.open()
             }
 
             RecentProjectsSection {
