@@ -2,8 +2,10 @@
 
 #include <QDateTime>
 #include <QDir>
-#include <QFile>
 #include <QJsonObject>
+
+#include "../../common/utils/JsonIO.hpp"
+#include "../../common/utils/PathResolver.hpp"
 
 namespace noi_engine_editor
 {
@@ -38,13 +40,7 @@ namespace noi_engine_editor
             project["engineVersion"] = "0.0.1";
             project["createdAt"] = QDateTime::currentDateTime().toString(Qt::ISODate);
 
-            QFile file(root.filePath("project.noiproj"));
-            if (!file.open(QIODevice::WriteOnly))
-            {
-                return false;
-            }
-
-            file.write(QJsonDocument(project).toJson());
+            JsonIO::write(PathResolver::projectFilePath(root.absolutePath()), QJsonDocument(project));
             return true;
         }
     }

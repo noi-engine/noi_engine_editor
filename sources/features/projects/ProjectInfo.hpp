@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <QDateTime>
+#include <QJsonObject>
 
 namespace noi_engine_editor
 {
@@ -15,5 +15,8 @@ namespace noi_engine_editor
         QDateTime lastOpened;
 
         bool operator==(const ProjectInfo& other) const = default;
+
+        [[nodiscard]] auto serialize() const -> QJsonObject;
+        [[nodiscard]] static auto deserialize(const QJsonObject& object) -> ProjectInfo;
     };
 }

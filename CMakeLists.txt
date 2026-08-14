@@ -61,6 +61,11 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         ${NOI_ENGINE_EDITOR_QML_SINGLETONS}
         SOURCES
         sources/noi_engine_editorConfig.hpp
+        sources/common/utils/JsonSerializer.hpp
+        sources/common/utils/PathResolver.cpp
+        sources/common/utils/PathResolver.hpp
+        sources/common/utils/JsonIO.cpp
+        sources/common/utils/JsonIO.hpp
 
         # Pages
         QML_FILES
@@ -81,6 +86,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/projects/components/RecentProjectsSection.qml
         SOURCES
         sources/features/projects/ProjectInfo.hpp
+        sources/features/projects/ProjectInfo.cpp
         sources/features/projects/ProjectCreator.hpp
         sources/features/projects/ProjectCreator.cpp
         sources/features/projects/RecentProjectsManager.hpp

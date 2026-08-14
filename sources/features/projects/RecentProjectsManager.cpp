@@ -3,7 +3,10 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QStandardPaths>
-#include <QFile>
+
+#include "../../common/utils/JsonIO.hpp"
+#include "../../common/utils/PathResolver.hpp"
+#include "../../common/utils/JsonSerializer.hpp"
 
 namespace noi_engine_editor
 {
@@ -12,16 +15,6 @@ namespace noi_engine_editor
     RecentProjectsManager::RecentProjectsManager(QObject* parent) : QObject(parent)
     {
         loadFromDisk();
-    }
-
-    auto RecentProjectsManager::getStorageFilePath() -> QString
-    {
-        const auto appData = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        if (!QDir().mkpath(appData))
-        {
-            throw std::runtime_error("Cannot create Config file"); //TODO
-        }
-        return appData + "/recent_projects.json";
     }
 
     auto RecentProjectsManager::addProject(const QString& name, const QString& path) -> void
@@ -87,37 +80,30 @@ namespace noi_engine_editor
     auto RecentProjectsManager::saveToDisk() -> void
     {
         QJsonArray array;
-        for (const auto& [name, path, lastOpened] : m_projects)
+        for (const auto& project : m_projects)
         {
-            QJsonObject obj;
-            obj["name"] = name;
-            obj["path"] = path;
-            obj["lastOpened"] = lastOpened.toString(Qt::ISODate);
-            array.append(obj);
+            array.append(Json::serialize<ProjectInfo>(project));
         }
-
-        if (QFile file(getStorageFilePath()); file.open(QIODevice::WriteOnly))
-        {
-            file.write(QJsonDocument(array).toJson());
-        }
+        JsonIO::write(PathResolver::recentProjectsPath(), QJsonDocument(array));
     }
 
     auto RecentProjectsManager::loadFromDisk() -> void
     {
-        QFile file(getStorageFilePath());
-        if (!file.open(QIODevice::ReadOnly)) return;
-
         m_projects.clear();
-        const auto doc = QJsonDocument::fromJson(file.readAll());
+        QJsonDocument doc;
+
+        try
+        {
+            doc = JsonIO::read(PathResolver::recentProjectsPath());
+        }
+        catch ([[maybe_unused]] std::runtime_error& e)
+        {
+            doc = QJsonDocument(QJsonArray());
+        }
 
         for (const auto array = doc.array(); const auto& value : array)
         {
-            const auto obj = value.toObject();
-            m_projects.append(ProjectInfo{
-                .name = obj["name"].toString(),
-                .path = obj["path"].toString(),
-                .lastOpened = QDateTime::fromString(obj["lastOpened"].toString(), Qt::ISODate)
-            });
+            m_projects.append(Json::deserialize<ProjectInfo>(value.toObject()));
         }
         emit projectsChanged();
     }

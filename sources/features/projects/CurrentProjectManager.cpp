@@ -1,7 +1,9 @@
 #include "CurrentProjectManager.hpp"
 
-#include <QFile>
 #include <QJsonObject>
+
+#include "../../common/utils/JsonIO.hpp"
+#include "../../common/utils/PathResolver.hpp"
 
 namespace noi_engine_editor
 {
@@ -11,14 +13,8 @@ namespace noi_engine_editor
 
     auto CurrentProjectManager::openProject(const QString& path) -> bool
     {
-        QFile file(path + "/project.noiproj");
-        if (!file.open(QIODevice::ReadOnly))
-        {
-            emit projectOpenFailed(tr("Cannot find project.noiproj"));
-            return false;
-        }
+        const auto doc = JsonIO::read(PathResolver::projectFilePath(path));
 
-        const auto doc = QJsonDocument::fromJson(file.readAll());
         if (!doc.isObject())
         {
             emit projectOpenFailed(tr("Invalid project file"));

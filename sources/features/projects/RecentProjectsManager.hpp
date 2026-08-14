@@ -32,8 +32,6 @@ namespace noi_engine_editor
 
         auto saveToDisk() -> void;
 
-        [[nodiscard]] static auto getStorageFilePath() -> QString;
-
         QList<ProjectInfo> m_projects;
     };
 }

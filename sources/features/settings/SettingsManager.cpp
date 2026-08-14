@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QSettings>
 #include <QStandardPaths>
+#include "../../common/utils/PathResolver.hpp"
 
 namespace noi_engine_editor
 {
@@ -13,11 +14,10 @@ namespace noi_engine_editor
 
     SettingsManager::SettingsManager(QObject* parent) : QObject(parent)
     {
-        QSettings settings;
-        const auto fallback = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/NoiEngine/Projects";
+        const QSettings settings;
+        const auto fallback = PathResolver::fallBackDefaultProjectsPath();
 
         m_defaultProjectsPath = settings.value(DEFAULT_PROJECTS_PATH_KEY, fallback).toString();
-        QDir().mkpath(m_defaultProjectsPath);
     }
 
     auto SettingsManager::defaultProjectsPath() const -> QString
