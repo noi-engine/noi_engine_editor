@@ -34,6 +34,15 @@ namespace noi_engine_editor
                     return "";
                 }
             );
+
+            //TODO: bad
+            const auto enginePath = PathResolver::templateEnginePath();
+            std::filesystem::copy(
+                enginePath.toStdString(),
+                QDir(projectPath).filePath(".noi_engine").toStdString(),
+                std::filesystem::copy_options::recursive |
+                std::filesystem::copy_options::overwrite_existing
+            );
         }
         catch (const std::exception& exception)
         {

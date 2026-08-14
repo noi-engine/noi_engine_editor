@@ -26,6 +26,11 @@ auto noi_engine_editor::PathResolver::recentProjectsPath() -> QString
     return confPath() + "/recent_projects.json";
 }
 
+auto noi_engine_editor::PathResolver::templateEnginePath() -> QString
+{
+    return confPath() + "/.noi_engine";
+}
+
 auto noi_engine_editor::PathResolver::fallBackDefaultProjectsPath() -> QString
 {
     return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/noi_engine/projects";
