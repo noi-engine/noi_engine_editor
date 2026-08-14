@@ -100,6 +100,15 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         SOURCES
         sources/features/settings/SettingsManager.hpp
         sources/features/settings/SettingsManager.cpp
+
+        # templates
+        SOURCES
+        sources/features/templates/TemplateUrlResolver.hpp
+        sources/features/templates/TemplateUrlResolver.cpp
+        sources/features/templates/TemplateManager.hpp
+        sources/features/templates/TemplateManager.cpp
+        sources/features/templates/TemplateInfo.hpp
+        sources/features/templates/TemplateInfo.cpp
 )
 
 set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES
