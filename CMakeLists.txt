@@ -109,6 +109,10 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/templates/TemplateManager.cpp
         sources/features/templates/TemplateInfo.hpp
         sources/features/templates/TemplateInfo.cpp
+        sources/features/templates/LocalTemplateManager.hpp
+        sources/features/templates/LocalTemplateManager.cpp
+        QML_FILES
+        sources/features/templates/components/TemplateMarketplaceDialog.qml
 )
 
 set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES

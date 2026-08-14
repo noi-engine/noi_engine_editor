@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QQmlEngine>
 #include <QObject>
 #include <QVariantList>
 #include <QNetworkAccessManager>
@@ -9,6 +10,7 @@ namespace noi_engine_editor
     class TemplateManager : public QObject
     {
         Q_OBJECT
+        QML_ELEMENT
         Q_PROPERTY(bool isPending READ isPending NOTIFY isPendingChanged)
         Q_PROPERTY(QVariantList templates READ templates NOTIFY templatesChanged)
 
@@ -16,8 +18,8 @@ namespace noi_engine_editor
         explicit TemplateManager(QObject* parent = nullptr);
         ~TemplateManager() override = default;
 
-        auto isPending() const -> bool;
-        auto templates() const -> QVariantList;
+        [[nodiscard]] auto isPending() const -> bool;
+        [[nodiscard]] auto templates() const -> QVariantList;
 
         Q_INVOKABLE auto fetchTemplates() -> void;
 

@@ -10,6 +10,12 @@ CustomPage {
 
     title: qsTr("Create Project")
 
+    property var selectedTemplate: null
+
+    LocalTemplateManager {
+        id: localTemplateManager
+    }
+
     ProjectCreator {
         id: projectCreator
 
@@ -34,6 +40,14 @@ CustomPage {
         }
     }
 
+    TemplateMarketplaceDialog {
+        id: marketplaceDialog
+
+        onTemplateDownloaded: {
+            localTemplateManager.loadLocalTemplates();
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
@@ -41,13 +55,12 @@ CustomPage {
 
     ColumnLayout {
         anchors.centerIn: parent
-
         width: Math.min(parent.width - 80, 560)
+        spacing: 20
 
-        spacing: 22
-
+        // En-tête
         ColumnLayout {
-            spacing: 6
+            spacing: 4
 
             Text {
                 text: qsTr("Create a new project")
@@ -57,12 +70,13 @@ CustomPage {
             }
 
             Text {
-                text: qsTr("Choose a name and a location for your project.")
+                text: qsTr("Choose a name, location and template for your project.")
                 font.pixelSize: 13
                 color: Theme.darkGrey
             }
         }
 
+        // Champ : Nom du projet
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 6
@@ -78,9 +92,7 @@ CustomPage {
 
                 Layout.fillWidth: true
                 Layout.preferredHeight: 44
-
                 text: "NewProject"
-
                 color: Theme.white
                 font.pixelSize: 14
 
@@ -93,6 +105,7 @@ CustomPage {
             }
         }
 
+        // Champ : Emplacement + Option "Set as default"
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 6
@@ -112,9 +125,7 @@ CustomPage {
 
                     Layout.fillWidth: true
                     Layout.preferredHeight: 44
-
                     text: SettingsManager.defaultProjectsPath
-
                     color: Theme.white
                     font.pixelSize: 13
 
@@ -129,40 +140,123 @@ CustomPage {
                 AppButton {
                     text: qsTr("Browse")
                     icon: "folder_open"
-
                     onClicked: folderDialog.open()
+                }
+            }
+
+            CheckBox {
+                id: defaultFolderCheckBox
+                text: qsTr("Set as default projects folder")
+            }
+        }
+
+        // Champ : Sélection de Template
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 6
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                Text {
+                    text: qsTr("Select Template *")
+                    font.pixelSize: 13
+                    color: Theme.darkGrey
+                }
+
+                Item { Layout.fillWidth: true }
+
+                AppButton {
+                    text: qsTr("Marketplace")
+                    icon: "shopping_cart"
+                    onClicked: marketplaceDialog.open()
+                }
+            }
+
+            ListView {
+                id: templateListView
+
+                Layout.fillWidth: true
+                Layout.preferredHeight: 120
+                model: localTemplateManager.templates
+                clip: true
+                spacing: 8
+
+                delegate: Rectangle {
+                    required property var modelData
+                    required property int index
+
+                    readonly property bool isSelected: root.selectedTemplate && root.selectedTemplate.id === modelData.id
+
+                    width: templateListView.width
+                    height: 52
+                    radius: 8
+                    color: isSelected ? Theme.bgSecondary : "transparent"
+                    border.color: isSelected ? Theme.accent : Theme.borderColor
+                    border.width: isSelected ? 2 : 1
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 10
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+
+                            Text {
+                                text: modelData.name
+                                color: Theme.white
+                                font.bold: true
+                                font.pixelSize: 13
+                            }
+
+                            Text {
+                                text: modelData.description
+                                color: Theme.darkGrey
+                                font.pixelSize: 11
+                                elide: Text.ElideRight
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            root.selectedTemplate = modelData;
+                            errorLabel.visible = false;
+                        }
+                    }
+                }
+
+                ItemDelegate {
+                    visible: templateListView.count === 0
+                    width: templateListView.width
+                    height: 50
+                    text: qsTr("No template installed. Open Marketplace to download one.")
+                    enabled: false
                 }
             }
         }
 
-        CheckBox {
-            id: defaultFolderCheckBox
-
-            text: qsTr("Set as default projects folder")
-        }
-
+        // Zone d'erreur
         Text {
             id: errorLabel
 
             visible: false
-
             Layout.fillWidth: true
-
             wrapMode: Text.WordWrap
-
             color: Theme.error
             font.pixelSize: 12
         }
 
+        // Actions
         RowLayout {
             Layout.fillWidth: true
-            Layout.topMargin: 10
-
+            Layout.topMargin: 6
             spacing: 12
 
-            Item {
-                Layout.fillWidth: true
-            }
+            Item { Layout.fillWidth: true }
 
             AppButton {
                 text: qsTr("Cancel")
@@ -180,11 +274,21 @@ CustomPage {
                         return;
                     }
 
+                    if (!root.selectedTemplate) {
+                        errorLabel.text = qsTr("Please select a template to continue");
+                        errorLabel.visible = true;
+                        return;
+                    }
+
                     if (defaultFolderCheckBox.checked) {
                         SettingsManager.defaultProjectsPath = locationField.text;
                     }
 
-                    projectCreator.createProject(nameField.text.trim(), locationField.text);
+                    projectCreator.createProject(
+                        nameField.text.trim(),
+                        locationField.text,
+                        root.selectedTemplate.id
+                    );
                 }
             }
         }

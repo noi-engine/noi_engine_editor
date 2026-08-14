@@ -47,7 +47,8 @@ namespace noi_engine_editor
         connect(reply, &QNetworkReply::finished, this, [this, reply]() -> void {
             reply->deleteLater();
 
-            if (reply->error() != QNetworkReply::NoError) {
+            if (reply->error() != QNetworkReply::NoError)
+            {
                 setPending(false);
                 emit fetchFailed(reply->errorString());
                 return;
@@ -77,7 +78,9 @@ namespace noi_engine_editor
 
     auto TemplateManager::fetchIndividualTemplate(const QString& repositoryUrl) -> void
     {
+        qDebug() << "REPOURL " << repositoryUrl;
         const QUrl detailUrl(TemplateUrlResolver::templateJsonUrl(repositoryUrl));
+        qDebug() << "URL " << detailUrl.toString();
         QNetworkReply* reply = m_networkManager.get(QNetworkRequest(detailUrl));
 
         connect(reply, &QNetworkReply::finished, this, [this, reply, repositoryUrl]() -> void {
