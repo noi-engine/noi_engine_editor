@@ -39,7 +39,7 @@ Rectangle {
         MuiIcon {
             visible: root.icon.length > 0
 
-            name: root.icon
+            name: root.icon.length > 0 ? root.icon : "close"
 
             font.pixelSize: 16
 

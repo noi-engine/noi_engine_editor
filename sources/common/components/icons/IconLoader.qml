@@ -6,7 +6,12 @@ import "IconLoaderCreator.js" as JSIconLoader
 QtObject {
     readonly property var muiIconLoader: JSIconLoader.getLoader("mui")
 
-    function mui(iconName){
-        return muiIconLoader.get(iconName);
+    function mui(iconName) {
+        const icon = muiIconLoader.get(iconName);
+        if (!icon) {
+            console.log("Icon.name=" + iconName + " is not found");
+        }
+
+        return icon;
     }
 }
