@@ -18,6 +18,7 @@ namespace noi_engine_editor
 
         [[nodiscard]] auto templates() const -> QVariantList;
 
+        Q_INVOKABLE [[nodiscard]] auto isInstalled(const QString& templateId) const -> bool;
         Q_INVOKABLE auto loadLocalTemplates() -> void;
 
     signals:

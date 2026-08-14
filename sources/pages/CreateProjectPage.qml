@@ -42,6 +42,7 @@ CustomPage {
 
     TemplateMarketplaceDialog {
         id: marketplaceDialog
+        localTemplateManager: localTemplateManager
 
         onTemplateDownloaded: {
             localTemplateManager.loadLocalTemplates();
@@ -58,7 +59,6 @@ CustomPage {
         width: Math.min(parent.width - 80, 560)
         spacing: 20
 
-        // En-tête
         ColumnLayout {
             spacing: 4
 
@@ -76,7 +76,6 @@ CustomPage {
             }
         }
 
-        // Champ : Nom du projet
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 6
@@ -105,7 +104,6 @@ CustomPage {
             }
         }
 
-        // Champ : Emplacement + Option "Set as default"
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 6
@@ -150,7 +148,6 @@ CustomPage {
             }
         }
 
-        // Champ : Sélection de Template
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 6
@@ -164,7 +161,9 @@ CustomPage {
                     color: Theme.darkGrey
                 }
 
-                Item { Layout.fillWidth: true }
+                Item {
+                    Layout.fillWidth: true
+                }
 
                 AppButton {
                     text: qsTr("Marketplace")
@@ -192,7 +191,7 @@ CustomPage {
                     height: 52
                     radius: 8
                     color: isSelected ? Theme.bgSecondary : "transparent"
-                    border.color: isSelected ? Theme.accent : Theme.borderColor
+                    border.color: isSelected ? Theme.primaryColor : "transparent"
                     border.width: isSelected ? 2 : 1
 
                     RowLayout {
@@ -239,7 +238,6 @@ CustomPage {
             }
         }
 
-        // Zone d'erreur
         Text {
             id: errorLabel
 
@@ -250,13 +248,14 @@ CustomPage {
             font.pixelSize: 12
         }
 
-        // Actions
         RowLayout {
             Layout.fillWidth: true
             Layout.topMargin: 6
             spacing: 12
 
-            Item { Layout.fillWidth: true }
+            Item {
+                Layout.fillWidth: true
+            }
 
             AppButton {
                 text: qsTr("Cancel")
@@ -284,11 +283,7 @@ CustomPage {
                         SettingsManager.defaultProjectsPath = locationField.text;
                     }
 
-                    projectCreator.createProject(
-                        nameField.text.trim(),
-                        locationField.text,
-                        root.selectedTemplate.id
-                    );
+                    projectCreator.createProject(nameField.text.trim(), locationField.text, root.selectedTemplate.id);
                 }
             }
         }

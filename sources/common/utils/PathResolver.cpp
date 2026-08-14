@@ -12,6 +12,7 @@ static auto createDirOrThrow(const QString& path) -> void;
 auto noi_engine_editor::PathResolver::init() -> void
 {
     createDirOrThrow(confPath());
+    createDirOrThrow(templatesPath());
     createDirOrThrow(fallBackDefaultProjectsPath());
 }
 
@@ -40,10 +41,20 @@ auto noi_engine_editor::PathResolver::templateFilePath(const QString& templatePa
     return templatePath + "/noi_engine.template.json";
 }
 
+auto noi_engine_editor::PathResolver::templateAbsolutePath(const QString& templateId) -> QString
+{
+    return QDir(templatesPath()).filePath(templateId);
+}
+
 auto createDirOrThrow(const QString& path) -> void
 {
     if (!QDir().mkpath(path))
     {
         throw std::runtime_error(("Cannot create " + path).toStdString());
     }
+}
+
+auto noi_engine_editor::PathResolver::templatesPath() -> QString
+{
+    return confPath() + "/templates";
 }

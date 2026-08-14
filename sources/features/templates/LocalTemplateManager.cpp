@@ -1,6 +1,12 @@
 #include "LocalTemplateManager.hpp"
+#include "PathResolver.hpp"
+#include "TemplateInfo.hpp"
+
+#include <QDir>
+#include <QFile>
+#include <QJsonDocument>
 #include <QJsonObject>
-#include <QVariantMap>
+#include <QDebug>
 
 namespace noi_engine_editor
 {
@@ -15,28 +21,59 @@ namespace noi_engine_editor
         return m_templates;
     }
 
+
+    auto LocalTemplateManager::isInstalled(const QString& templateId) const -> bool
+    {
+        for (const auto& item : m_templates)
+        {
+        if (item.toMap().value("id").toString() == templateId)
+        {
+            return true;
+        }
+        }
+        return false;
+    }
+
     auto LocalTemplateManager::loadLocalTemplates() -> void
     {
         m_templates.clear();
 
-        // TODO: Implémenter le scan réel d'un dossier (ex: ~/.noi_engine/templates/)
-        // Pour l'instant, liste statique simulant des templates téléchargés :
-        QVariantMap basic2d;
-        basic2d["id"] = "noi-2d-basic";
-        basic2d["name"] = "2D Basic Template";
-        basic2d["version"] = "1.0.0";
-        basic2d["description"] = "A simple 2D scene starter with a camera and player node.";
-        basic2d["author"] = "NoiEngine Team";
+        const QDir templatesDir(PathResolver::templatesPath());
+        if (!templatesDir.exists())
+        {
+            emit templatesChanged();
+            return;
+        }
 
-        QVariantMap emptyProj;
-        emptyProj["id"] = "noi-empty";
-        emptyProj["name"] = "Empty Project";
-        emptyProj["version"] = "1.0.0";
-        emptyProj["description"] = "A blank project with minimal configuration.";
-        emptyProj["author"] = "NoiEngine Team";
+        const QStringList subDirs = templatesDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString& subDir : subDirs)
+        {
+            const QString jsonPath = PathResolver::templateFilePath(templatesDir.absoluteFilePath(subDir));
 
-        m_templates.append(basic2d);
-        m_templates.append(emptyProj);
+            QFile file(jsonPath);
+            if (!file.open(QIODevice::ReadOnly))
+            {
+                continue;
+            }
+
+            const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+            file.close();
+
+            if (!doc.isObject())
+            {
+                continue;
+            }
+            const TemplateInfo info = TemplateInfo::deserialize(doc.object(), "");
+
+            QVariantMap tMap;
+            tMap["id"] = info.id;
+            tMap["name"] = info.name;
+            tMap["author"] = info.author;
+            tMap["version"] = info.version;
+            tMap["description"] = info.description;
+
+            m_templates.append(tMap);
+        }
 
         emit templatesChanged();
     }

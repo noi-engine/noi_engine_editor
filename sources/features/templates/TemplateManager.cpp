@@ -78,9 +78,7 @@ namespace noi_engine_editor
 
     auto TemplateManager::fetchIndividualTemplate(const QString& repositoryUrl) -> void
     {
-        qDebug() << "REPOURL " << repositoryUrl;
         const QUrl detailUrl(TemplateUrlResolver::templateJsonUrl(repositoryUrl));
-        qDebug() << "URL " << detailUrl.toString();
         QNetworkReply* reply = m_networkManager.get(QNetworkRequest(detailUrl));
 
         connect(reply, &QNetworkReply::finished, this, [this, reply, repositoryUrl]() -> void {

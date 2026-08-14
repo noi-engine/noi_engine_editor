@@ -14,6 +14,8 @@ Dialog {
     height: 400
     standardButtons: Dialog.Close
 
+    property LocalTemplateManager localTemplateManager: null
+
     signal templateDownloaded()
 
     TemplateManager {
@@ -24,6 +26,7 @@ Dialog {
 
     ColumnLayout {
         anchors.fill: parent
+        anchors.margins: 12
         spacing: 10
 
         BusyIndicator {
@@ -43,7 +46,10 @@ Dialog {
             delegate: Rectangle {
                 required property var modelData
 
-                width: ListView.view.width
+                // Vérification si le template courant est déjà installé localement
+                readonly property bool installed: root.localTemplateManager ? root.localTemplateManager.isInstalled(modelData.id) : false
+
+                width: ListView.view ? ListView.view.width : 0
                 height: 64
                 radius: 8
                 color: Theme.bgSecondary
@@ -74,13 +80,16 @@ Dialog {
                     }
 
                     AppButton {
-                        text: qsTr("Download")
-                        icon: "download"
+                        text: installed ? qsTr("Installed") : qsTr("Download")
+                        icon: installed ? "check" : "download"
+                        enabled: !installed
 
                         onClicked: {
-                            console.log("Downloading template:", modelData.id);
-                            root.templateDownloaded();
-                            root.close();
+                            if (!installed) {
+                                console.log("Downloading template:", modelData.id);
+                                root.templateDownloaded();
+                                root.close();
+                            }
                         }
                     }
                 }

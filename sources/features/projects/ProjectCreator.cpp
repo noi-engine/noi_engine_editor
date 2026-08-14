@@ -1,74 +1,48 @@
 #include "ProjectCreator.hpp"
 
-#include <QDateTime>
 #include <QDir>
 #include <QJsonObject>
-
-#include "../../common/utils/JsonIO.hpp"
+#include <Templi/Templi.hpp>
 #include "../../common/utils/PathResolver.hpp"
 
 namespace noi_engine_editor
 {
-    namespace
-    {
-        auto createFolderStructure(const QDir& root) -> bool
-        {
-            static const QStringList folders = {
-                "assets/2d",
-                "assets/3d",
-                "assets/audio",
-                "assets/scripts",
-                "scenes",
-                "cache"
-            };
-
-            for (const auto& folder : folders)
-            {
-                if (!root.mkpath(folder))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        auto writeProjectFile(const QDir& root, const QString& name) -> bool
-        {
-            QJsonObject project;
-            project["name"] = name;
-            project["engineVersion"] = "0.0.1";
-            project["createdAt"] = QDateTime::currentDateTime().toString(Qt::ISODate);
-
-            JsonIO::write(PathResolver::projectFilePath(root.absolutePath()), QJsonDocument(project));
-            return true;
-        }
-    }
-
     ProjectCreator::ProjectCreator(QObject* parent) : QObject(parent)
     {
     }
 
-    auto ProjectCreator::createProject(const QString& name, const QString& location) -> bool
+    auto ProjectCreator::createProject(const QString& name, const QString& location, const QString& templateId) -> bool
     {
         const auto projectPath = QDir(location).filePath(name);
-        const QDir root(projectPath);
-
-        if (root.exists())
+        if (const QDir root(projectPath); root.exists())
         {
             emit projectCreationFailed(tr("A folder with this name already exists"));
             return false;
         }
 
-        if (!QDir().mkpath(projectPath))
+        try
         {
-            emit projectCreationFailed(tr("Cannot create project folder"));
-            return false;
+            const auto templatePath = PathResolver::templateAbsolutePath(templateId);
+            Templi::generate_with_templi_config(
+                templatePath.toStdString(),
+                projectPath.toStdString(),
+                [name](const Templi::Placeholder& placeholder) -> std::string
+                {
+                    if (placeholder.m_name == "PROJECT_NAME") return name.toStdString();
+                    if (placeholder.m_name == "PROJECT_VERSION") return "0.0.1";
+                    if (placeholder.m_name == "PROJECT_CATEGORY") return "2D";
+                    return "";
+                }
+            );
         }
-
-        if (!createFolderStructure(root) || !writeProjectFile(root, name))
+        catch (const std::exception& exception)
         {
-            emit projectCreationFailed(tr("Cannot write project files"));
+            QDir(projectPath).removeRecursively();
+
+            emit projectCreationFailed(
+                QString::fromUtf8(exception.what())
+            );
+
             return false;
         }
 
