@@ -46,6 +46,27 @@ namespace noi_engine_editor
         return true;
     }
 
+
+    auto CurrentProjectManager::saveProject() const -> bool
+    {
+        if (!m_isOpen || m_path.isEmpty())
+        {
+            return false;
+        }
+
+        try
+        {
+            const QJsonObject json = Json::serialize(m_project);
+            JsonIO::write(PathResolver::projectFilePath(m_path), QJsonDocument(json));
+            return true;
+        }
+        catch (const std::exception& e)
+        {
+            qDebug() << "Failed to save project:" << e.what(); //TODO
+            return false;
+        }
+    }
+
     auto CurrentProjectManager::closeProject() -> void
     {
         m_path.clear();
@@ -85,12 +106,12 @@ namespace noi_engine_editor
         return m_project.windowHeight;
     }
 
-    auto CurrentProjectManager::setWindowWidth(int width) -> void
+    auto CurrentProjectManager::setWindowWidth(const int width) -> void
     {
-        this->m_project.windowHeight = width;
+        this->m_project.windowWidth = width;
     }
 
-    auto CurrentProjectManager::setWindowHeight(int height) -> void
+    auto CurrentProjectManager::setWindowHeight(const int height) -> void
     {
         this->m_project.windowHeight = height;
     }

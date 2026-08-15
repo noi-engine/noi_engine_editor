@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QObject>
 #include <QQmlEngine>
 #include <QString>
 #include "ProjectInfo.hpp"
@@ -26,8 +25,9 @@ namespace noi_engine_editor
     public:
         explicit CurrentProjectManager(QObject* parent = nullptr);
 
-        Q_INVOKABLE [[nodiscard]] auto openProject(const QString& path) -> bool;
         Q_INVOKABLE auto closeProject() -> void;
+        Q_INVOKABLE [[nodiscard]] auto openProject(const QString& path) -> bool;
+        Q_INVOKABLE [[nodiscard]] auto saveProject() const -> bool;
 
         [[nodiscard]] auto path() const -> QString;
         [[nodiscard]] auto isOpen() const -> bool;

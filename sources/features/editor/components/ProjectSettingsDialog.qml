@@ -11,7 +11,16 @@ Dialog {
     modal: true
     anchors.centerIn: parent
     width: 460
-    standardButtons: Dialog.Close
+    standardButtons: Dialog.Save | Dialog.Cancel
+
+    onAccepted: {
+        CurrentProjectManager.name = nameInput.text
+        CurrentProjectManager.startScene = sceneInput.text
+        CurrentProjectManager.windowWidth = parseInt(widthInput.text) || 1280
+        CurrentProjectManager.windowHeight = parseInt(heightInput.text) || 720
+
+        CurrentProjectManager.saveProject()
+    }
 
     ColumnLayout {
         width: parent.width
@@ -28,10 +37,10 @@ Dialog {
             }
 
             TextField {
+                id: nameInput
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
                 text: CurrentProjectManager.name
-                readOnly: true
                 color: Theme.white
                 font.pixelSize: 13
 
@@ -76,15 +85,25 @@ Dialog {
             spacing: 6
 
             Text {
-                text: qsTr("Target Platform")
+                text: qsTr("Start Scene")
                 font.pixelSize: 12
                 color: Theme.darkGrey
             }
 
-            ComboBox {
+            TextField {
+                id: sceneInput
                 Layout.fillWidth: true
                 Layout.preferredHeight: 40
-                model: [qsTr("Desktop"), qsTr("Web"), qsTr("Mobile")]
+                text: CurrentProjectManager.startScene
+                color: Theme.white
+                font.pixelSize: 12
+
+                background: Rectangle {
+                    radius: 8
+                    color: Theme.bgTertiary
+                    border.color: Theme.borderColor
+                    border.width: 1
+                }
             }
         }
 
@@ -103,10 +122,12 @@ Dialog {
                 }
 
                 TextField {
+                    id: widthInput
                     Layout.fillWidth: true
                     Layout.preferredHeight: 40
-                    text: "1280"
+                    text: CurrentProjectManager.windowWidth.toString()
                     color: Theme.white
+                    validator: IntValidator { bottom: 100; top: 7680 }
 
                     background: Rectangle {
                         radius: 8
@@ -128,10 +149,12 @@ Dialog {
                 }
 
                 TextField {
+                    id: heightInput
                     Layout.fillWidth: true
                     Layout.preferredHeight: 40
-                    text: "720"
+                    text: CurrentProjectManager.windowHeight.toString()
                     color: Theme.white
+                    validator: IntValidator { bottom: 100; top: 4320 }
 
                     background: Rectangle {
                         radius: 8
