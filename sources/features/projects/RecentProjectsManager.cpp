@@ -27,8 +27,8 @@ namespace noi_engine_editor
             });
 
         m_projects.prepend(ProjectInfo{
-            .name = name,
             .path = cleanPath,
+            .name = name,
             .lastOpened = QDateTime::currentDateTime()
         });
 

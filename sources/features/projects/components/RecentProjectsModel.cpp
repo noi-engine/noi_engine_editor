@@ -55,13 +55,13 @@ namespace noi_engine_editor
             return {};
         }
 
-        const auto& [name, path, lastOpened] = m_cachedProjects[index.row()];
+        const auto& project = m_cachedProjects[index.row()];
 
         switch (role)
         {
-        case NameRole: return name;
-        case PathRole: return path;
-        case LastOpenedRole: return lastOpened;
+        case NameRole: return project.name;
+        case PathRole: return project.path;
+        case LastOpenedRole: return project.lastOpened;
         default: return {};
         }
     }

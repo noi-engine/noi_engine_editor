@@ -10,13 +10,20 @@ namespace noi_engine_editor
 {
     struct ProjectInfo
     {
-        QString name;
         QString path;
-        QDateTime lastOpened;
+        QString name;
+        QString startScene;
+        QString category{"2D"};
+        QString version{"0.0.1"};
 
-        bool operator==(const ProjectInfo& other) const = default;
+        int windowWidth{1280};
+        int windowHeight{720};
+
+        QDateTime lastOpened;
 
         [[nodiscard]] auto serialize() const -> QJsonObject;
         [[nodiscard]] static auto deserialize(const QJsonObject& object) -> ProjectInfo;
+
+        auto operator==(const ProjectInfo &other) const -> bool = default;
     };
 }
