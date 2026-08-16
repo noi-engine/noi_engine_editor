@@ -41,6 +41,11 @@ auto noi_engine_editor::PathResolver::projectFilePath(const QString& projectPath
     return projectPath + "/noi_engine.proj.json";
 }
 
+auto noi_engine_editor::PathResolver::projectResourcesPath(const QString& projectPath) -> QString
+{
+    return projectPath + "/resources";
+}
+
 auto noi_engine_editor::PathResolver::templateFilePath(const QString& templatePath) -> QString
 {
     return templatePath + "/noi_engine.template.json";

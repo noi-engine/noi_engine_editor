@@ -67,6 +67,11 @@ namespace noi_engine_editor
         }
     }
 
+    auto CurrentProjectManager::resourcesPath() const -> QString
+    {
+        return PathResolver::projectResourcesPath(this->m_path);
+    }
+
     auto CurrentProjectManager::closeProject() -> void
     {
         m_path.clear();

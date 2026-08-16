@@ -10,6 +10,7 @@ CustomPage {
     title: CurrentProjectManager.name
 
     property var selectedEntity: null
+    property bool isResourcePanelOpen: false
 
     Rectangle {
         anchors.fill: parent
@@ -39,29 +40,88 @@ CustomPage {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            orientation: Qt.Horizontal
+            orientation: Qt.Vertical
 
-            SceneHierarchyPanel {
-                SplitView.preferredWidth: 260
-                SplitView.minimumWidth: 200
-
-                selectedName: root.selectedEntity ? root.selectedEntity.name : ""
-
-                onEntitySelected: entity => root.selectedEntity = entity
-            }
-
-            ViewportPanel {
+            SplitView {
                 SplitView.fillWidth: true
-                SplitView.minimumWidth: 400
+                SplitView.fillHeight: true
 
-                selectedEntity: root.selectedEntity
+                orientation: Qt.Horizontal
+
+                SceneHierarchyPanel {
+                    SplitView.preferredWidth: 260
+                    SplitView.minimumWidth: 200
+
+                    selectedName: root.selectedEntity ? root.selectedEntity.name : ""
+
+                    onEntitySelected: entity => root.selectedEntity = entity
+                }
+
+                ViewportPanel {
+                    SplitView.fillWidth: true
+                    SplitView.minimumWidth: 400
+
+                    selectedEntity: root.selectedEntity
+                }
+
+                InspectorPanel {
+                    SplitView.preferredWidth: 300
+                    SplitView.minimumWidth: 260
+
+                    entity: root.selectedEntity
+                }
             }
 
-            InspectorPanel {
-                SplitView.preferredWidth: 300
-                SplitView.minimumWidth: 260
+            ResourcePanel {
+                id: resourcePanel
+                SplitView.preferredHeight: 220
+                SplitView.minimumHeight: 120
+                visible: root.isResourcePanelOpen
+            }
+        }
 
-                entity: root.selectedEntity
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 28
+            color: Theme.bgSecondary
+
+            Rectangle {
+                anchors.top: parent.top
+                width: parent.width
+                height: 1
+                color: Theme.borderColor
+            }
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+
+                MouseArea {
+                    Layout.fillHeight: true
+                    implicitWidth: toggleRow.implicitWidth
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.isResourcePanelOpen = !root.isResourcePanelOpen
+
+                    RowLayout {
+                        id: toggleRow
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 6
+
+                        IconBadge {
+                            icon: root.isResourcePanelOpen ? "keyboard_arrow_down" : "keyboard_arrow_up"
+                        }
+
+                        Text {
+                            text: qsTr("Folder Resources")
+                            font.pixelSize: 11
+                            font.weight: Font.Medium
+                            color: Theme.white
+                        }
+                    }
+                }
+
+                Item { Layout.fillWidth: true }
             }
         }
     }

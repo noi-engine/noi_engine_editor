@@ -19,4 +19,5 @@ namespace noi_engine_editor::PathResolver
 
     [[nodiscard]] auto fallBackDefaultProjectsPath() -> QString;
     [[nodiscard]] auto projectFilePath(const QString& projectPath) -> QString;
+    [[nodiscard]] auto projectResourcesPath(const QString& projectPath) -> QString;
 }

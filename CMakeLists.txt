@@ -123,6 +123,11 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/InspectorPanel.qml
         sources/features/editor/components/PropertyField.qml
         sources/features/editor/components/ProjectSettingsDialog.qml
+        sources/features/editor/components/resources/ResourcePanel.qml
+        sources/features/editor/components/resources/ResourceItemDelegate.qml
+        sources/features/editor/components/resources/RenameDialog.qml
+        sources/features/editor/components/resources/DeleteConfirmDialog.qml
+        sources/features/editor/components/resources/ImportDialog.qml
 )
 
 set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES
