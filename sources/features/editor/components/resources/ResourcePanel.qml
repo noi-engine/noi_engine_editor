@@ -15,6 +15,14 @@ Item {
         return "file://" + str
     }
 
+    function refreshFolderModel() {
+        let current = rootItem.currentFolder
+        folderModel.folder = ""
+        Qt.callLater(function() {
+            folderModel.folder = current
+        })
+    }
+
     readonly property string rootFolder: toFolderUrl(CurrentProjectManager.resourcesPath())
     property string currentFolder: rootFolder
     property string selectedFilePath: ""
@@ -32,28 +40,40 @@ Item {
 
         RenameDialog {
             id: renameDialog
-            onConfirmed: newName => console.log("Renamed target to:", newName)
+            property string targetPath: ""
+            onConfirmed: newName => {
+                if (CurrentProjectResourcesManager.renameItem(targetPath, newName)) {
+                    refreshFolderModel()
+                }
+            }
         }
 
         DeleteConfirmDialog {
             id: deleteDialog
-            onConfirmed: console.log("Deleted target:", deleteDialog.targetName)
+            property string targetPath: ""
+            onConfirmed: {
+                if (CurrentProjectResourcesManager.deleteItem(targetPath)) {
+                    rootItem.selectedFilePath = ""
+                    refreshFolderModel()
+                }
+            }
         }
 
         ImportDialog {
             id: importDialog
             onImported: urls => {
-                for (let i = 0; i < urls.length; i++) {
-                    console.log("Importing resource to:", rootItem.currentFolder, "->", urls[i])
-                }
+                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder)
+                refreshFolderModel()
             }
         }
 
-        Rectangle {
-            anchors.top: parent.top
-            width: parent.width
-            height: 1
-            color: Theme.borderColor
+        RenameDialog {
+            id: newFolderDialog
+            title: qsTr("New Folder")
+            onConfirmed: folderName => {
+                CurrentProjectResourcesManager.createFolder(rootItem.currentFolder, folderName)
+                refreshFolderModel()
+            }
         }
 
         DropArea {
@@ -88,9 +108,8 @@ Item {
 
             onDropped: drop => {
                 if (drop.hasUrls) {
-                    for (let i = 0; i < drop.urls.length; i++) {
-                        console.log("Copying to resource directory:", drop.urls[i])
-                    }
+                    CurrentProjectResourcesManager.importPaths(drop.urls, rootItem.currentFolder)
+                    refreshFolderModel()
                 }
             }
         }
@@ -142,7 +161,10 @@ Item {
                 AppButton {
                     icon: "create_new_folder"
                     text: qsTr("New Folder")
-                    onClicked: console.log("Create folder in:", rootItem.currentFolder)
+                    onClicked: {
+                        newFolderDialog.targetName = "NewFolder"
+                        newFolderDialog.open()
+                    }
                 }
             }
 
@@ -200,10 +222,12 @@ Item {
                         }
                     }
                     onRenameRequested: {
+                        renameDialog.targetPath = itemPath
                         renameDialog.targetName = itemName
                         renameDialog.open()
                     }
                     onDeleteRequested: {
+                        deleteDialog.targetPath = itemPath
                         deleteDialog.targetName = itemName
                         deleteDialog.open()
                     }
