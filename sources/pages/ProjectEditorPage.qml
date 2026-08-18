@@ -10,7 +10,7 @@ CustomPage {
     title: CurrentProjectManager.name
 
     property var selectedEntity: null
-    property bool isResourcePanelOpen: false
+    property string activeBottomPanel: ""
 
     Rectangle {
         anchors.fill: parent
@@ -51,35 +51,48 @@ CustomPage {
                 SceneHierarchyPanel {
                     SplitView.preferredWidth: 260
                     SplitView.minimumWidth: 200
-
                     selectedName: root.selectedEntity ? root.selectedEntity.name : ""
-
                     onEntitySelected: entity => root.selectedEntity = entity
                 }
 
                 ViewportPanel {
                     SplitView.fillWidth: true
                     SplitView.minimumWidth: 400
-
                     selectedEntity: root.selectedEntity
                 }
 
                 InspectorPanel {
                     SplitView.preferredWidth: 300
                     SplitView.minimumWidth: 260
-
                     entity: root.selectedEntity
                 }
             }
 
-            ResourcePanel {
-                id: resourcePanel
+            Item {
                 SplitView.preferredHeight: 220
                 SplitView.minimumHeight: 120
-                visible: root.isResourcePanelOpen
+                visible: root.activeBottomPanel !== ""
+
+                StackLayout {
+                    anchors.fill: parent
+                    currentIndex: {
+                        if (root.activeBottomPanel === "scenes") return 0;
+                        if (root.activeBottomPanel === "resources") return 1;
+                        return -1;
+                    }
+
+                    SceneBrowserPanel {
+                        id: scenePanel
+                    }
+
+                    ResourcePanel {
+                        id: resourcePanel
+                    }
+                }
             }
         }
 
+        // Barre d'état et onglets inférieurs
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 28
@@ -96,29 +109,18 @@ CustomPage {
                 anchors.fill: parent
                 anchors.leftMargin: 10
                 anchors.rightMargin: 10
+                spacing: 16
 
-                MouseArea {
-                    Layout.fillHeight: true
-                    implicitWidth: toggleRow.implicitWidth
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.isResourcePanelOpen = !root.isResourcePanelOpen
+                BottomTabButton {
+                    text: qsTr("Scenes")
+                    isOpen: root.activeBottomPanel === "scenes"
+                    onClicked: root.activeBottomPanel = (root.activeBottomPanel === "scenes") ? "" : "scenes"
+                }
 
-                    RowLayout {
-                        id: toggleRow
-                        anchors.verticalCenter: parent.verticalCenter
-                        spacing: 6
-
-                        IconBadge {
-                            icon: root.isResourcePanelOpen ? "keyboard_arrow_down" : "keyboard_arrow_up"
-                        }
-
-                        Text {
-                            text: qsTr("Folder Resources")
-                            font.pixelSize: 11
-                            font.weight: Font.Medium
-                            color: Theme.white
-                        }
-                    }
+                BottomTabButton {
+                    text: qsTr("Folder Resources")
+                    isOpen: root.activeBottomPanel === "resources"
+                    onClicked: root.activeBottomPanel = (root.activeBottomPanel === "resources") ? "" : "resources"
                 }
 
                 Item { Layout.fillWidth: true }
