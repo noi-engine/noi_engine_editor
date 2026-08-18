@@ -129,6 +129,8 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/resources/DeleteConfirmDialog.qml
         sources/features/editor/components/resources/ImportDialog.qml
         sources/features/editor/components/resources/NewFolderDialog.qml
+        sources/features/editor/components/resources/ResourceToolbar.qml
+        sources/features/editor/components/resources/ResourceDropArea.qml
         SOURCES
         sources/features/editor/CurrentProjectResourcesManager.cpp
         sources/features/editor/CurrentProjectResourcesManager.hpp

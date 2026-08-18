@@ -2,27 +2,21 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Qt.labs.folderlistmodel
-
 import noi_engine_editor
 
 Item {
     id: rootItem
 
     function toFolderUrl(pathStr) {
-        if (!pathStr)
-            return "";
+        if (!pathStr) return "";
         let str = pathStr.toString();
-        if (str.startsWith("file://"))
-            return str;
-        return "file://" + str;
+        return str.startsWith("file://") ? str : "file://" + str;
     }
 
     function refreshFolderModel() {
         let current = rootItem.currentFolder;
         folderModel.folder = "";
-        Qt.callLater(function () {
-            folderModel.folder = current;
-        });
+        Qt.callLater(() => folderModel.folder = current);
     }
 
     readonly property string rootFolder: toFolderUrl(CurrentProjectManager.resourcesPath())
@@ -31,9 +25,7 @@ Item {
     property real gridScale: 1.0
 
     Component.onCompleted: {
-        if (rootItem.currentFolder === "") {
-            rootItem.currentFolder = rootItem.rootFolder;
-        }
+        if (rootItem.currentFolder === "") rootItem.currentFolder = rootItem.rootFolder;
     }
 
     Rectangle {
@@ -43,9 +35,7 @@ Item {
         RenameDialog {
             id: renameDialog
             onConfirmed: newName => {
-                if (CurrentProjectResourcesManager.renameItem(targetPath, newName)) {
-                    refreshFolderModel();
-                }
+                if (CurrentProjectResourcesManager.renameItem(targetPath, newName)) refreshFolderModel()
             }
         }
 
@@ -53,62 +43,29 @@ Item {
             id: deleteDialog
             onConfirmed: {
                 if (CurrentProjectResourcesManager.deleteItem(targetPath)) {
-                    rootItem.selectedFilePath = "";
-                    refreshFolderModel();
+                    rootItem.selectedFilePath = ""; refreshFolderModel()
                 }
             }
         }
+
         NewFolderDialog {
             id: newFolderDialog
             onConfirmed: folderName => {
-                CurrentProjectResourcesManager.createFolder(targetPath, folderName);
-                refreshFolderModel();
+                CurrentProjectResourcesManager.createFolder(targetPath, folderName); refreshFolderModel()
             }
         }
 
         ImportDialog {
             id: importDialog
             onImported: urls => {
-                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder);
-                refreshFolderModel();
+                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder); refreshFolderModel()
             }
         }
 
-        DropArea {
-            id: dropArea
+        ResourceDropArea {
             anchors.fill: parent
-
-            Rectangle {
-                anchors.fill: parent
-                color: Qt.alpha(Theme.primaryColor, 0.1)
-                border.color: Theme.primaryColor
-                border.width: 2
-                visible: dropArea.containsDrag
-                z: 10
-
-                ColumnLayout {
-                    anchors.centerIn: parent
-                    spacing: 8
-
-                    IconBadge {
-                        Layout.alignment: Qt.AlignHCenter
-                        icon: "file_upload"
-                    }
-
-                    Text {
-                        text: qsTr("Drop files or folders here")
-                        font.pixelSize: 13
-                        font.weight: Font.Medium
-                        color: Theme.white
-                    }
-                }
-            }
-
-            onDropped: drop => {
-                if (drop.hasUrls) {
-                    CurrentProjectResourcesManager.importPaths(drop.urls, rootItem.currentFolder);
-                    refreshFolderModel();
-                }
+            onImportDropped: urls => {
+                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder); refreshFolderModel()
             }
         }
 
@@ -116,83 +73,35 @@ Item {
             anchors.fill: parent
             spacing: 0
 
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 36
-                Layout.leftMargin: 12
-                Layout.rightMargin: 12
-                spacing: 8
+            ResourceToolbar {
+                currentFolder: rootItem.currentFolder
+                rootFolder: rootItem.rootFolder
+                parentFolder: folderModel.parentFolder
+                gridScale: rootItem.gridScale
 
-                AppButton {
-                    icon: "arrow_back"
-                    enabled: rootItem.currentFolder.toString() !== rootItem.rootFolder.toString() && folderModel.parentFolder !== ""
-                    onClicked: {
-                        if (rootItem.currentFolder.toString() !== rootItem.rootFolder.toString() && folderModel.parentFolder !== "") {
-                            rootItem.currentFolder = folderModel.parentFolder;
-                        }
-                    }
-                }
-
-                Text {
-                    Layout.fillWidth: true
-                    text: rootItem.currentFolder.replace("file://", "")
-                    font.pixelSize: 11
-                    color: Theme.grey
-                    elide: Text.ElideLeft
-                }
-
-                Slider {
-                    id: zoomSlider
-                    implicitWidth: 100
-                    from: 0.75
-                    to: 1.5
-                    value: rootItem.gridScale
-                    onValueChanged: rootItem.gridScale = value
-                }
-
-                AppButton {
-                    icon: "file_upload"
-                    text: qsTr("Import")
-                    onClicked: importDialog.open()
-                }
-
-                AppButton {
-                    icon: "create_new_folder"
-                    text: qsTr("New Folder")
-                    onClicked: newFolderDialog.openFor(rootItem.currentFolder, "NewFolder")
-                }
+                onGridScaleChanged: rootItem.gridScale = gridScale
+                onNavigateBack: rootItem.currentFolder = folderModel.parentFolder
+                onImportRequested: importDialog.open()
+                onNewFolderRequested: newFolderDialog.openFor(rootItem.currentFolder, "NewFolder")
             }
 
             Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 1
-                color: Theme.borderColor
+                Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.borderColor
             }
 
             GridView {
                 id: gridView
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.margins: 8
+                Layout.fillWidth: true; Layout.fillHeight: true; Layout.margins: 8
 
-                readonly property Item panelRoot: rootItem
-                readonly property string rootFolderPath: rootItem.rootFolder
-                property string currentFolderPath: rootItem.currentFolder
-                property string selectedPath: rootItem.selectedFilePath
-                property real currentScale: rootItem.gridScale
-
-                cellWidth: 94 * gridView.currentScale
-                cellHeight: 94 * gridView.currentScale
+                cellWidth: 94 * rootItem.gridScale
+                cellHeight: 94 * rootItem.gridScale
                 clip: true
 
                 model: FolderListModel {
                     id: folderModel
                     folder: rootItem.currentFolder
-                    showDirs: true
-                    showFiles: true
-                    showDirsFirst: true
-                    showDotAndDotDot: false
-                    showHidden: false
+                    showDirs: true; showFiles: true; showDirsFirst: true
+                    showDotAndDotDot: false; showHidden: false
                 }
 
                 delegate: ResourceItemDelegate {
@@ -203,16 +112,16 @@ Item {
                     fileName: itemName
                     filePath: itemPath
                     isDir: itemIsDir
-                    isSelected: GridView.view.selectedPath === itemPath
-                    iconScale: GridView.view.currentScale
+                    isSelected: rootItem.selectedFilePath === itemPath
+                    iconScale: rootItem.gridScale
 
-                    onSelected: GridView.view.panelRoot.selectedFilePath = itemPath
+                    onSelected: rootItem.selectedFilePath = itemPath
                     onDoubleClicked: {
                         if (itemIsDir) {
                             let targetFolder = model.fileUrl.toString();
-                            if (targetFolder.startsWith(GridView.view.rootFolderPath)) {
-                                GridView.view.panelRoot.currentFolder = targetFolder;
-                                GridView.view.panelRoot.selectedFilePath = "";
+                            if (targetFolder.startsWith(rootItem.rootFolder)) {
+                                rootItem.currentFolder = targetFolder;
+                                rootItem.selectedFilePath = "";
                             }
                         }
                     }
@@ -223,11 +132,8 @@ Item {
                 WheelHandler {
                     acceptedModifiers: Qt.ControlModifier
                     onWheel: event => {
-                        if (event.angleDelta.y > 0) {
-                            rootItem.gridScale = Math.min(1.5, rootItem.gridScale + 0.1);
-                        } else if (event.angleDelta.y < 0) {
-                            rootItem.gridScale = Math.max(0.75, rootItem.gridScale - 0.1);
-                        }
+                        if (event.angleDelta.y > 0) rootItem.gridScale = Math.min(1.5, rootItem.gridScale + 0.1);
+                        else if (event.angleDelta.y < 0) rootItem.gridScale = Math.max(0.75, rootItem.gridScale - 0.1);
                     }
                 }
             }
