@@ -1,8 +1,6 @@
 #include "CurrentProjectResourcesManager.hpp"
-#include <QDir>
-#include <QFileInfo>
-#include <QFile>
 #include <QUrl>
+#include <QDirIterator>
 
 namespace noi_engine_editor
 {
@@ -154,5 +152,16 @@ namespace noi_engine_editor
             }
         }
         return allSuccess;
+    }
+
+    QStringList CurrentProjectResourcesManager::getAllScenesRecursively(const QString& rootPath)
+    {
+        QStringList sceneFiles;
+        QDirIterator it(rootPath, QStringList() << "*.scene", QDir::Files, QDirIterator::Subdirectories);
+
+        while (it.hasNext()) {
+            sceneFiles.append(it.next());
+        }
+        return sceneFiles;
     }
 }
