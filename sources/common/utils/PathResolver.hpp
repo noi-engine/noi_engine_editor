@@ -12,6 +12,7 @@ namespace noi_engine_editor::PathResolver
     [[nodiscard]] auto confPath() -> QString;
     [[nodiscard]] auto recentProjectsPath() -> QString;
     [[nodiscard]] auto templateEnginePath() -> QString;
+    [[nodiscard]] auto templateResourcesCompilerPath() -> QString;
 
     [[nodiscard]] auto templatesPath() -> QString;
     [[nodiscard]] auto templateFilePath(const QString& templatePath) -> QString;

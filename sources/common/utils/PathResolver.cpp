@@ -31,6 +31,11 @@ auto noi_engine_editor::PathResolver::templateEnginePath() -> QString
     return confPath() + "/.noi_engine";
 }
 
+auto noi_engine_editor::PathResolver::templateResourcesCompilerPath() -> QString
+{
+    return confPath() + "/.resources_compiler";
+}
+
 auto noi_engine_editor::PathResolver::fallBackDefaultProjectsPath() -> QString
 {
     return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/noi_engine/projects";

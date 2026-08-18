@@ -28,7 +28,7 @@ CustomPage {
             var path = selectedFolder.toString().replace(/^file:\/\//, "");
             path = path.replace(/[\/\\]+$/, "");
 
-            var folderName = path.split(/[\/\\]/).pop();
+            const folderName = path.split(/[\/\\]/).pop();
             if (CurrentProjectManager.openProject(path)) {
                 RecentProjectsManager.addProject(folderName, path);
                 Router.push("/editor");
@@ -80,6 +80,8 @@ CustomPage {
                 onProjectClicked: path => {
                     if (CurrentProjectManager.openProject(path)) {
                         Router.push("/editor");
+                    }else{
+                        RecentProjectsManager.removeProject(path);
                     }
                 }
             }

@@ -43,6 +43,15 @@ namespace noi_engine_editor
                 std::filesystem::copy_options::recursive |
                 std::filesystem::copy_options::overwrite_existing
             );
+
+            //TODO: bad
+            const auto resourcesCompilerPath= PathResolver::templateResourcesCompilerPath();
+            std::filesystem::copy(
+                resourcesCompilerPath.toStdString(),
+                QDir(projectPath).filePath(".resources_compiler").toStdString(),
+                std::filesystem::copy_options::recursive |
+                std::filesystem::copy_options::overwrite_existing
+            );
         }
         catch (const std::exception& exception)
         {
