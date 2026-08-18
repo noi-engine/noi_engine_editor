@@ -1,19 +1,24 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-
 import noi_engine_editor
 
 Dialog {
     id: root
 
+    property string targetPath: ""
     property string targetName: ""
     signal confirmed(string newName)
+
+    function openFor(path, name) {
+        root.targetPath = path
+        root.targetName = name || ""
+        root.open()
+    }
 
     title: qsTr("Rename")
     modal: true
     anchors.centerIn: Overlay.overlay
-
     implicitWidth: 320
 
     onOpened: {

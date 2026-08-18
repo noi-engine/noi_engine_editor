@@ -9,18 +9,20 @@ Item {
     id: rootItem
 
     function toFolderUrl(pathStr) {
-        if (!pathStr) return ""
-        let str = pathStr.toString()
-        if (str.startsWith("file://")) return str
-        return "file://" + str
+        if (!pathStr)
+            return "";
+        let str = pathStr.toString();
+        if (str.startsWith("file://"))
+            return str;
+        return "file://" + str;
     }
 
     function refreshFolderModel() {
-        let current = rootItem.currentFolder
-        folderModel.folder = ""
-        Qt.callLater(function() {
-            folderModel.folder = current
-        })
+        let current = rootItem.currentFolder;
+        folderModel.folder = "";
+        Qt.callLater(function () {
+            folderModel.folder = current;
+        });
     }
 
     readonly property string rootFolder: toFolderUrl(CurrentProjectManager.resourcesPath())
@@ -30,7 +32,7 @@ Item {
 
     Component.onCompleted: {
         if (rootItem.currentFolder === "") {
-            rootItem.currentFolder = rootItem.rootFolder
+            rootItem.currentFolder = rootItem.rootFolder;
         }
     }
 
@@ -40,21 +42,19 @@ Item {
 
         RenameDialog {
             id: renameDialog
-            property string targetPath: ""
             onConfirmed: newName => {
                 if (CurrentProjectResourcesManager.renameItem(targetPath, newName)) {
-                    refreshFolderModel()
+                    refreshFolderModel();
                 }
             }
         }
 
         DeleteConfirmDialog {
             id: deleteDialog
-            property string targetPath: ""
             onConfirmed: {
                 if (CurrentProjectResourcesManager.deleteItem(targetPath)) {
-                    rootItem.selectedFilePath = ""
-                    refreshFolderModel()
+                    rootItem.selectedFilePath = "";
+                    refreshFolderModel();
                 }
             }
         }
@@ -62,8 +62,8 @@ Item {
         ImportDialog {
             id: importDialog
             onImported: urls => {
-                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder)
-                refreshFolderModel()
+                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder);
+                refreshFolderModel();
             }
         }
 
@@ -71,8 +71,8 @@ Item {
             id: newFolderDialog
             title: qsTr("New Folder")
             onConfirmed: folderName => {
-                CurrentProjectResourcesManager.createFolder(rootItem.currentFolder, folderName)
-                refreshFolderModel()
+                CurrentProjectResourcesManager.createFolder(rootItem.currentFolder, folderName);
+                refreshFolderModel();
             }
         }
 
@@ -108,8 +108,8 @@ Item {
 
             onDropped: drop => {
                 if (drop.hasUrls) {
-                    CurrentProjectResourcesManager.importPaths(drop.urls, rootItem.currentFolder)
-                    refreshFolderModel()
+                    CurrentProjectResourcesManager.importPaths(drop.urls, rootItem.currentFolder);
+                    refreshFolderModel();
                 }
             }
         }
@@ -130,7 +130,7 @@ Item {
                     enabled: rootItem.currentFolder.toString() !== rootItem.rootFolder.toString() && folderModel.parentFolder !== ""
                     onClicked: {
                         if (rootItem.currentFolder.toString() !== rootItem.rootFolder.toString() && folderModel.parentFolder !== "") {
-                            rootItem.currentFolder = folderModel.parentFolder
+                            rootItem.currentFolder = folderModel.parentFolder;
                         }
                     }
                 }
@@ -162,8 +162,8 @@ Item {
                     icon: "create_new_folder"
                     text: qsTr("New Folder")
                     onClicked: {
-                        newFolderDialog.targetName = "NewFolder"
-                        newFolderDialog.open()
+                        newFolderDialog.targetName = "NewFolder";
+                        newFolderDialog.open();
                     }
                 }
             }
@@ -214,32 +214,24 @@ Item {
                     onSelected: GridView.view.panelRoot.selectedFilePath = itemPath
                     onDoubleClicked: {
                         if (itemIsDir) {
-                            let targetFolder = model.fileUrl.toString()
+                            let targetFolder = model.fileUrl.toString();
                             if (targetFolder.startsWith(GridView.view.rootFolderPath)) {
-                                GridView.view.panelRoot.currentFolder = targetFolder
-                                GridView.view.panelRoot.selectedFilePath = ""
+                                GridView.view.panelRoot.currentFolder = targetFolder;
+                                GridView.view.panelRoot.selectedFilePath = "";
                             }
                         }
                     }
-                    onRenameRequested: {
-                        renameDialog.targetPath = itemPath
-                        renameDialog.targetName = itemName
-                        renameDialog.open()
-                    }
-                    onDeleteRequested: {
-                        deleteDialog.targetPath = itemPath
-                        deleteDialog.targetName = itemName
-                        deleteDialog.open()
-                    }
+                    onRenameRequested: renameDialog.openFor(itemPath, itemName)
+                    onDeleteRequested: deleteDialog.openFor(itemPath, itemName)
                 }
 
                 WheelHandler {
                     acceptedModifiers: Qt.ControlModifier
                     onWheel: event => {
                         if (event.angleDelta.y > 0) {
-                            rootItem.gridScale = Math.min(1.5, rootItem.gridScale + 0.1)
+                            rootItem.gridScale = Math.min(1.5, rootItem.gridScale + 0.1);
                         } else if (event.angleDelta.y < 0) {
-                            rootItem.gridScale = Math.max(0.75, rootItem.gridScale - 0.1)
+                            rootItem.gridScale = Math.max(0.75, rootItem.gridScale - 0.1);
                         }
                     }
                 }
