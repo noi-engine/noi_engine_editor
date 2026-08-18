@@ -66,6 +66,10 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/common/utils/PathResolver.hpp
         sources/common/utils/JsonIO.cpp
         sources/common/utils/JsonIO.hpp
+        sources/common/components/opengl/OpenglRenderer.cpp
+        sources/common/components/opengl/OpenglRenderer.hpp
+        sources/common/components/opengl/OpenglView.cpp
+        sources/common/components/opengl/OpenglView.hpp
 
         # Pages
         QML_FILES
