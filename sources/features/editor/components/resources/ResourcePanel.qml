@@ -28,7 +28,7 @@ Item {
 
         RenameDialog {
             id: renameDialog
-            onConfirmed: newName => CurrentProjectResourcesManager.renameItem(targetPath, newName)
+            onConfirmed: function(newName) { CurrentProjectResourcesManager.renameItem(targetPath, newName) }
         }
 
         DeleteConfirmDialog {
@@ -42,21 +42,21 @@ Item {
 
         NewFolderDialog {
             id: newFolderDialog
-            onConfirmed: folderName => {
+            onConfirmed: function(folderName) {
                 CurrentProjectResourcesManager.createFolder(targetPath, folderName);
             }
         }
 
         ImportDialog {
             id: importDialog
-            onImported: urls => {
+            onImported: function(urls) {
                 CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder);
             }
         }
 
         ResourceDropArea {
             anchors.fill: parent
-            onImportDropped: urls => {
+            onImportDropped: function(urls) {
                 CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder);
             }
         }
@@ -97,6 +97,8 @@ Item {
                 }
 
                 delegate: ResourceItemDelegate {
+                    property var panelRoot: rootItem
+
                     property string itemPath: model.filePath || ""
                     property string itemName: model.fileName || ""
                     property bool itemIsDir: model.fileIsDir || false
@@ -104,16 +106,17 @@ Item {
                     fileName: itemName
                     filePath: itemPath
                     isDir: itemIsDir
-                    isSelected: rootItem.selectedFilePath === itemPath
-                    iconScale: rootItem.gridScale
 
-                    onSelected: rootItem.selectedFilePath = itemPath
+                    isSelected: panelRoot.selectedFilePath === itemPath
+                    iconScale: panelRoot.gridScale
+
+                    onSelected: panelRoot.selectedFilePath = itemPath
                     onDoubleClicked: {
                         if (itemIsDir) {
                             let targetFolder = model.fileUrl.toString();
-                            if (targetFolder.startsWith(rootItem.rootFolder)) {
-                                rootItem.currentFolder = targetFolder;
-                                rootItem.selectedFilePath = "";
+                            if (targetFolder.startsWith(panelRoot.rootFolder)) {
+                                panelRoot.currentFolder = targetFolder;
+                                panelRoot.selectedFilePath = "";
                             }
                         }
                     }
@@ -123,7 +126,7 @@ Item {
 
                 WheelHandler {
                     acceptedModifiers: Qt.ControlModifier
-                    onWheel: event => {
+                    onWheel: function(event) {
                         if (event.angleDelta.y > 0) rootItem.gridScale = Math.min(1.5, rootItem.gridScale + 0.1);
                         else if (event.angleDelta.y < 0) rootItem.gridScale = Math.max(0.75, rootItem.gridScale - 0.1);
                     }
