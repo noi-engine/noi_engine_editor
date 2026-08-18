@@ -13,12 +13,6 @@ Item {
         return str.startsWith("file://") ? str : "file://" + str;
     }
 
-    function refreshFolderModel() {
-        let current = rootItem.currentFolder;
-        folderModel.folder = "";
-        Qt.callLater(() => folderModel.folder = current);
-    }
-
     readonly property string rootFolder: toFolderUrl(CurrentProjectManager.resourcesPath())
     property string currentFolder: rootFolder
     property string selectedFilePath: ""
@@ -34,16 +28,14 @@ Item {
 
         RenameDialog {
             id: renameDialog
-            onConfirmed: newName => {
-                if (CurrentProjectResourcesManager.renameItem(targetPath, newName)) refreshFolderModel()
-            }
+            onConfirmed: newName => CurrentProjectResourcesManager.renameItem(targetPath, newName)
         }
 
         DeleteConfirmDialog {
             id: deleteDialog
             onConfirmed: {
                 if (CurrentProjectResourcesManager.deleteItem(targetPath)) {
-                    rootItem.selectedFilePath = ""; refreshFolderModel()
+                    rootItem.selectedFilePath = "";
                 }
             }
         }
@@ -51,21 +43,21 @@ Item {
         NewFolderDialog {
             id: newFolderDialog
             onConfirmed: folderName => {
-                CurrentProjectResourcesManager.createFolder(targetPath, folderName); refreshFolderModel()
+                CurrentProjectResourcesManager.createFolder(targetPath, folderName);
             }
         }
 
         ImportDialog {
             id: importDialog
             onImported: urls => {
-                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder); refreshFolderModel()
+                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder);
             }
         }
 
         ResourceDropArea {
             anchors.fill: parent
             onImportDropped: urls => {
-                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder); refreshFolderModel()
+                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder);
             }
         }
 
