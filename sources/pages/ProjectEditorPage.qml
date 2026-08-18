@@ -11,6 +11,7 @@ CustomPage {
 
     property var selectedEntity: null
     property string activeBottomPanel: ""
+    property string currentScenePath: ""
 
     Rectangle {
         anchors.fill: parent
@@ -28,6 +29,7 @@ CustomPage {
         EditorToolbar {
             Layout.fillWidth: true
             Layout.preferredHeight: 56
+            currentScenePath: root.currentScenePath
 
             onSettingsRequested: settingsDialog.open()
             onBackRequested: {
@@ -58,6 +60,7 @@ CustomPage {
                 ViewportPanel {
                     SplitView.fillWidth: true
                     SplitView.minimumWidth: 400
+                    scenePath: root.currentScenePath
                     selectedEntity: root.selectedEntity
                 }
 
@@ -83,6 +86,9 @@ CustomPage {
 
                     SceneBrowserPanel {
                         id: scenePanel
+                        onSceneOpenRequested: function(filePath) {
+                            root.currentScenePath = filePath;
+                        }
                     }
 
                     ResourcePanel {
@@ -92,7 +98,6 @@ CustomPage {
             }
         }
 
-        // Barre d'état et onglets inférieurs
         Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 28

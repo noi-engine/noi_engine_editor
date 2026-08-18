@@ -1,19 +1,20 @@
 import QtQuick
 import QtQuick.Layouts
-
 import noi_engine_editor
 
 Rectangle {
     id: root
 
     signal settingsRequested()
-    signal playRequested()
     signal backRequested()
 
-    property var scenes: ListModel {
-        ListElement { name: "MainScene" }
+    property string currentScenePath: ""
+
+    readonly property string currentSceneName: {
+        if (!currentScenePath) return qsTr("(No scene opened)")
+        let parts = currentScenePath.split("/")
+        return parts[parts.length - 1]
     }
-    property int currentSceneIndex: 0
 
     color: Theme.bgSecondary
 
@@ -68,63 +69,20 @@ Rectangle {
             color: Theme.borderColor
         }
 
-        Row {
-            spacing: 6
+        RowLayout {
+            spacing: 8
 
-            Repeater {
-                model: root.scenes
-
-                delegate: Rectangle {
-                    required property string name
-                    required property int index
-
-                    readonly property bool active: index === root.currentSceneIndex
-
-                    width: sceneLabel.implicitWidth + 24
-                    height: 30
-                    radius: 8
-
-                    color: active ? Theme.primaryLightC : "transparent"
-                    border.color: active ? Theme.primaryDark : "transparent"
-                    border.width: 1
-
-                    Text {
-                        id: sceneLabel
-
-                        anchors.centerIn: parent
-                        text: name
-                        font.pixelSize: 12
-                        color: active ? Theme.primaryColor : Theme.darkGrey
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.currentSceneIndex = index
-                    }
-                }
+            MuiIcon {
+                name: "landscape"
+                font.pixelSize: 16
+                color: root.currentScenePath !== "" ? Theme.primaryColor : Theme.grey
             }
 
-            Rectangle {
-                width: 30
-                height: 30
-                radius: 8
-                color: addSceneArea.containsMouse ? Theme.bgTertiary : "transparent"
-
-                MuiIcon {
-                    anchors.centerIn: parent
-                    name: "add"
-                    font.pixelSize: 16
-                    color: Theme.grey
-                }
-
-                MouseArea {
-                    id: addSceneArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.scenes.append({ name: "Scene" + (root.scenes.count + 1) })
-                }
+            Text {
+                text: root.currentSceneName
+                font.pixelSize: 13
+                font.bold: root.currentScenePath !== ""
+                color: root.currentScenePath !== "" ? Theme.white : Theme.darkGrey
             }
         }
 
@@ -134,13 +92,6 @@ Rectangle {
             icon: "settings"
             text: qsTr("Settings")
             onClicked: root.settingsRequested()
-        }
-
-        AppButton {
-            primary: true
-            icon: "play_arrow"
-            text: qsTr("Play")
-            onClicked: root.playRequested()
         }
     }
 }

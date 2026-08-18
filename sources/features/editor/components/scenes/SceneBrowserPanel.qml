@@ -17,6 +17,7 @@ Item {
     readonly property string rawRootFolder: CurrentProjectManager.resourcesPath()
     property string pendingScenePath: ""
     property string pendingSceneName: ""
+    property real itemScale: 1.0
 
     ListModel { id: scenesModel }
 
@@ -69,98 +70,132 @@ Item {
 
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 32
+                Layout.preferredHeight: 36
                 color: Theme.bgTertiary
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 10
-                    anchors.rightMargin: 10
+                    anchors.leftMargin: 12
+                    anchors.rightMargin: 12
+                    spacing: 12
 
                     Text {
                         text: qsTr("SCENES (%1)").arg(scenesModel.count)
-                        color: Theme.darkGrey
-                        font.pixelSize: 10
+                        color: Theme.white
+                        font.pixelSize: 11
                         font.bold: true
                     }
 
                     Item { Layout.fillWidth: true }
 
-                    Button {
-                        flat: true
-                        implicitHeight: 24
-                        text: qsTr("Refresh")
-                        onClicked: rootItem.refreshScenes()
+                    MuiIcon {
+                        name: "photo_size_select_actual"
+                        font.pixelSize: 16
+                        color: Theme.darkGrey
+                    }
+
+                    Slider {
+                        id: sizeSlider
+                        implicitWidth: 100
+                        from: 0.8
+                        to: 1.8
+                        value: 1.0
+                        onValueChanged: rootItem.itemScale = value
+                    }
+
+                    Rectangle {
+                        width: 1
+                        height: 16
+                        color: Theme.borderColor
+                    }
+
+                    MuiIcon {
+                        name: "refresh"
+                        font.pixelSize: 18
+                        color: refreshArea.containsMouse ? Theme.white : Theme.darkGrey
+
+                        MouseArea {
+                            id: refreshArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: rootItem.refreshScenes()
+                        }
                     }
                 }
             }
 
             GridView {
+                id: gridView
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                Layout.margins: 8
-                cellWidth: 220
-                cellHeight: 60
+                Layout.margins: 12
+                cellWidth: 160 * rootItem.itemScale
+                cellHeight: 120 * rootItem.itemScale
                 clip: true
                 model: scenesModel
 
-                delegate: Rectangle {
-                    width: GridView.view.cellWidth - 8
-                    height: GridView.view.cellHeight - 8
-                    radius: 6
-                    color: itemArea.containsMouse ? Theme.bgTertiary : Theme.bgPrimary
-                    border.color: itemArea.containsMouse ? Theme.primaryColor : Theme.borderColor
+                delegate: Item {
+                    width: gridView.cellWidth
+                    height: gridView.cellHeight
 
-                    RowLayout {
+                    Rectangle {
                         anchors.fill: parent
-                        anchors.margins: 8
-                        spacing: 8
-
-                        Rectangle {
-                            Layout.preferredWidth: 28
-                            Layout.preferredHeight: 28
-                            radius: 4
-                            color: itemArea.containsMouse ? Theme.primaryLightB : Theme.bgSecondary
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "▶"
-                                color: itemArea.containsMouse ? Theme.primaryColor : Theme.darkGrey
-                                font.pixelSize: 10
-                            }
-                        }
+                        anchors.margins: 4
+                        radius: 8
+                        color: itemArea.containsMouse ? Theme.bgTertiary : Theme.bgPrimary
+                        border.color: itemArea.containsMouse ? Theme.primaryColor : Theme.borderColor
+                        border.width: itemArea.containsMouse ? 1.5 : 1
 
                         ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 1
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            spacing: 4
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                radius: 6
+                                color: Theme.bgSecondary
+
+                                MuiIcon {
+                                    anchors.centerIn: parent
+                                    name: "landscape"
+                                    font.pixelSize: 28 * rootItem.itemScale
+                                    color: itemArea.containsMouse ? Theme.primaryColor : Theme.darkGrey
+                                }
+                            }
 
                             Text {
                                 Layout.fillWidth: true
                                 text: model.fileName
                                 color: Theme.white
                                 font.bold: true
-                                font.pixelSize: 11
+                                font.pixelSize: Math.max(9, 11 * (rootItem.itemScale * 0.85))
                                 elide: Text.ElideRight
+                                horizontalAlignment: Text.AlignHCenter
                             }
 
                             Text {
                                 Layout.fillWidth: true
                                 text: model.displayPath
                                 color: Theme.darkGrey
-                                font.pixelSize: 9
-                                elide: Text.ElideLeft
+                                font.pixelSize: Math.max(8, 9 * (rootItem.itemScale * 0.85))
+                                elide: Text.ElideMiddle
+                                horizontalAlignment: Text.AlignHCenter
                             }
                         }
-                    }
 
-                    MouseArea {
-                        id: itemArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onDoubleClicked: {
-                            rootItem.pendingScenePath = model.filePath;
-                            rootItem.pendingSceneName = model.fileName;
-                            confirmDialog.open();
+                        MouseArea {
+                            id: itemArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onDoubleClicked: {
+                                rootItem.pendingScenePath = model.filePath;
+                                rootItem.pendingSceneName = model.fileName;
+                                confirmDialog.open();
+                            }
                         }
                     }
                 }
