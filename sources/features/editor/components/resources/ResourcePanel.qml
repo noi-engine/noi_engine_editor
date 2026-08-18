@@ -58,20 +58,18 @@ Item {
                 }
             }
         }
+        NewFolderDialog {
+            id: newFolderDialog
+            onConfirmed: folderName => {
+                CurrentProjectResourcesManager.createFolder(targetPath, folderName);
+                refreshFolderModel();
+            }
+        }
 
         ImportDialog {
             id: importDialog
             onImported: urls => {
                 CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder);
-                refreshFolderModel();
-            }
-        }
-
-        RenameDialog {
-            id: newFolderDialog
-            title: qsTr("New Folder")
-            onConfirmed: folderName => {
-                CurrentProjectResourcesManager.createFolder(rootItem.currentFolder, folderName);
                 refreshFolderModel();
             }
         }
@@ -161,10 +159,7 @@ Item {
                 AppButton {
                     icon: "create_new_folder"
                     text: qsTr("New Folder")
-                    onClicked: {
-                        newFolderDialog.targetName = "NewFolder";
-                        newFolderDialog.open();
-                    }
+                    onClicked: newFolderDialog.openFor(rootItem.currentFolder, "NewFolder")
                 }
             }
 

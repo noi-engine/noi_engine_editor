@@ -25,7 +25,6 @@ Dialog {
         id: filePicker
         title: qsTr("Select Files")
         fileMode: FileDialog.OpenFiles
-        options: FileDialog.DontUseNativeDialog
         onAccepted: {
             for (let i = 0; i < selectedFiles.length; i++) {
                 let path = selectedFiles[i].toString()
@@ -40,7 +39,6 @@ Dialog {
     FolderDialog {
         id: folderPicker
         title: qsTr("Select Folder")
-        options: FolderDialog.DontUseNativeDialog
         onAccepted: {
             let path = folderPicker.selectedFolder.toString()
             if (!root.containsUrl(path)) {
