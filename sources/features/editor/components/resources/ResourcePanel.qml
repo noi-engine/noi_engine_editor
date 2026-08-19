@@ -3,17 +3,12 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt.labs.folderlistmodel
 import noi_engine_editor
+import "../../../../common/utils/FolderUrlComputer.js" as FolderUrlComputer
 
 Item {
     id: rootItem
 
-    function toFolderUrl(pathStr) {
-        if (!pathStr) return "";
-        let str = pathStr.toString();
-        return str.startsWith("file://") ? str : "file://" + str;
-    }
-
-    readonly property string rootFolder: toFolderUrl(CurrentProjectManager.resourcesPath())
+    readonly property string rootFolder: FolderUrlComputer.toUrl(CurrentProjectManager.resourcesPath())
     property string currentFolder: rootFolder
     property string selectedFilePath: ""
     property real gridScale: 1.0

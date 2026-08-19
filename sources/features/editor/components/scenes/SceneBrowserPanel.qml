@@ -2,17 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import noi_engine_editor
+import "../../../../common/utils/FolderUrlComputer.js" as FolderUrlComputer
 
 Item {
     id: rootItem
 
     signal sceneOpenRequested(string filePath)
-
-    function toFolderUrl(pathStr) {
-        if (!pathStr) return "";
-        let str = pathStr.toString();
-        return str.startsWith("file://") ? str : "file://" + str;
-    }
 
     readonly property string rawRootFolder: CurrentProjectManager.resourcesPath()
     property string pendingScenePath: ""
@@ -27,7 +22,7 @@ Item {
         for (let i = 0; i < scenePaths.length; i++) {
             let path = scenePaths[i];
             scenesModel.append({
-                "filePath": rootItem.toFolderUrl(path),
+                "filePath": FolderUrlComputer.toUrl(path),
                 "fileName": path.substring(path.lastIndexOf("/") + 1),
                 "displayPath": path.replace(rawRootFolder + "/", "")
             });
