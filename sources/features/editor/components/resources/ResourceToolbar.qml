@@ -29,7 +29,7 @@ RowLayout {
 
     Text {
         Layout.fillWidth: true
-        text: root.currentFolder.replace("file://", "")
+        text: root.currentFolder
         font.pixelSize: 11
         color: Theme.grey
         elide: Text.ElideLeft

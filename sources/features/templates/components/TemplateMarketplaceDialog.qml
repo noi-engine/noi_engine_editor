@@ -46,7 +46,6 @@ Dialog {
             delegate: Rectangle {
                 required property var modelData
 
-                // Vérification si le template courant est déjà installé localement
                 readonly property bool installed: root.localTemplateManager ? root.localTemplateManager.isInstalled(modelData.id) : false
 
                 width: ListView.view ? ListView.view.width : 0

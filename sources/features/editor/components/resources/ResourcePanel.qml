@@ -8,13 +8,14 @@ import "../../../../common/utils/LocalPathAndUrlConverter.js" as UrlConverter
 Item {
     id: rootItem
 
-    readonly property string rootFolder: UrlConverter.toUrl(CurrentProjectManager.resourcesPath())
+    readonly property string rootFolder: CurrentProjectManager.resourcesPath()
     property string currentFolder: rootFolder
     property string selectedFilePath: ""
     property real gridScale: 1.0
 
     Component.onCompleted: {
-        if (rootItem.currentFolder === "") rootItem.currentFolder = rootItem.rootFolder;
+        if (rootItem.currentFolder === "")
+            rootItem.currentFolder = rootItem.rootFolder;
     }
 
     Rectangle {
@@ -23,13 +24,15 @@ Item {
 
         RenameDialog {
             id: renameDialog
-            onConfirmed: function(newName) { CurrentProjectResourcesManager.renameItem(targetPath, newName) }
+            onConfirmed: function (newName) {
+                CurrentProjectResourcesManager.renameItem(renameDialog.targetPath, newName);
+            }
         }
 
         DeleteConfirmDialog {
             id: deleteDialog
             onConfirmed: {
-                if (CurrentProjectResourcesManager.deleteItem(targetPath)) {
+                if (CurrentProjectResourcesManager.deleteItem(deleteDialog.targetPath)) {
                     rootItem.selectedFilePath = "";
                 }
             }
@@ -37,21 +40,21 @@ Item {
 
         NewFolderDialog {
             id: newFolderDialog
-            onConfirmed: function(folderName) {
+            onConfirmed: function (folderName) {
                 CurrentProjectResourcesManager.createFolder(targetPath, folderName);
             }
         }
 
         ImportDialog {
             id: importDialog
-            onImported: function(paths) {
+            onImported: function (paths) {
                 CurrentProjectResourcesManager.importPaths(paths, rootItem.currentFolder);
             }
         }
 
         ResourceDropArea {
             anchors.fill: parent
-            onImportDropped: function(paths) {
+            onImportDropped: function (paths) {
                 CurrentProjectResourcesManager.importPaths(paths, rootItem.currentFolder);
             }
         }
@@ -63,22 +66,26 @@ Item {
             ResourceToolbar {
                 currentFolder: rootItem.currentFolder
                 rootFolder: rootItem.rootFolder
-                parentFolder: folderModel.parentFolder
+                parentFolder: UrlConverter.toLocalPath(folderModel.parentFolder)
                 gridScale: rootItem.gridScale
 
                 onGridScaleChanged: rootItem.gridScale = gridScale
-                onNavigateBack: rootItem.currentFolder = folderModel.parentFolder
+                onNavigateBack: rootItem.currentFolder = UrlConverter.toLocalPath(folderModel.parentFolder)
                 onImportRequested: importDialog.open()
                 onNewFolderRequested: newFolderDialog.openFor(rootItem.currentFolder, "NewFolder")
             }
 
             Rectangle {
-                Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.borderColor
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: Theme.borderColor
             }
 
             GridView {
                 id: gridView
-                Layout.fillWidth: true; Layout.fillHeight: true; Layout.margins: 8
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.margins: 8
 
                 cellWidth: 94 * rootItem.gridScale
                 cellHeight: 94 * rootItem.gridScale
@@ -86,44 +93,45 @@ Item {
 
                 model: FolderListModel {
                     id: folderModel
-                    folder: rootItem.currentFolder
-                    showDirs: true; showFiles: true; showDirsFirst: true
-                    showDotAndDotDot: false; showHidden: false
+                    folder: UrlConverter.toUrl(rootItem.currentFolder)
+                    showDirs: true
+                    showFiles: true
+                    showDirsFirst: true
+                    showDotAndDotDot: false
+                    showHidden: false
                 }
 
                 delegate: ResourceItemDelegate {
-                    property var panelRoot: rootItem
+                    id: delegateItem
 
-                    property string itemPath: model.filePath || ""
-                    property string itemName: model.fileName || ""
-                    property bool itemIsDir: model.fileIsDir || false
+                    fileName: model.fileName || ""
+                    filePath: model.filePath || ""
+                    isDir: model.fileIsDir || false
 
-                    fileName: itemName
-                    filePath: itemPath
-                    isDir: itemIsDir
+                    isSelected: rootItem.selectedFilePath === filePath
+                    iconScale: rootItem.gridScale
 
-                    isSelected: panelRoot.selectedFilePath === itemPath
-                    iconScale: panelRoot.gridScale
-
-                    onSelected: panelRoot.selectedFilePath = itemPath
+                    onSelected: rootItem.selectedFilePath = filePath
                     onDoubleClicked: {
-                        if (itemIsDir) {
-                            let targetFolder = model.fileUrl.toString();
-                            if (targetFolder.startsWith(panelRoot.rootFolder)) {
-                                panelRoot.currentFolder = targetFolder;
-                                panelRoot.selectedFilePath = "";
+                        if (isDir) {
+                            let targetFolder = model.filePath;
+                            if (targetFolder.startsWith(rootItem.rootFolder)) {
+                                rootItem.currentFolder = targetFolder;
+                                rootItem.selectedFilePath = "";
                             }
                         }
                     }
-                    onRenameRequested: renameDialog.openFor(itemPath, itemName)
-                    onDeleteRequested: deleteDialog.openFor(itemPath, itemName)
+                    onRenameRequested: renameDialog.openFor(filePath, fileName)
+                    onDeleteRequested: deleteDialog.openFor(filePath, fileName)
                 }
 
                 WheelHandler {
                     acceptedModifiers: Qt.ControlModifier
-                    onWheel: function(event) {
-                        if (event.angleDelta.y > 0) rootItem.gridScale = Math.min(1.5, rootItem.gridScale + 0.1);
-                        else if (event.angleDelta.y < 0) rootItem.gridScale = Math.max(0.75, rootItem.gridScale - 0.1);
+                    onWheel: function (event) {
+                        if (event.angleDelta.y > 0)
+                            rootItem.gridScale = Math.min(1.5, rootItem.gridScale + 0.1);
+                        else if (event.angleDelta.y < 0)
+                            rootItem.gridScale = Math.max(0.75, rootItem.gridScale - 0.1);
                     }
                 }
             }

@@ -28,7 +28,7 @@ CustomPage {
         onAccepted: {
             let localPath = UrlConverter.toLocalPath(selectedFolder);
             if (CurrentProjectManager.openProject(localPath)) {
-                RecentProjectsManager.addProject(folderName, localPath);
+                RecentProjectsManager.addProject(UrlConverter.getFolderName(localPath), localPath);
                 Router.push("/editor");
             }
         }

@@ -20,3 +20,7 @@ function toLocalPath(path) {
 
     return decodeURIComponent(str);
 }
+
+function getFolderName(localPath){
+    return localPath.split(/[/\\]/).filter(Boolean).pop();
+}

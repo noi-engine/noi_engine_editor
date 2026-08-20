@@ -20,7 +20,10 @@ DropArea {
             anchors.centerIn: parent
             spacing: 8
 
-            IconBadge { Layout.alignment: Qt.AlignHCenter; icon: "file_upload" }
+            IconBadge {
+                Layout.alignment: Qt.AlignHCenter
+                icon: "file_upload"
+            }
             Text {
                 text: qsTr("Drop files or folders here")
                 font.pixelSize: 13
@@ -32,8 +35,9 @@ DropArea {
 
     onDropped: drop => {
         if (drop.hasUrls) {
-            let paths = drop.urls.map(url => UrlConverter.toLocalPath(url.toString()))
-            root.importDropped(paths)
+            const paths = drop.urls.map(url => UrlConverter.toLocalPath(url.toString()));
+            console.log(paths);
+            root.importDropped(paths);
         }
     }
 }
