@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <stdexcept>
+#include <QDebug>
 
 namespace noi_engine_editor
 {

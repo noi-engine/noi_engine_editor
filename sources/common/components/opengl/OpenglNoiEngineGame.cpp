@@ -23,5 +23,4 @@ noi_engine_editor::OpenglNoiEngineGame::OpenglNoiEngineGame(const QString& resou
     std::move(std::make_unique<noi_engine::source_resource_loader>(
         std::filesystem::path(resourcesPath.toStdString()))))
 {
-    qDebug() << "Path " << resourcesPath.toStdString();
 }
