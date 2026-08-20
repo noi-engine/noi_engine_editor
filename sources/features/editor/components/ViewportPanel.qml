@@ -16,6 +16,7 @@ Item {
         OpenGLView {
             id: openGLView
             anchors.fill: parent
+            scenePath: root.scenePath
             visible: root.scenePath !== ""
         }
 

@@ -26,6 +26,7 @@ add_subdirectory(external/Templi)
 add_subdirectory(external/noi_engine)
 
 # QT
+set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(NOI_ENGINE_EDITOR_PROJECT_NAME noi_engine_editor)
 set(QML_IMPORT_PATH "${CMAKE_BINARY_DIR}" CACHE STRING "QML Import Path" FORCE)
@@ -141,6 +142,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         SOURCES
         sources/features/editor/CurrentProjectResourcesManager.cpp
         sources/features/editor/CurrentProjectResourcesManager.hpp
+        SOURCES sources/common/components/opengl/OpenglNoiEngineGame.hpp sources/common/components/opengl/OpenglNoiEngineGame.cpp
 )
 
 set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES
