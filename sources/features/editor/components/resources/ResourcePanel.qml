@@ -3,12 +3,12 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt.labs.folderlistmodel
 import noi_engine_editor
-import "../../../../common/utils/FolderUrlComputer.js" as FolderUrlComputer
+import "../../../../common/utils/LocalPathAndUrlConverter.js" as UrlConverter
 
 Item {
     id: rootItem
 
-    readonly property string rootFolder: FolderUrlComputer.toUrl(CurrentProjectManager.resourcesPath())
+    readonly property string rootFolder: UrlConverter.toUrl(CurrentProjectManager.resourcesPath())
     property string currentFolder: rootFolder
     property string selectedFilePath: ""
     property real gridScale: 1.0
@@ -44,15 +44,15 @@ Item {
 
         ImportDialog {
             id: importDialog
-            onImported: function(urls) {
-                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder);
+            onImported: function(paths) {
+                CurrentProjectResourcesManager.importPaths(paths, rootItem.currentFolder);
             }
         }
 
         ResourceDropArea {
             anchors.fill: parent
-            onImportDropped: function(urls) {
-                CurrentProjectResourcesManager.importPaths(urls, rootItem.currentFolder);
+            onImportDropped: function(paths) {
+                CurrentProjectResourcesManager.importPaths(paths, rootItem.currentFolder);
             }
         }
 

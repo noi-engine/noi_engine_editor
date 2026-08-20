@@ -58,7 +58,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/common/components/SearchField.qml
         sources/common/components/icons/MuiIcon.qml
         sources/common/components/icons/IconLoaderCreator.js
-        sources/common/utils/FolderUrlComputer.js
+        sources/common/utils/LocalPathAndUrlConverter.js
         sources/common/components/icons/MaterialSymbolsRegular/codepoints.js
         ${NOI_ENGINE_EDITOR_QML_SINGLETONS}
         SOURCES

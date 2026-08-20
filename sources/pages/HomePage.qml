@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 
 import noi_engine_editor
+import "../common/utils/LocalPathAndUrlConverter.js" as UrlConverter
 
 CustomPage {
     id: root
@@ -22,15 +23,12 @@ CustomPage {
 
     FolderDialog {
         id: openProjectFolderDialog
-        title: qsTr("Sélectionner le dossier du projet")
+        title: qsTr("Select Project Folder")
 
         onAccepted: {
-            var path = selectedFolder.toString().replace(/^file:\/\//, "");
-            path = path.replace(/[\/\\]+$/, "");
-
-            const folderName = path.split(/[\/\\]/).pop();
-            if (CurrentProjectManager.openProject(path)) {
-                RecentProjectsManager.addProject(folderName, path);
+            let localPath = UrlConverter.toLocalPath(selectedFolder);
+            if (CurrentProjectManager.openProject(localPath)) {
+                RecentProjectsManager.addProject(folderName, localPath);
                 Router.push("/editor");
             }
         }

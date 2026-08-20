@@ -3,11 +3,12 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import noi_engine_editor
+import "../../../../common/utils/LocalPathAndUrlConverter.js" as UrlConverter
 
 Dialog {
     id: root
 
-    signal imported(list<var> urls)
+    signal imported(list<string> paths)
 
     title: qsTr("Import Resources")
     modal: true
@@ -17,18 +18,20 @@ Dialog {
 
     ListModel { id: importModel }
 
-    function containsUrl(urlPath) {
+    function containsPath(path) {
         for (let i = 0; i < importModel.count; i++) {
-            if (importModel.get(i).url === urlPath) return true
+            if (importModel.get(i).path === path) return true
         }
         return false
     }
 
-    function addPath(path, isFolder) {
-        if (!containsUrl(path)) {
-            let clean = path.replace(/\/$/, "")
+    function addPath(rawUrl, isFolder) {
+        let localPath = UrlConverter.toLocalPath(rawUrl)
+
+        if (!containsPath(localPath)) {
+            let clean = localPath.replace(/\/$/, "")
             let name = clean.substring(clean.lastIndexOf('/') + 1)
-            importModel.append({ "url": path, "fileName": name, "isFolder": isFolder })
+            importModel.append({ "path": localPath, "fileName": name, "isFolder": isFolder })
         }
     }
 
@@ -77,7 +80,7 @@ Dialog {
                 model: importModel
 
                 delegate: Rectangle {
-                    required property string url
+                    required property string path
                     required property string fileName
                     required property bool isFolder
                     required property int index
@@ -99,7 +102,7 @@ Dialog {
                             spacing: 2
 
                             Text { Layout.fillWidth: true; text: fileName; font.pixelSize: 12; font.weight: Font.Medium; color: Theme.white; elide: Text.ElideRight }
-                            Text { Layout.fillWidth: true; text: url.replace("file://", ""); font.pixelSize: 10; color: Theme.grey; elide: Text.ElideMiddle }
+                            Text { Layout.fillWidth: true; text: path; font.pixelSize: 10; color: Theme.grey; elide: Text.ElideMiddle }
                         }
 
                         AppButton { icon: "close"; onClicked: importModel.remove(index) }
@@ -128,7 +131,7 @@ Dialog {
                 enabled: importModel.count > 0
                 onClicked: {
                     let result = []
-                    for (let i = 0; i < importModel.count; i++) result.push(importModel.get(i).url)
+                    for (let i = 0; i < importModel.count; i++) result.push(importModel.get(i).path)
                     root.imported(result)
                     root.accept()
                 }

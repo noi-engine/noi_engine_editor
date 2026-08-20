@@ -2,7 +2,6 @@
 
 #include <QQmlEngine>
 #include <QString>
-#include <QUrl>
 
 namespace noi_engine_editor
 {
@@ -18,11 +17,10 @@ namespace noi_engine_editor
         Q_INVOKABLE [[nodiscard]] auto createFolder(const QString& parentFolderPath, const QString& folderName) -> bool;
         Q_INVOKABLE [[nodiscard]] auto renameItem(const QString& itemPath, const QString& newName) -> bool;
         Q_INVOKABLE [[nodiscard]] auto deleteItem(const QString& itemPath) -> bool;
-        Q_INVOKABLE [[nodiscard]] auto importPaths(const QList<QUrl>& urls, const QString& targetFolderPath) -> bool;
+        Q_INVOKABLE [[nodiscard]] auto importPaths(const QList<QString>& paths, const QString& targetFolderPath) -> bool;
         Q_INVOKABLE QStringList getAllScenesRecursively(const QString& rootPath);
 
     private:
-        [[nodiscard]] auto urlToLocalPath(const QString& urlOrPath) const -> QString;
         [[nodiscard]] auto copyRecursively(const QString& srcFilePath, const QString& tgtFilePath) -> bool;
     };
 }

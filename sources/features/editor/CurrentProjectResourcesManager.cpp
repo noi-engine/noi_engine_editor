@@ -1,5 +1,4 @@
 #include "CurrentProjectResourcesManager.hpp"
-#include <QUrl>
 #include <QDirIterator>
 
 namespace noi_engine_editor
@@ -9,20 +8,10 @@ namespace noi_engine_editor
     {
     }
 
-    auto CurrentProjectResourcesManager::urlToLocalPath(const QString& urlOrPath) const -> QString
-    {
-        if (urlOrPath.startsWith(QStringLiteral("file:")))
-        {
-            return QUrl(urlOrPath).toLocalFile();
-        }
-        return urlOrPath;
-    }
-
     auto CurrentProjectResourcesManager::createFolder(const QString& parentFolderPath,
                                                       const QString& folderName) -> bool
     {
-        auto parentPath = urlToLocalPath(parentFolderPath);
-        QDir dir(parentPath);
+        QDir dir(parentFolderPath);
         if (!dir.exists())
         {
             return false;
@@ -32,21 +21,19 @@ namespace noi_engine_editor
 
     auto CurrentProjectResourcesManager::renameItem(const QString& itemPath, const QString& newName) -> bool
     {
-        auto localPath = urlToLocalPath(itemPath);
-        QFileInfo fileInfo(localPath);
+        QFileInfo fileInfo(itemPath);
         if (!fileInfo.exists())
         {
             return false;
         }
 
         auto newPath = fileInfo.absoluteDir().filePath(newName);
-        return QDir().rename(localPath, newPath);
+        return QDir().rename(itemPath, newPath);
     }
 
     auto CurrentProjectResourcesManager::deleteItem(const QString& itemPath) -> bool
     {
-        auto localPath = urlToLocalPath(itemPath);
-        QFileInfo fileInfo(localPath);
+        QFileInfo fileInfo(itemPath);
 
         if (!fileInfo.exists())
         {
@@ -55,9 +42,9 @@ namespace noi_engine_editor
 
         if (fileInfo.isDir())
         {
-            return QDir(localPath).removeRecursively();
+            return QDir(itemPath).removeRecursively();
         }
-        return QFile::remove(localPath);
+        return QFile::remove(itemPath);
     }
 
     auto CurrentProjectResourcesManager::copyRecursively(const QString& srcFilePath, const QString& tgtFilePath) -> bool
@@ -116,20 +103,14 @@ namespace noi_engine_editor
         return true;
     }
 
-    auto CurrentProjectResourcesManager::importPaths(const QList<QUrl>& urls, const QString& targetFolderPath) -> bool
+    auto CurrentProjectResourcesManager::importPaths(const QList<QString>& paths, const QString& targetFolderPath) -> bool
     {
-        auto targetDir = QDir::cleanPath(urlToLocalPath(targetFolderPath));
+        auto targetDir = QDir::cleanPath(targetFolderPath);
         auto allSuccess = true;
 
-        QDir destinationDir(targetDir);
-        if (!destinationDir.exists())
+        for (const auto& path : paths)
         {
-            destinationDir.mkpath(targetDir);
-        }
-
-        for (const auto& url : urls)
-        {
-            auto srcPath = QDir::cleanPath(url.isLocalFile() ? url.toLocalFile() : urlToLocalPath(url.toString()));
+            auto srcPath = QDir::cleanPath(path);
 
             QFileInfo srcInfo(srcPath);
             if (!srcInfo.exists())

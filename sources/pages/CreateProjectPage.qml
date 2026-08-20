@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 
 import noi_engine_editor
+import "../common/utils/LocalPathAndUrlConverter.js" as UrlConverter
 
 CustomPage {
     id: root
@@ -36,7 +37,7 @@ CustomPage {
         id: folderDialog
 
         onAccepted: {
-            locationField.text = selectedFolder.toString().replace("file://", "");
+            locationField.text = UrlConverter.toLocalPath(selectedFolder);
         }
     }
 

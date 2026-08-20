@@ -1,10 +1,12 @@
 import QtQuick
 import QtQuick.Layouts
 import noi_engine_editor
+import "../../../../common/utils/LocalPathAndUrlConverter.js" as UrlConverter
 
 DropArea {
     id: root
-    signal importDropped(var urls)
+
+    signal importDropped(list<string> paths)
 
     Rectangle {
         anchors.fill: parent
@@ -30,7 +32,8 @@ DropArea {
 
     onDropped: drop => {
         if (drop.hasUrls) {
-            root.importDropped(drop.urls)
+            let paths = drop.urls.map(url => UrlConverter.toLocalPath(url.toString()))
+            root.importDropped(paths)
         }
     }
 }
