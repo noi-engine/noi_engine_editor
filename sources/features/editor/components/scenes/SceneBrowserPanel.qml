@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import noi_engine_editor
-import "../../../../common/utils/FolderUrlComputer.js" as FolderUrlComputer
 
 Item {
     id: rootItem
@@ -22,7 +21,7 @@ Item {
         for (let i = 0; i < scenePaths.length; i++) {
             let path = scenePaths[i];
             scenesModel.append({
-                "filePath": FolderUrlComputer.toUrl(path),
+                "filePath": path,
                 "fileName": path.substring(path.lastIndexOf("/") + 1),
                 "displayPath": path.replace(rawRootFolder + "/", "")
             });
@@ -190,6 +189,7 @@ Item {
                                 rootItem.pendingScenePath = model.filePath;
                                 rootItem.pendingSceneName = model.fileName;
                                 confirmDialog.open();
+
                             }
                         }
                     }

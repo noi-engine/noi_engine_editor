@@ -4,14 +4,15 @@
 namespace noi_engine_editor
 {
     OpenGLView::OpenGLView(QQuickItem* parent) : QQuickFramebufferObject(parent)
-    {}
+    {
+    }
 
     QString OpenGLView::scenePath() const
     {
         return this->m_scenePath;
     }
 
-    void OpenGLView::setScenePath(const QString &path)
+    void OpenGLView::setScenePath(const QString& path)
     {
         if (m_scenePath == path)
         {
@@ -24,8 +25,26 @@ namespace noi_engine_editor
         update();
     }
 
+    QString OpenGLView::resourcesPath() const
+    {
+        return this->m_resourcesPath;
+    }
+
+    void OpenGLView::setResourcesPath(const QString& path)
+    {
+        if (m_resourcesPath == path)
+        {
+            return;
+        }
+
+        m_resourcesPath = path;
+        Q_EMIT resourcesPathChanged();
+
+        update();
+    }
+
     QQuickFramebufferObject::Renderer* OpenGLView::createRenderer() const
     {
-        return new OpenGLRenderer();
+        return new OpenGLRenderer(this->resourcesPath());
     }
 }

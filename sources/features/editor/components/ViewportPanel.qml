@@ -17,6 +17,7 @@ Item {
             id: openGLView
             anchors.fill: parent
             scenePath: root.scenePath
+            resourcesPath: CurrentProjectManager.resourcesPath()
             visible: root.scenePath !== ""
         }
 

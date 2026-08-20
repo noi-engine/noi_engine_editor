@@ -3,10 +3,27 @@
 #include <noi_engine/core/game.hpp>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
+#include <QDir>
+#include <QFileInfo>
+#include <stdexcept>
 
 namespace noi_engine_editor
 {
-    OpenGLRenderer::OpenGLRenderer()
+    static auto getSceneResourceDotPath(const QString& resourcesDirPath, const QString& scenePath) -> QString
+    {
+        const auto cleanFilePath = QFileInfo(scenePath).canonicalFilePath();
+        const auto cleanResourcesPath = QDir(resourcesDirPath).canonicalPath();
+
+        if (!cleanFilePath.startsWith(cleanResourcesPath))
+        {
+            throw std::invalid_argument("Invalid resources Scene Path = " + scenePath.toStdString());
+        }
+
+        const QDir resourcesDir(cleanResourcesPath);
+        return resourcesDir.relativeFilePath(cleanFilePath);
+    }
+
+    OpenGLRenderer::OpenGLRenderer(const QString& resourcesPath) : m_resourcesPath(resourcesPath)
     {
         noi_engine::game::init(
             [](const char* name) -> void*
@@ -17,7 +34,7 @@ namespace noi_engine_editor
                 return reinterpret_cast<void*>(currentCtx->getProcAddress(name));
             });
 
-        this->m_game = std::make_unique<OpenglNoiEngineGame>();
+        this->m_game = std::make_unique<OpenglNoiEngineGame>(this->m_resourcesPath);
     }
 
     void OpenGLRenderer::render()
@@ -63,7 +80,8 @@ namespace noi_engine_editor
             if (!m_currentPath.isEmpty())
             {
                 auto& resources = this->m_game->resources();
-                this->m_game->set_scene(std::move(resources.load_scene("resources/scenes/main.scene")));
+                const auto relativeScenePath = getSceneResourceDotPath(this->m_resourcesPath, this->m_currentPath);
+                this->m_game->set_scene(std::move(resources.load_scene(relativeScenePath.toStdString())));
             }
         }
     }

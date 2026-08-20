@@ -1,4 +1,5 @@
 #include "OpenglNoiEngineGame.hpp"
+#include <QDebug>
 #include <noi_engine/core/resources/resource_loader.hpp>
 #include <noi_engine/core/renderer/renderer.hpp>
 
@@ -18,8 +19,9 @@ auto noi_engine_editor::OpenglNoiEngineGame::on_resize(const int width, const in
     this->m_scene_manager->on_resize(width, height);
 }
 
-noi_engine_editor::OpenglNoiEngineGame::OpenglNoiEngineGame() : game(
+noi_engine_editor::OpenglNoiEngineGame::OpenglNoiEngineGame(const QString& resourcesPath) : game(
     std::move(std::make_unique<noi_engine::source_resource_loader>(
-        std::filesystem::path("/home/ricka/Documents/noi_engine/projects/NewProject"))))
+        std::filesystem::path(resourcesPath.toStdString()))))
 {
+    qDebug() << "Path " << resourcesPath.toStdString();
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QString>
 #include <noi_engine/core/game.hpp>
 #include <noi_engine/core/timer.hpp>
 
@@ -13,6 +14,6 @@ namespace noi_engine_editor
         auto run() -> void;
         auto on_resize(int width, int height) const -> void;
 
-        OpenglNoiEngineGame();
+        explicit OpenglNoiEngineGame(const QString& resourcesPath);
     };
 }
