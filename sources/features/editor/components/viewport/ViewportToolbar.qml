@@ -7,14 +7,16 @@ Rectangle {
     id: toolbar
 
     property string activeTool: "move"
-    property real worldScale: 1.0
     property bool isCollapsed: false
+    property real zoomValue: 1.0
 
     signal toolChanged(string tool)
-    signal expandWorld()
-    signal shrinkWorld()
-    signal centerRequested()
-    signal resetRequested()
+    signal zoomInRequested()
+    signal zoomOutRequested()
+    signal zoomResetRequested()
+    signal setZoomRequested(real zoom)
+    signal modifyWorldSizeRequested(real factor)
+    signal resetAllRequested()
 
     width: isCollapsed ? 68 : toolRow.implicitWidth + 20
     height: 40
@@ -25,18 +27,8 @@ Rectangle {
 
     function keepInBounds() {
         if (!parent) return
-        if (x + width > parent.width - 8) {
-            x = Math.max(8, parent.width - width - 8)
-        }
-        if (x < 8) {
-            x = 8
-        }
-        if (y + height > parent.height - 8) {
-            y = Math.max(8, parent.height - height - 8)
-        }
-        if (y < 8) {
-            y = 8
-        }
+        x = Math.min(Math.max(8, x), parent.width - width - 8)
+        y = Math.min(Math.max(8, y), parent.height - height - 8)
     }
 
     Connections {
@@ -51,9 +43,7 @@ Rectangle {
         NumberAnimation {
             duration: 180
             easing.type: Easing.InOutQuad
-            onRunningChanged: {
-                if (!running) toolbar.keepInBounds()
-            }
+            onRunningChanged: { if (!running) toolbar.keepInBounds() }
         }
     }
 
@@ -70,12 +60,10 @@ Rectangle {
         id: dragArea
         anchors.fill: parent
         drag.target: toolbar
-
         drag.minimumX: 8
         drag.maximumX: toolbar.parent ? toolbar.parent.width - toolbar.width - 8 : 0
         drag.minimumY: 8
         drag.maximumY: toolbar.parent ? toolbar.parent.height - toolbar.height - 8 : 0
-
         cursorShape: dragArea.drag.active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
     }
 
@@ -93,12 +81,12 @@ Rectangle {
 
         ToolButtonCustom {
             iconName: toolbar.isCollapsed ? "chevron_right" : "chevron_left"
-            tooltipText: toolbar.isCollapsed ? "Déplier" : "Réduire"
+            tooltipText: toolbar.isCollapsed ? "Expand" : "Collapse"
             onClicked: toolbar.isCollapsed = !toolbar.isCollapsed
         }
 
         RowLayout {
-            spacing: 4
+            spacing: 6
             visible: !toolbar.isCollapsed
 
             Rectangle {
@@ -109,7 +97,7 @@ Rectangle {
 
             ToolButtonCustom {
                 iconName: "open_with"
-                tooltipText: "Déplacement (Pan)"
+                tooltipText: "Pan Tool"
                 isActive: toolbar.activeTool === "move"
                 onClicked: {
                     toolbar.activeTool = "move"
@@ -119,7 +107,7 @@ Rectangle {
 
             ToolButtonCustom {
                 iconName: "near_me"
-                tooltipText: "Sélection"
+                tooltipText: "Select Tool"
                 isActive: toolbar.activeTool === "select"
                 isEnabled: false
                 onClicked: {
@@ -128,76 +116,133 @@ Rectangle {
                 }
             }
 
-            Rectangle {
-                Layout.preferredWidth: 1
-                Layout.preferredHeight: 16
-                color: Theme.borderColor
-            }
-
-            ToolButtonCustom {
-                iconName: "aspect_ratio"
-                tooltipText: "Agrandir le World (+25%)"
-                onClicked: toolbar.expandWorld()
-            }
-
-            ToolButtonCustom {
-                iconName: "compress"
-                tooltipText: "Réduire le World (-25%)"
-                isEnabled: toolbar.worldScale > 1.0
-                onClicked: toolbar.shrinkWorld()
-            }
-
-            Rectangle {
-                Layout.preferredWidth: 1
-                Layout.preferredHeight: 16
-                color: Theme.borderColor
-            }
-
             ToolButtonCustom {
                 iconName: "filter_center_focus"
-                tooltipText: "Recentrer"
-                onClicked: toolbar.centerRequested()
+                tooltipText: "Reset All (Zoom & Position)"
+                onClicked: toolbar.resetAllRequested()
             }
 
-            ToolButtonCustom {
-                iconName: "restart_alt"
-                tooltipText: "Position d'origine (0,0)"
-                onClicked: toolbar.resetRequested()
+            Rectangle {
+                Layout.preferredWidth: 1
+                Layout.preferredHeight: 16
+                color: Theme.borderColor
+            }
+
+            ActionGroupPopup {
+                iconName: "search"
+                tooltipText: "Zoom Controls (" + Math.round(toolbar.zoomValue * 100) + "%)"
+                actions: [
+                    {
+                        type: "header",
+                        label: Math.round(toolbar.zoomValue * 100) + "%"
+                    },
+                    {
+                        type: "custom",
+                        items: [
+                            {
+                                iconName: "zoom_in",
+                                tooltipText: "Zoom In",
+                                closeOnClick: false,
+                                triggered: function() { toolbar.zoomInRequested() }
+                            },
+                            {
+                                iconName: "zoom_out",
+                                tooltipText: "Zoom Out",
+                                closeOnClick: false,
+                                triggered: function() { toolbar.zoomOutRequested() }
+                            },
+                            {
+                                iconName: "youtube_searched_for",
+                                tooltipText: "Reset Zoom",
+                                closeOnClick: true,
+                                triggered: function() { toolbar.zoomResetRequested() }
+                            }
+                        ]
+                    },
+                    {
+                        type: "separator"
+                    },
+                    {
+                        type: "custom",
+                        items: [
+                            {
+                                iconName: "fit_screen",
+                                tooltipText: "Set 50%",
+                                closeOnClick: true,
+                                triggered: function() { toolbar.setZoomRequested(0.5) }
+                            },
+                            {
+                                iconName: "aspect_ratio",
+                                tooltipText: "Set 100%",
+                                closeOnClick: true,
+                                triggered: function() { toolbar.setZoomRequested(1.0) }
+                            },
+                            {
+                                iconName: "fullscreen",
+                                tooltipText: "Set 200%",
+                                closeOnClick: true,
+                                triggered: function() { toolbar.setZoomRequested(2.0) }
+                            }
+                        ]
+                    }
+                ]
+            }
+
+            ActionGroupPopup {
+                iconName: "public"
+                tooltipText: "World Scale Controls"
+                actions: [
+                    {
+                        type: "custom",
+                        items: [
+                            {
+                                iconName: "add",
+                                tooltipText: "+25%",
+                                closeOnClick: false,
+                                triggered: function() { toolbar.modifyWorldSizeRequested(1.25) }
+                            },
+                            {
+                                iconName: "add_circle",
+                                tooltipText: "+50%",
+                                closeOnClick: false,
+                                triggered: function() { toolbar.modifyWorldSizeRequested(1.50) }
+                            },
+                            {
+                                iconName: "add_circle_outline",
+                                tooltipText: "+100%",
+                                closeOnClick: false,
+                                triggered: function() { toolbar.modifyWorldSizeRequested(2.00) }
+                            }
+                        ]
+                    },
+                    {
+                        type: "separator"
+                    },
+                    {
+                        type: "custom",
+                        items: [
+                            {
+                                iconName: "remove",
+                                tooltipText: "-25%",
+                                closeOnClick: false,
+                                triggered: function() { toolbar.modifyWorldSizeRequested(0.75) }
+                            },
+                            {
+                                iconName: "remove_circle",
+                                tooltipText: "-50%",
+                                closeOnClick: false,
+                                triggered: function() { toolbar.modifyWorldSizeRequested(0.50) }
+                            },
+                            {
+                                iconName: "remove_circle_outline",
+                                tooltipText: "-100% (Reset World)",
+                                closeOnClick: true,
+                                triggered: function() { toolbar.modifyWorldSizeRequested(0.0) }
+                            }
+                        ]
+                    }
+                ]
             }
         }
-    }
-
-    component ToolButtonCustom: Rectangle {
-        property string iconName: ""
-        property string tooltipText: ""
-        property bool isActive: false
-        property bool isEnabled: true
-        signal clicked()
-
-        implicitWidth: 28
-        implicitHeight: 28
-        radius: 14
-        opacity: isEnabled ? (btnMouse.containsMouse ? 0.9 : 1.0) : 0.3
-        color: isActive ? Theme.primaryLightB : (btnMouse.containsMouse ? Theme.bgTertiary : "transparent")
-        border.color: isActive ? Theme.primaryColor : "transparent"
-
-        MuiIcon {
-            anchors.centerIn: parent
-            name: parent.iconName
-            font.pixelSize: 15
-            color: parent.isActive ? Theme.primaryColor : (btnMouse.containsMouse ? Theme.white : Theme.darkGrey)
-        }
-
-        MouseArea {
-            id: btnMouse
-            anchors.fill: parent
-            enabled: parent.isEnabled
-            hoverEnabled: true
-            onClicked: parent.clicked()
-        }
-
-        ToolTip.visible: btnMouse.containsMouse && tooltipText !== ""
-        ToolTip.text: tooltipText
-        ToolTip.delay: 300
     }
 }

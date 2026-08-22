@@ -6,6 +6,29 @@
 
 constexpr float PIXELS_PER_UNIT = 100.0f;
 
+auto noi_engine_editor::OpenglNoiEngineGame::get_world() -> noi_engine::world&
+{
+    const auto current_scene = this->get_current_scene();
+
+    assert(current_scene);
+
+    return current_scene->get_world();
+}
+
+auto noi_engine_editor::OpenglNoiEngineGame::get_current_scene() const -> noi_engine::scene*
+{
+    return this->m_scene_manager->current();
+}
+
+auto noi_engine_editor::OpenglNoiEngineGame::get_camera_2d_component() -> noi_engine::camera_2d&
+{
+    const auto camera_entity = this->get_current_scene()->get_camera_entity();
+    auto& world = this->get_world();
+    assert(world.has<noi_engine::camera_2d>(camera_entity));
+
+    return world.get<noi_engine::camera_2d>(camera_entity);
+}
+
 auto noi_engine_editor::OpenglNoiEngineGame::run() -> void
 {
     const float dt = m_timer.tick();
@@ -17,27 +40,29 @@ auto noi_engine_editor::OpenglNoiEngineGame::run() -> void
     noi_engine::renderer::end_frame();
 }
 
-auto noi_engine_editor::OpenglNoiEngineGame::on_resize(const int width, const int height) const -> void
+auto noi_engine_editor::OpenglNoiEngineGame::on_resize(const int width, const int height) -> void
 {
-    const auto current_scene = this->m_scene_manager->current();
-    if (!current_scene)
+    if (!this->get_current_scene())
     {
         return;
     }
 
-    auto& world = current_scene->get_world();
-    if (!world.has<noi_engine::camera_2d>(current_scene->get_camera_entity()))
-    {
-        //TODO: camera_3d: same trick (probably)
-        return;
-    }
-
-    qDebug() << "Size: width=" << width << " & height= " << height << "\n";
-    auto& cam = world.get<noi_engine::camera_2d>(current_scene->get_camera_entity());
+    auto& cam = this->get_camera_2d_component();
     cam.orthographic_size = (static_cast<float>(height) / PIXELS_PER_UNIT) * 0.5f;
     cam.aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
 
     this->m_scene_manager->on_resize(width, height);
+}
+
+auto noi_engine_editor::OpenglNoiEngineGame::on_zoom_changed(float zoom) -> void
+{
+    if (!this->get_current_scene())
+    {
+        return;
+    }
+
+    auto& cam = this->get_camera_2d_component();
+    cam.zoom = zoom;
 }
 
 noi_engine_editor::OpenglNoiEngineGame::OpenglNoiEngineGame(const QString& resourcesPath) : game(

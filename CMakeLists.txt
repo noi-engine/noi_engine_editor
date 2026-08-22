@@ -72,6 +72,8 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/common/components/opengl/OpenglRenderer.hpp
         sources/common/components/opengl/OpenglView.cpp
         sources/common/components/opengl/OpenglView.hpp
+        sources/common/components/opengl/OpenglNoiEngineGame.hpp
+        sources/common/components/opengl/OpenglNoiEngineGame.cpp
 
         # Pages
         QML_FILES
@@ -139,11 +141,12 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/resources/ResourceDropArea.qml
         sources/features/editor/components/BottomTabButton.qml
         sources/features/editor/components/scenes/SceneBrowserPanel.qml
+        sources/features/editor/components/viewport/ViewportToolbar.qml
+        sources/features/editor/components/viewport/ActionGroupPopup.qml
+        sources/features/editor/components/viewport/ToolButtonCustom.qml
         SOURCES
         sources/features/editor/CurrentProjectResourcesManager.cpp
         sources/features/editor/CurrentProjectResourcesManager.hpp
-        SOURCES sources/common/components/opengl/OpenglNoiEngineGame.hpp sources/common/components/opengl/OpenglNoiEngineGame.cpp
-        QML_FILES sources/features/editor/components/viewport/ViewportToolbar.qml
 )
 
 set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES

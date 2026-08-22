@@ -72,6 +72,13 @@ namespace noi_engine_editor
 
         if (this->m_game)
         {
+            const auto cameraZoom = static_cast<float>(view->cameraZoom() * dpr);
+            if (this->m_cameraZoom != cameraZoom )
+            {
+                this->m_cameraZoom = cameraZoom;
+                this->m_game->on_zoom_changed(this->m_cameraZoom);
+            }
+
             if (this->m_width != realWidth || this->m_height != realHeight)
             {
                 this->m_width = realWidth;

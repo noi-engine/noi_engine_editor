@@ -10,7 +10,7 @@ Item {
     property var selectedEntity: null
 
     property string activeTool: "move"
-    property real worldScale: 1.0
+    property real cameraZoom: 1.0
 
     readonly property real baseWidth: CurrentProjectManager.windowWidth
     readonly property real baseHeight: CurrentProjectManager.windowHeight
@@ -43,14 +43,15 @@ Item {
 
             Item {
                 id: container
-                width: Math.max(viewportFlickable.width, root.baseWidth * root.worldScale)
-                height: Math.max(viewportFlickable.height, root.baseHeight * root.worldScale)
+                width: Math.max(viewportFlickable.width, root.baseWidth)
+                height: Math.max(viewportFlickable.height, root.baseHeight)
 
                 OpenGLView {
                     id: openGLView
                     anchors.fill: parent
                     scenePath: root.scenePath
                     resourcesPath: CurrentProjectManager.resourcesPath()
+                    cameraZoom: root.cameraZoom
                 }
 
                 MouseArea {
@@ -76,20 +77,28 @@ Item {
             y: 20
             visible: root.scenePath !== ""
             activeTool: root.activeTool
-            worldScale: root.worldScale
+            zoomValue: root.cameraZoom
 
             onToolChanged: (tool) => root.activeTool = tool
-            onExpandWorld: root.worldScale += 0.25
-            onShrinkWorld: root.worldScale = Math.max(1.0, root.worldScale - 0.25)
-
-            onCenterRequested: {
-                viewportFlickable.contentX = Math.max(0, (container.width - viewportFlickable.width) / 2)
-                viewportFlickable.contentY = Math.max(0, (container.height - viewportFlickable.height) / 2)
-            }
-
-            onResetRequested: {
+            onZoomInRequested: root.cameraZoom += 0.25
+            onZoomOutRequested: root.cameraZoom = Math.max(0.1, root.cameraZoom - 0.25)
+            onZoomResetRequested: root.cameraZoom = 1.0
+            onSetZoomRequested: (zoom) => root.cameraZoom = zoom
+            onResetAllRequested: {
+                root.cameraZoom = 1.0
                 viewportFlickable.contentX = 0
                 viewportFlickable.contentY = 0
+                container.width = root.baseWidth
+                container.height = root.baseHeight
+            }
+            onModifyWorldSizeRequested: (factor) => {
+                if (factor === 0.0) {
+                    container.width = root.baseWidth
+                    container.height = root.baseHeight
+                } else {
+                    container.width = Math.max(root.baseWidth, container.width * factor)
+                    container.height = Math.max(root.baseHeight, container.height * factor)
+                }
             }
         }
 
