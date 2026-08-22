@@ -25,40 +25,6 @@ namespace noi_engine_editor
         update();
     }
 
-    int OpenGLView::gameWidth() const
-    {
-        return m_gameWidth;
-    }
-
-    void OpenGLView::setGameWidth(int w)
-    {
-        if (m_gameWidth == w)
-        {
-            return;
-        }
-
-        m_gameWidth = w;
-        Q_EMIT gameWidthChanged();
-        update();
-    }
-
-    int OpenGLView::gameHeight() const
-    {
-        return m_gameHeight;
-    }
-
-    void OpenGLView::setGameHeight(int h)
-    {
-        if (m_gameHeight == h)
-        {
-            return;
-        }
-
-        m_gameHeight = h;
-        Q_EMIT gameHeightChanged();
-        update();
-    }
-
     QString OpenGLView::resourcesPath() const
     {
         return this->m_resourcesPath;
@@ -79,6 +45,6 @@ namespace noi_engine_editor
 
     QQuickFramebufferObject::Renderer* OpenGLView::createRenderer() const
     {
-        return new OpenGLRenderer(this->gameHeight(), this->gameHeight(), this->resourcesPath());
+        return new OpenGLRenderer(this->resourcesPath());
     }
 }

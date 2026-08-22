@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <stdexcept>
 #include <QDebug>
+#include <QQuickWindow>
 
 namespace noi_engine_editor
 {
@@ -24,7 +25,8 @@ namespace noi_engine_editor
         return resourcesDir.relativeFilePath(cleanFilePath);
     }
 
-    OpenGLRenderer::OpenGLRenderer(const int width, const int height, const QString& resourcesPath) : m_resourcesPath(resourcesPath)
+    OpenGLRenderer::OpenGLRenderer(const QString& resourcesPath) : m_resourcesPath(
+        resourcesPath)
     {
         noi_engine::game::init(
             [](const char* name) -> void*
@@ -36,18 +38,17 @@ namespace noi_engine_editor
             });
 
         this->m_game = std::make_unique<OpenglNoiEngineGame>(this->m_resourcesPath);
-        this->m_game->on_resize(width, height);
     }
 
     void OpenGLRenderer::render()
     {
-        if (auto* f = QOpenGLContext::currentContext()->functions())
-        {
-            f->glViewport(0, 0, this->m_width, this->m_width);
-        }
-
         if (this->m_game)
         {
+            if (auto* f = QOpenGLContext::currentContext()->functions())
+            {
+                f->glViewport(0, 0, this->m_width, this->m_height);
+            }
+
             this->m_game->run();
         }
     }
@@ -65,24 +66,29 @@ namespace noi_engine_editor
     void OpenGLRenderer::synchronize(QQuickFramebufferObject* item)
     {
         const auto* view = static_cast<OpenGLView*>(item);
-        const int width = static_cast<int>(view->width());
-        const int height = static_cast<int>(view->height());
+        const auto dpr = view->window() ? view->window()->devicePixelRatio() : 1.0;
+        const auto realWidth = static_cast<int>(view->width() * dpr);
+        const auto realHeight = static_cast<int>(view->height() * dpr);
+
+        if (this->m_game)
+        {
+            if (this->m_width != realWidth || this->m_height != realHeight)
+            {
+                this->m_width = realWidth;
+                this->m_height = realHeight;
+                this->m_game->on_resize(m_width, m_height);
+            }
+        }
 
         if (const auto newPath = view->scenePath(); m_currentPath != newPath)
         {
             m_currentPath = newPath;
-
-            if (this->m_game && (width != m_width || height != m_height))
-            {
-                this->m_width = width;
-                this->m_height = height;
-            }
-
             if (!m_currentPath.isEmpty())
             {
                 auto& resources = this->m_game->resources();
                 const auto relativeScenePath = getSceneResourceDotPath(this->m_resourcesPath, this->m_currentPath);
                 this->m_game->set_scene(std::move(resources.load_scene(relativeScenePath.toStdString())));
+                this->m_game->on_resize(m_width, m_height);
             }
         }
     }

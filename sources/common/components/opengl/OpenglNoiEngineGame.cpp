@@ -1,7 +1,10 @@
 #include "OpenglNoiEngineGame.hpp"
 #include <QDebug>
 #include <noi_engine/core/resources/resource_loader.hpp>
+#include <noi_engine/core/components/camera_2d.hpp>
 #include <noi_engine/core/renderer/renderer.hpp>
+
+constexpr float PIXELS_PER_UNIT = 100.0f;
 
 auto noi_engine_editor::OpenglNoiEngineGame::run() -> void
 {
@@ -16,6 +19,24 @@ auto noi_engine_editor::OpenglNoiEngineGame::run() -> void
 
 auto noi_engine_editor::OpenglNoiEngineGame::on_resize(const int width, const int height) const -> void
 {
+    const auto current_scene = this->m_scene_manager->current();
+    if (!current_scene)
+    {
+        return;
+    }
+
+    auto& world = current_scene->get_world();
+    if (!world.has<noi_engine::camera_2d>(current_scene->get_camera_entity()))
+    {
+        //TODO: camera_3d: same trick (probably)
+        return;
+    }
+
+    qDebug() << "Size: width=" << width << " & height= " << height << "\n";
+    auto& cam = world.get<noi_engine::camera_2d>(current_scene->get_camera_entity());
+    cam.orthographic_size = (static_cast<float>(height) / PIXELS_PER_UNIT) * 0.5f;
+    cam.aspect_ratio = static_cast<float>(width) / static_cast<float>(height);
+
     this->m_scene_manager->on_resize(width, height);
 }
 

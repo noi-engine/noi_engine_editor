@@ -12,17 +12,19 @@ Item {
     property string activeTool: "move"
     property real worldScale: 1.0
 
-    readonly property real baseWidth: CurrentProjectManager.windowWidth * 3
-    readonly property real baseHeight: CurrentProjectManager.windowHeight * 3
+    readonly property real baseWidth: CurrentProjectManager.windowWidth
+    readonly property real baseHeight: CurrentProjectManager.windowHeight
 
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
+        clip: true
 
         Flickable {
             id: viewportFlickable
             anchors.fill: parent
             visible: root.scenePath !== ""
+            clip: true
 
             boundsBehavior: Flickable.StopAtBounds
             interactive: root.activeTool === "move"
@@ -30,26 +32,36 @@ Item {
             contentWidth: container.width
             contentHeight: container.height
 
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+                active: viewportFlickable.moving || viewportFlickable.flicking || viewportFlickable.activeFocus
+            }
+            ScrollBar.horizontal: ScrollBar {
+                policy: ScrollBar.AsNeeded
+                active: viewportFlickable.moving || viewportFlickable.flicking || viewportFlickable.activeFocus
+            }
+
             Item {
                 id: container
-                width: root.baseWidth * root.worldScale
-                height: root.baseHeight * root.worldScale
+                width: Math.max(viewportFlickable.width, root.baseWidth * root.worldScale)
+                height: Math.max(viewportFlickable.height, root.baseHeight * root.worldScale)
 
                 OpenGLView {
                     id: openGLView
-                    anchors.centerIn: parent
-                    width: root.baseWidth
-                    height: root.baseHeight
+                    anchors.fill: parent
                     scenePath: root.scenePath
-                    gameWidth: CurrentProjectManager.windowWidth
-                    gameHeight: CurrentProjectManager.windowHeight
                     resourcesPath: CurrentProjectManager.resourcesPath()
                 }
 
                 MouseArea {
                     anchors.fill: parent
-                    enabled: root.activeTool !== "move"
-                    cursorShape: Qt.ArrowCursor
+                    hoverEnabled: true
+                    cursorShape: {
+                        if (root.activeTool === "move") {
+                            return pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                        }
+                        return Qt.ArrowCursor
+                    }
 
                     onClicked: (mouse) => {
                         if (root.activeTool === "select") {
