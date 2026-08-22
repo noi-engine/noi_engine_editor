@@ -24,7 +24,7 @@ namespace noi_engine_editor
         return resourcesDir.relativeFilePath(cleanFilePath);
     }
 
-    OpenGLRenderer::OpenGLRenderer(const QString& resourcesPath) : m_resourcesPath(resourcesPath)
+    OpenGLRenderer::OpenGLRenderer(const int width, const int height, const QString& resourcesPath) : m_resourcesPath(resourcesPath)
     {
         noi_engine::game::init(
             [](const char* name) -> void*
@@ -36,13 +36,14 @@ namespace noi_engine_editor
             });
 
         this->m_game = std::make_unique<OpenglNoiEngineGame>(this->m_resourcesPath);
+        this->m_game->on_resize(width, height);
     }
 
     void OpenGLRenderer::render()
     {
         if (auto* f = QOpenGLContext::currentContext()->functions())
         {
-            f->glViewport(0, 0, m_width, m_height);
+            f->glViewport(0, 0, this->m_width, this->m_width);
         }
 
         if (this->m_game)
@@ -71,11 +72,10 @@ namespace noi_engine_editor
         {
             m_currentPath = newPath;
 
-            if (this->m_game && width != m_width && height != m_height)
+            if (this->m_game && (width != m_width || height != m_height))
             {
                 this->m_width = width;
                 this->m_height = height;
-                this->m_game->on_resize(this->m_width, this->m_height);
             }
 
             if (!m_currentPath.isEmpty())

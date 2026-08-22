@@ -125,7 +125,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/EditorToolbar.qml
         sources/features/editor/components/SceneHierarchyPanel.qml
         sources/features/editor/components/HierarchyItem.qml
-        sources/features/editor/components/ViewportPanel.qml
+        sources/features/editor/components/viewport/ViewportPanel.qml
         sources/features/editor/components/InspectorPanel.qml
         sources/features/editor/components/PropertyField.qml
         sources/features/editor/components/ProjectSettingsDialog.qml
@@ -143,6 +143,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/CurrentProjectResourcesManager.cpp
         sources/features/editor/CurrentProjectResourcesManager.hpp
         SOURCES sources/common/components/opengl/OpenglNoiEngineGame.hpp sources/common/components/opengl/OpenglNoiEngineGame.cpp
+        QML_FILES sources/features/editor/components/viewport/ViewportToolbar.qml
 )
 
 set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES
