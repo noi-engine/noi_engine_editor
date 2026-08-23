@@ -22,6 +22,22 @@ Dialog {
         id: remoteTemplateManager
     }
 
+    Connections {
+        target: root.localTemplateManager
+
+        function onDownloadFinished(templateId, success) {
+            if (success) {
+                root.templateDownloaded()
+            }
+        }
+
+        function onTemplatesChanged() {
+            if (templateListView.model) {
+                templateListView.model = remoteTemplateManager.templates
+            }
+        }
+    }
+
     onOpened: remoteTemplateManager.fetchTemplates()
 
     ColumnLayout {
@@ -36,6 +52,7 @@ Dialog {
         }
 
         ListView {
+            id: templateListView
             Layout.fillWidth: true
             Layout.fillHeight: true
             visible: !remoteTemplateManager.isPending
@@ -46,7 +63,13 @@ Dialog {
             delegate: Rectangle {
                 required property var modelData
 
-                readonly property bool installed: root.localTemplateManager ? root.localTemplateManager.isInstalled(modelData.id) : false
+                readonly property bool installed: {
+                    if (!root.localTemplateManager) return false
+                    let dummy = root.localTemplateManager.templates
+                    return root.localTemplateManager.isInstalled(modelData.id)
+                }
+
+                readonly property bool downloading: root.localTemplateManager ? root.localTemplateManager.isDownloading : false
 
                 width: ListView.view ? ListView.view.width : 0
                 height: 64
@@ -79,15 +102,13 @@ Dialog {
                     }
 
                     AppButton {
-                        text: installed ? qsTr("Installed") : qsTr("Download")
-                        icon: installed ? "check" : "download"
-                        enabled: !installed
+                        text: installed ? qsTr("Installed") : (downloading ? qsTr("Downloading...") : qsTr("Download"))
+                        icon: installed ? "check" : (downloading ? "sync" : "download")
+                        enabled: !installed && !downloading && root.localTemplateManager !== null
 
                         onClicked: {
-                            if (!installed) {
-                                console.log("Downloading template:", modelData.id);
-                                root.templateDownloaded();
-                                root.close();
+                            if (!installed && root.localTemplateManager) {
+                                root.localTemplateManager.downloadTemplate(modelData.id, modelData.repositoryUrl)
                             }
                         }
                     }

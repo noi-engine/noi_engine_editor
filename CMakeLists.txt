@@ -22,6 +22,7 @@ if (NOI_ENGINE_EDITOR_IS_MAIN_PROJECT)
             ${NOI_ENGINE_EDITOR_SOURCE_DIR}/sources/${NOI_ENGINE_EDITOR_NAME}Config.hpp @ONLY)
 endif ()
 
+add_subdirectory(external/zip EXCLUDE_FROM_ALL)
 add_subdirectory(external/Templi)
 add_subdirectory(external/noi_engine)
 
@@ -68,6 +69,8 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/common/utils/PathResolver.hpp
         sources/common/utils/JsonIO.cpp
         sources/common/utils/JsonIO.hpp
+        sources/common/utils/ZipExtractor.cpp
+        sources/common/utils/ZipExtractor.hpp
         sources/common/components/opengl/OpenglRenderer.cpp
         sources/common/components/opengl/OpenglRenderer.hpp
         sources/common/components/opengl/OpenglView.cpp
@@ -115,6 +118,8 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/templates/TemplateUrlResolver.cpp
         sources/features/templates/TemplateManager.hpp
         sources/features/templates/TemplateManager.cpp
+        sources/features/templates/TemplateInstaller.cpp
+        sources/features/templates/TemplateInstaller.hpp
         sources/features/templates/TemplateInfo.hpp
         sources/features/templates/TemplateInfo.cpp
         sources/features/templates/LocalTemplateManager.hpp
@@ -185,6 +190,7 @@ target_link_libraries(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         Qt6::OpenGL
         Templi
         noi_engine
+        zip
 )
 
 set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
