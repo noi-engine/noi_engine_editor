@@ -20,24 +20,35 @@ Rectangle {
 
     radius: 14
 
-    color: root.primary ? Theme.primaryColor : Theme.bgSecondary
+    // Changement de couleur au survol pour plus de dynamisme
+    color: {
+        if (root.primary)
+            return mouseArea.containsMouse ? Qt.lighter(Theme.primaryColor, 1.05) : Theme.primaryColor
+        else
+            return mouseArea.containsMouse ? Qt.lighter(Theme.bgSecondary, 1.2) : Theme.bgSecondary
+    }
 
-    border.color: root.primary ? "transparent" : Theme.borderColor
-    border.width: root.primary ? 0 : 1
+    border.color: root.primary ? "transparent" : (mouseArea.containsMouse ? Theme.primaryColor : Theme.borderColor)
+    border.width: 1
+
+    // Animation de scale au survol
+    scale: mouseArea.containsMouse ? 1.02 : 1.0
+
+    Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+    Behavior on color { ColorAnimation { duration: 150 } }
+    Behavior on border.color { ColorAnimation { duration: 150 } }
 
     MouseArea {
+        id: mouseArea
         anchors.fill: parent
-
+        hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-
         onClicked: root.clicked()
     }
 
     ColumnLayout {
         anchors.fill: parent
-
         anchors.margins: 24
-
         spacing: 8
 
         RowLayout {
@@ -45,31 +56,23 @@ Rectangle {
 
             MuiIcon {
                 name: root.icon
-
                 font.pixelSize: 30
-
                 color: root.primary ? Theme.black : Theme.primaryColor
             }
 
             Text {
                 text: root.title
-
                 font.pixelSize: 20
                 font.weight: Font.DemiBold
-
                 color: root.primary ? Theme.black : Theme.white
             }
         }
 
         Text {
             Layout.fillWidth: true
-
             text: root.description
-
             wrapMode: Text.WordWrap
-
             font.pixelSize: 13
-
             color: root.primary ? "#D8F8E9" : Theme.darkGrey
         }
 
@@ -80,20 +83,22 @@ Rectangle {
         RowLayout {
             spacing: 5
 
+            // Un petit décalage du texte d'action au survol pour le style
+            Item {
+                width: mouseArea.containsMouse ? 5 : 0
+                Behavior on width { NumberAnimation { duration: 150 } }
+            }
+
             Text {
                 text: root.actionText
-
                 font.pixelSize: 13
                 font.weight: Font.DemiBold
-
                 color: root.primary ? Theme.black : Theme.primaryColor
             }
 
             MuiIcon {
                 name: "arrow_forward"
-
                 font.pixelSize: 18
-
                 color: root.primary ? Theme.black : Theme.primaryColor
             }
         }

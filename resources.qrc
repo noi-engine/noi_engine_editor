@@ -3,4 +3,7 @@
         <file alias="LICENSE.txt">resources/fonts/Material_Symbols_Outlined/LICENSE.txt</file>
         <file alias="font.ttf">resources/fonts/Material_Symbols_Outlined/MaterialSymbolsOutlined.ttf</file>
     </qresource>
+    <qresource prefix="/images">
+        <file alias="hero.png">resources/images/hero.png</file>
+    </qresource>
 </RCC>

@@ -60,16 +60,114 @@ CustomPage {
             width: Math.min(flickable.width, 1500)
             anchors.horizontalCenter: parent.horizontalCenter
 
-            spacing: 30
+            spacing: 40
 
-            HeroHeader {
+            RowLayout {
                 Layout.fillWidth: true
-            }
+                spacing: 36
 
-            QuickActionsRow {
-                Layout.fillWidth: true
-                onCreateProjectRequested: Router.push("/create")
-                onOpenProjectRequested: openProjectFolderDialog.open()
+                Rectangle {
+                    id: imageContainer
+
+                    Layout.preferredHeight: Math.min(root.height * 0.62, 550)
+                    Layout.preferredWidth: Layout.preferredHeight * (1280 / 720)
+                    Layout.alignment: Qt.AlignTop
+
+                    radius: 14
+                    clip: true
+                    color: "transparent"
+                    border.width: 1
+                    border.color: Theme.borderColor
+
+                    Image {
+                        anchors.fill: parent
+                        source: "/images/hero.png"
+                        fillMode: Image.PreserveAspectFit
+                        mipmap: true
+                        asynchronous: true
+                    }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignTop
+                    spacing: 20
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Text {
+                            text: qsTr("Welcome to Noi Engine")
+                            font.pixelSize: 26
+                            font.weight: Font.Bold
+                            color: Theme.white
+                        }
+
+                        Text {
+                            text: qsTr("Select an action or open a recent workspace to start editing.")
+                            font.pixelSize: 13
+                            color: Qt.rgba(1, 1, 1, 0.55)
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 1
+                        color: Theme.borderColor
+                        opacity: 0.5
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
+
+                        AppButton {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 52
+                            primary: true
+                            text: qsTr("Create New Project")
+                            icon: "add"
+                            onClicked: Router.push("/create")
+                        }
+
+                        AppButton {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 52
+                            primary: false
+                            text: qsTr("Open Project")
+                            icon: "folder_open"
+                            onClicked: openProjectFolderDialog.open()
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
+
+                        AppButton {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 44
+                            primary: false
+                            text: qsTr("Settings")
+                            icon: "settings"
+                            enabled: false
+                            opacity: 0.4
+                        }
+
+                        AppButton {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 44
+                            primary: false
+                            text: qsTr("Credits")
+                            icon: "info"
+                            enabled: false
+                            opacity: 0.4
+                        }
+                    }
+                }
             }
 
             RecentProjectsSection {
@@ -78,7 +176,7 @@ CustomPage {
                 onProjectClicked: path => {
                     if (CurrentProjectManager.openProject(path)) {
                         Router.push("/editor");
-                    }else{
+                    } else {
                         RecentProjectsManager.removeProject(path);
                     }
                 }

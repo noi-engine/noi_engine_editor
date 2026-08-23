@@ -9,9 +9,7 @@ RowLayout {
     signal createProjectRequested()
     signal openProjectRequested()
 
-    Layout.fillWidth: true
-
-    spacing: 18
+    spacing: 24 // Espacement légèrement augmenté pour mieux aérer
 
     ActionCard {
         primary: true
@@ -25,6 +23,7 @@ RowLayout {
     }
 
     ActionCard {
+        primary: false
         icon: "folder_open"
         title: qsTr("Open a Project")
         description: qsTr("Open an existing Noi Engine project from your computer.")
