@@ -12,8 +12,8 @@ Item {
     property string activeTool: "move"
     property real cameraZoom: 1.0
 
-    readonly property real baseWidth: CurrentProjectManager.windowWidth
-    readonly property real baseHeight: CurrentProjectManager.windowHeight
+    property real worldWidth: CurrentProjectManager.windowWidth
+    property real worldHeight: CurrentProjectManager.windowHeight
 
     Rectangle {
         anchors.fill: parent
@@ -29,8 +29,8 @@ Item {
             boundsBehavior: Flickable.StopAtBounds
             interactive: root.activeTool === "move"
 
-            contentWidth: container.width
-            contentHeight: container.height
+            contentWidth: Math.max(viewportFlickable.width, container.width * root.cameraZoom)
+            contentHeight: Math.max(viewportFlickable.height, container.height * root.cameraZoom)
 
             ScrollBar.vertical: ScrollBar {
                 policy: ScrollBar.AsNeeded
@@ -43,15 +43,21 @@ Item {
 
             Item {
                 id: container
-                width: Math.max(viewportFlickable.width, root.baseWidth)
-                height: Math.max(viewportFlickable.height, root.baseHeight)
+                width: root.worldWidth
+                height: root.worldHeight
+
+                transform: Scale {
+                    xScale: root.cameraZoom
+                    yScale: root.cameraZoom
+                    origin.x: 0
+                    origin.y: 0
+                }
 
                 OpenGLView {
                     id: openGLView
                     anchors.fill: parent
                     scenePath: root.scenePath
                     resourcesPath: CurrentProjectManager.resourcesPath()
-                    cameraZoom: root.cameraZoom
                 }
 
                 MouseArea {
@@ -88,16 +94,15 @@ Item {
                 root.cameraZoom = 1.0
                 viewportFlickable.contentX = 0
                 viewportFlickable.contentY = 0
-                container.width = root.baseWidth
-                container.height = root.baseHeight
             }
+
             onModifyWorldSizeRequested: (factor) => {
                 if (factor === 0.0) {
-                    container.width = root.baseWidth
-                    container.height = root.baseHeight
+                    root.worldWidth = CurrentProjectManager.windowWidth
+                    root.worldHeight = CurrentProjectManager.windowHeight
                 } else {
-                    container.width = Math.max(root.baseWidth, container.width * factor)
-                    container.height = Math.max(root.baseHeight, container.height * factor)
+                    root.worldWidth = Math.max(CurrentProjectManager.windowWidth, root.worldWidth * factor)
+                    root.worldHeight = Math.max(CurrentProjectManager.windowHeight, root.worldHeight * factor)
                 }
             }
         }

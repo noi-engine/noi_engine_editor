@@ -20,7 +20,6 @@ namespace noi_engine_editor
     public:
         auto run() -> void;
         auto on_resize(int width, int height) -> void;
-        auto on_zoom_changed(float zoom) -> void;
 
         explicit OpenglNoiEngineGame(const QString& resourcesPath);
     };

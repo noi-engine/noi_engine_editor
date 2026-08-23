@@ -54,17 +54,6 @@ auto noi_engine_editor::OpenglNoiEngineGame::on_resize(const int width, const in
     this->m_scene_manager->on_resize(width, height);
 }
 
-auto noi_engine_editor::OpenglNoiEngineGame::on_zoom_changed(float zoom) -> void
-{
-    if (!this->get_current_scene())
-    {
-        return;
-    }
-
-    auto& cam = this->get_camera_2d_component();
-    cam.zoom = zoom;
-}
-
 noi_engine_editor::OpenglNoiEngineGame::OpenglNoiEngineGame(const QString& resourcesPath) : game(
     std::move(std::make_unique<noi_engine::source_resource_loader>(
         std::filesystem::path(resourcesPath.toStdString()))))

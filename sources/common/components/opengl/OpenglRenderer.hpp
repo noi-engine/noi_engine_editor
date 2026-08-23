@@ -22,7 +22,6 @@ namespace noi_engine_editor
     private:
         int m_width{};
         int m_height{};
-        float m_cameraZoom{1.0};
         QString m_currentPath{};
         QString m_resourcesPath{};
         std::unique_ptr<OpenglNoiEngineGame> m_game{nullptr};
