@@ -9,6 +9,8 @@ namespace noi_engine_editor
 {
     class OpenglNoiEngineGame : public noi_engine::game
     {
+        int m_game_width{};
+        int m_game_height{};
         noi_engine::timer m_timer{};
 
         [[nodiscard]] auto get_world() -> noi_engine::world&;
@@ -20,7 +22,8 @@ namespace noi_engine_editor
     public:
         auto run() -> void;
         auto on_resize(int width, int height) -> void;
+        auto set_scene_2d(std::unique_ptr<noi_engine::scene> scene) const -> void;
 
-        explicit OpenglNoiEngineGame(const QString& resourcesPath);
+        explicit OpenglNoiEngineGame(int game_width, int game_height, const QString& resourcesPath);
     };
 }

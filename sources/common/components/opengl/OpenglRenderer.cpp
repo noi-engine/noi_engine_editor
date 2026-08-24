@@ -25,8 +25,9 @@ namespace noi_engine_editor
         return resourcesDir.relativeFilePath(cleanFilePath);
     }
 
-    OpenGLRenderer::OpenGLRenderer(const QString& resourcesPath) : m_resourcesPath(
-        resourcesPath)
+    OpenGLRenderer::OpenGLRenderer(const int gameWidth, const int gameHeight, const QString& resourcesPath) :
+        m_resourcesPath(
+            resourcesPath)
     {
         noi_engine::game::init(
             [](const char* name) -> void*
@@ -37,7 +38,7 @@ namespace noi_engine_editor
                 return reinterpret_cast<void*>(currentCtx->getProcAddress(name));
             });
 
-        this->m_game = std::make_unique<OpenglNoiEngineGame>(this->m_resourcesPath);
+        this->m_game = std::make_unique<OpenglNoiEngineGame>(gameWidth, gameHeight, this->m_resourcesPath);
     }
 
     void OpenGLRenderer::render()
@@ -87,7 +88,7 @@ namespace noi_engine_editor
             {
                 auto& resources = this->m_game->resources();
                 const auto relativeScenePath = getSceneResourceDotPath(this->m_resourcesPath, this->m_currentPath);
-                this->m_game->set_scene(std::move(resources.load_scene(relativeScenePath.toStdString())));
+                this->m_game->set_scene_2d(std::move(resources.load_scene(relativeScenePath.toStdString())));
                 this->m_game->on_resize(m_width, m_height);
             }
         }

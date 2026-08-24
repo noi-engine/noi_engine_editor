@@ -24,8 +24,8 @@ namespace noi_engine_editor
         Q_INVOKABLE auto loadLocalTemplates() -> void;
         Q_INVOKABLE auto downloadTemplate(const QString& templateId, const QString& repositoryUrl) -> void;
 
-        signals:
-            auto templatesChanged() -> void;
+    signals:
+        auto templatesChanged() -> void;
         auto isDownloadingChanged() -> void;
         auto downloadFinished(const QString& templateId, bool success) -> void;
 

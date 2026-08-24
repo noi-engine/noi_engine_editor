@@ -2,6 +2,8 @@
 #include <QDebug>
 #include <noi_engine/core/resources/resource_loader.hpp>
 #include <noi_engine/core/components/camera_2d.hpp>
+#include <noi_engine/core/components/dirty.hpp>
+#include <noi_engine/core/components/transform.hpp>
 #include <noi_engine/core/renderer/renderer.hpp>
 
 constexpr float PIXELS_PER_UNIT = 100.0f;
@@ -54,8 +56,37 @@ auto noi_engine_editor::OpenglNoiEngineGame::on_resize(const int width, const in
     this->m_scene_manager->on_resize(width, height);
 }
 
-noi_engine_editor::OpenglNoiEngineGame::OpenglNoiEngineGame(const QString& resourcesPath) : game(
-    std::move(std::make_unique<noi_engine::source_resource_loader>(
-        std::filesystem::path(resourcesPath.toStdString()))))
+auto noi_engine_editor::OpenglNoiEngineGame::set_scene_2d(std::unique_ptr<noi_engine::scene> scene) const -> void
+{
+    this->set_scene(std::move(scene));
+    auto& resources_ref = this->resources();
+
+    auto material = std::make_unique<noi_engine::material>();;
+    material->set_color("u_color", glm::vec4{1, 0, 0, 1});
+    material->set_shader(resources_ref.get_handle<noi_engine::shader>("color_shader"));
+    const auto material_handle = resources_ref.load_instance(std::move(material));
+    const auto mesh_handle = resources_ref.get_handle<noi_engine::mesh>("quad_2d");
+
+    const auto camera_entity = this->get_current_scene()->get_camera_entity();
+    auto& world = this->get_current_scene()->get_world();
+
+    world.add<noi_engine::mesh_renderer>(camera_entity, {
+                                             .m_mesh = mesh_handle,
+                                             .m_material = material_handle
+                                         });
+
+    auto& transform = world.get<noi_engine::transform>(camera_entity);
+    const float world_width = static_cast<float>(this->m_game_width) / PIXELS_PER_UNIT;
+    const float world_height = static_cast<float>(this->m_game_height) / PIXELS_PER_UNIT;
+    transform.scale = glm::vec3{world_width, world_height, 1.0};
+
+    world.add<noi_engine::dirty<noi_engine::transform>>(camera_entity, noi_engine::dirty<noi_engine::transform>{});
+}
+
+noi_engine_editor::OpenglNoiEngineGame::OpenglNoiEngineGame(const int game_width, const int game_height,
+                                                            const QString& resourcesPath) : game(
+        std::move(std::make_unique<noi_engine::source_resource_loader>(
+            std::filesystem::path(resourcesPath.toStdString())))),
+    m_game_width(game_width), m_game_height(game_height)
 {
 }

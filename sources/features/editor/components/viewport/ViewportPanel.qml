@@ -58,6 +58,8 @@ Item {
                     anchors.fill: parent
                     scenePath: root.scenePath
                     resourcesPath: CurrentProjectManager.resourcesPath()
+                    gameWidth: CurrentProjectManager.windowWidth
+                    gameHeight: CurrentProjectManager.windowHeight
                 }
 
                 MouseArea {
