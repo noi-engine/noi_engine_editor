@@ -13,7 +13,13 @@ namespace noi_engine_editor
     public:
         explicit ProjectCreator(QObject* parent = nullptr);
 
-        Q_INVOKABLE [[nodiscard]] auto createProject(const QString& name, const QString& location, const QString& templateId) -> bool;
+        Q_INVOKABLE [[nodiscard]] auto createProject(
+            const QString& name,
+            const QString& location,
+            const QString& templateId,
+            const QString& engineVersion,
+            const QString& resourceCompilerVersion
+        ) -> bool;
 
     signals:
         void projectCreated(const QString& name, const QString& path);

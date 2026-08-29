@@ -13,6 +13,7 @@ auto noi_engine_editor::PathResolver::init() -> void
 {
     createDirOrThrow(confPath());
     createDirOrThrow(templatesPath());
+    createDirOrThrow(toolsPath());
     createDirOrThrow(fallBackDefaultProjectsPath());
 }
 
@@ -26,14 +27,34 @@ auto noi_engine_editor::PathResolver::recentProjectsPath() -> QString
     return confPath() + "/recent_projects.json";
 }
 
-auto noi_engine_editor::PathResolver::templateEnginePath() -> QString
+auto noi_engine_editor::PathResolver::toolsPath() -> QString
 {
-    return confPath() + "/.noi_engine";
+    return confPath() + "/tools";
 }
 
-auto noi_engine_editor::PathResolver::templateResourcesCompilerPath() -> QString
+auto noi_engine_editor::PathResolver::noiEngineRootPath() -> QString
 {
-    return confPath() + "/.resources_compiler";
+    return toolsPath() + "/noi_engine";
+}
+
+auto noi_engine_editor::PathResolver::noiEnginePath(const QString& version) -> QString
+{
+    return QDir(noiEngineRootPath()).filePath(version);
+}
+
+auto noi_engine_editor::PathResolver::noiEngineContentPath(const QString& version) -> QString
+{
+    return noiEnginePath(version) + "/content";
+}
+
+auto noi_engine_editor::PathResolver::resourceCompilerRootPath() -> QString
+{
+    return toolsPath() + "/resource_compiler";
+}
+
+auto noi_engine_editor::PathResolver::resourceCompilerPath(const QString& version) -> QString
+{
+    return QDir(resourceCompilerRootPath()).filePath(version);
 }
 
 auto noi_engine_editor::PathResolver::fallBackDefaultProjectsPath() -> QString

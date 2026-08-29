@@ -127,6 +127,17 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         QML_FILES
         sources/features/templates/components/TemplateMarketplaceDialog.qml
 
+        # tools
+        SOURCES
+        sources/features/tools/ToolUrlResolver.hpp
+        sources/features/tools/ToolUrlResolver.cpp
+        sources/features/tools/ToolInstaller.hpp
+        sources/features/tools/ToolInstaller.cpp
+        sources/features/tools/ToolsManager.hpp
+        sources/features/tools/ToolsManager.cpp
+        QML_FILES
+        sources/features/tools/components/ToolsManagerDialog.qml
+
         # editor
         QML_FILES
         sources/features/editor/components/EditorToolbar.qml

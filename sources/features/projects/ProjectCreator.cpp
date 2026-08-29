@@ -11,7 +11,13 @@ namespace noi_engine_editor
     {
     }
 
-    auto ProjectCreator::createProject(const QString& name, const QString& location, const QString& templateId) -> bool
+    auto ProjectCreator::createProject(
+        const QString& name,
+        const QString& location,
+        const QString& templateId,
+        const QString& engineVersion,
+        const QString& resourceCompilerVersion
+    ) -> bool
     {
         const auto projectPath = QDir(location).filePath(name);
         if (const QDir root(projectPath); root.exists())
@@ -35,8 +41,7 @@ namespace noi_engine_editor
                 }
             );
 
-            //TODO: bad
-            const auto enginePath = PathResolver::templateEnginePath();
+            const auto enginePath = PathResolver::noiEngineContentPath(engineVersion);
             std::filesystem::copy(
                 enginePath.toStdString(),
                 QDir(projectPath).filePath(".noi_engine").toStdString(),
@@ -44,8 +49,7 @@ namespace noi_engine_editor
                 std::filesystem::copy_options::overwrite_existing
             );
 
-            //TODO: bad
-            const auto resourcesCompilerPath= PathResolver::templateResourcesCompilerPath();
+            const auto resourcesCompilerPath = PathResolver::resourceCompilerPath(resourceCompilerVersion);
             std::filesystem::copy(
                 resourcesCompilerPath.toStdString(),
                 QDir(projectPath).filePath(".resources_compiler").toStdString(),

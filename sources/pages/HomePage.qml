@@ -16,6 +16,10 @@ CustomPage {
         manager: RecentProjectsManager
     }
 
+    ToolsManagerDialog {
+        id: toolsManagerDialog
+    }
+
     Rectangle {
         anchors.fill: parent
         color: Theme.bgPrimary
@@ -146,6 +150,15 @@ CustomPage {
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 12
+
+                        AppButton {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 44
+                            primary: false
+                            text: qsTr("Tools")
+                            icon: "build"
+                            onClicked: toolsManagerDialog.open()
+                        }
 
                         AppButton {
                             Layout.fillWidth: true

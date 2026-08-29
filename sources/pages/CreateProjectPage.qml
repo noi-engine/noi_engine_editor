@@ -13,6 +13,8 @@ CustomPage {
 
     property var selectedTemplate: null
 
+    Component.onCompleted: ToolsManager.fetchLatestVersions()
+
     LocalTemplateManager {
         id: localTemplateManager
     }
@@ -30,6 +32,26 @@ CustomPage {
         onProjectCreationFailed: reason => {
             errorLabel.text = reason;
             errorLabel.visible = true;
+        }
+    }
+
+    Connections {
+        target: ToolsManager
+
+        function onToolsReady(success) {
+            if (!success) {
+                errorLabel.text = qsTr("Failed to download required tools (Noi Engine / Resource Compiler)");
+                errorLabel.visible = true;
+                return;
+            }
+
+            projectCreator.createProject(
+                nameField.text.trim(),
+                locationField.text,
+                root.selectedTemplate.id,
+                ToolsManager.latestNoiEngineVersion,
+                ToolsManager.latestResourceCompilerVersion
+            );
         }
     }
 
@@ -237,6 +259,50 @@ CustomPage {
                     enabled: false
                 }
             }
+
+            Rectangle {
+                id: toolsStatusCard
+
+                Layout.fillWidth: true
+                Layout.preferredHeight: 44
+                visible: root.selectedTemplate !== null
+                radius: 8
+                color: Theme.bgSecondary
+                border.color: Theme.borderColor
+
+                readonly property bool engineReady: ToolsManager.latestNoiEngineVersion.length > 0 && ToolsManager.isNoiEngineInstalled(ToolsManager.latestNoiEngineVersion)
+                readonly property bool compilerReady: ToolsManager.latestResourceCompilerVersion.length > 0 && ToolsManager.isResourceCompilerInstalled(ToolsManager.latestResourceCompilerVersion)
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.margins: 10
+                    spacing: 8
+
+                    MuiIcon {
+                        name: "build"
+                        font.pixelSize: 15
+                        color: Theme.darkGrey
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: ToolsManager.latestNoiEngineVersion.length > 0
+                            ? qsTr("Uses Noi Engine v%1 · Resource Compiler v%2").arg(ToolsManager.latestNoiEngineVersion).arg(ToolsManager.latestResourceCompilerVersion)
+                            : qsTr("Fetching tool versions...")
+                        color: Theme.darkGrey
+                        font.pixelSize: 12
+                        elide: Text.ElideRight
+                    }
+
+                    Text {
+                        visible: ToolsManager.latestNoiEngineVersion.length > 0
+                        text: (toolsStatusCard.engineReady && toolsStatusCard.compilerReady) ? qsTr("Ready") : qsTr("Will be downloaded")
+                        color: (toolsStatusCard.engineReady && toolsStatusCard.compilerReady) ? Theme.success : Theme.warning
+                        font.pixelSize: 12
+                        font.bold: true
+                    }
+                }
+            }
         }
 
         Text {
@@ -264,8 +330,9 @@ CustomPage {
             }
 
             AppButton {
-                text: qsTr("Create Project")
+                text: ToolsManager.isInstalling ? qsTr("Downloading tools...") : qsTr("Create Project")
                 primary: true
+                enabled: !ToolsManager.isInstalling
 
                 onClicked: {
                     if (nameField.text.trim() === "") {
@@ -284,7 +351,8 @@ CustomPage {
                         SettingsManager.defaultProjectsPath = locationField.text;
                     }
 
-                    projectCreator.createProject(nameField.text.trim(), locationField.text, root.selectedTemplate.id);
+                    errorLabel.visible = false;
+                    ToolsManager.ensureLatestToolsInstalled();
                 }
             }
         }
