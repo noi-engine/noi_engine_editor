@@ -288,23 +288,23 @@ Dialog {
                     readonly property string engineVersion: root.selectedTemplate ? root.selectedTemplate.engineVersion : ""
                     readonly property string compilerVersion: root.selectedTemplate ? root.selectedTemplate.resourceCompilerVersion : ""
 
-                    property int refreshTick: 0
+                    property bool engineReady: false
+                    property bool compilerReady: false
 
-                    readonly property bool engineReady: {
-                        let _ = toolsStatusCard.refreshTick;
-                        return engineVersion.length > 0 && ToolsManager.isNoiEngineInstalled(engineVersion);
+                    function updateStatus() {
+                        if (!root.selectedTemplate) return;
+                        engineReady = ToolsManager.isNoiEngineInstalled(engineVersion);
+                        compilerReady = ToolsManager.isResourceCompilerInstalled(compilerVersion);
                     }
 
-                    readonly property bool compilerReady: {
-                        let _ = toolsStatusCard.refreshTick;
-                        return compilerVersion.length > 0 && ToolsManager.isResourceCompilerInstalled(compilerVersion);
-                    }
+                    onEngineVersionChanged: updateStatus()
+                    onCompilerVersionChanged: updateStatus()
 
                     Connections {
                         target: ToolsManager
 
                         function onInstallFinished(tool, version, success) {
-                            toolsStatusCard.refreshTick++;
+                            toolsStatusCard.updateStatus();
 
                             if (!success) {
                                 const toolLabel = tool === "noi_engine" ? qsTr("Noi Engine") : qsTr("Resource Compiler");

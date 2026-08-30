@@ -4,7 +4,37 @@
 #include "PathResolver.hpp"
 
 #include <QDir>
+#include <QFile>
+#include <QDebug>
 #include <memory>
+
+namespace
+{
+    auto flattenScriptsDir(const QString& installPath) -> bool
+    {
+        const QDir scriptsDir(QDir(installPath).filePath("scripts"));
+        if (!scriptsDir.exists())
+        {
+            return true;
+        }
+
+        const QDir targetDir(installPath);
+        const auto items = scriptsDir.entryList(QDir::Dirs | QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot);
+        for (const auto& item : items)
+        {
+            const auto srcPath = scriptsDir.filePath(item);
+            const auto destPath = targetDir.filePath(item);
+
+            if (!QFile::rename(srcPath, destPath))
+            {
+                qWarning() << "[ToolsManager] Failed to move item:" << srcPath << "to:" << destPath;
+                return false;
+            }
+        }
+
+        return QDir(scriptsDir).removeRecursively();
+    }
+}
 
 namespace noi_engine_editor
 {
@@ -93,9 +123,20 @@ namespace noi_engine_editor
             PathResolver::resourceCompilerPath(version),
             [this, version](const bool success)
             {
+                const auto installed = success && flattenScriptsDir(PathResolver::resourceCompilerPath(version));
                 setInstallingResourceCompiler(false);
-                emit installFinished("resource_compiler", version, success);
+                emit installFinished("resource_compiler", version, installed);
             }
         );
+    }
+
+    auto ToolsManager::removeNoiEngineVersion(const QString& version) -> void
+    {
+        QDir(PathResolver::noiEnginePath(version)).removeRecursively();
+    }
+
+    auto ToolsManager::removeResourceCompilerVersion(const QString& version) -> void
+    {
+        QDir(PathResolver::resourceCompilerPath(version)).removeRecursively();
     }
 }

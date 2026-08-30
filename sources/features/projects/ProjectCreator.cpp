@@ -49,7 +49,7 @@ namespace noi_engine_editor
                 std::filesystem::copy_options::overwrite_existing
             );
 
-            const auto resourcesCompilerPath = PathResolver::resourceCompilerPath(resourceCompilerVersion);
+            const auto resourcesCompilerPath = PathResolver::resourceCompilerContentPath(resourceCompilerVersion);
             std::filesystem::copy(
                 resourcesCompilerPath.toStdString(),
                 QDir(projectPath).filePath(".resources_compiler").toStdString(),

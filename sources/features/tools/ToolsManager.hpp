@@ -29,6 +29,8 @@ namespace noi_engine_editor
 
         Q_INVOKABLE auto installNoiEngine(const QString& version) -> void;
         Q_INVOKABLE auto installResourceCompiler(const QString& version) -> void;
+        Q_INVOKABLE auto removeNoiEngineVersion(const QString& version) -> void;
+        Q_INVOKABLE auto removeResourceCompilerVersion(const QString& version) -> void;
 
     signals:
         auto isInstallingNoiEngineChanged() -> void;
