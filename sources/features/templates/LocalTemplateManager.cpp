@@ -31,6 +31,11 @@ namespace noi_engine_editor
         return m_isDownloading;
     }
 
+    auto LocalTemplateManager::downloadingTemplateId() const -> QString
+    {
+        return m_downloadingTemplateId;
+    }
+
     auto LocalTemplateManager::isInstalled(const QString& templateId) const -> bool
     {
         for (const auto& item : m_templates)
@@ -51,25 +56,31 @@ namespace noi_engine_editor
         }
 
         m_isDownloading = true;
+        m_downloadingTemplateId = templateId;
         emit isDownloadingChanged();
 
         auto installer = std::make_shared<TemplateInstaller>(m_networkManager);
-        installer->install(templateId, repositoryUrl, [this, templateId, installer](const bool success)
-        {
-            m_isDownloading = false;
-            emit isDownloadingChanged();
-
-            if (success)
+        installer->install(
+            templateId,
+            repositoryUrl,
+            [this, templateId, installer](const bool success)
             {
-                loadLocalTemplates();
-            }
-            else
-            {
-                qWarning() << "Template processing failed for ID:" << templateId;
-            }
+                m_isDownloading = false;
+                m_downloadingTemplateId.clear();
+                emit isDownloadingChanged();
 
-            emit downloadFinished(templateId, success);
-        });
+                if (success)
+                {
+                    loadLocalTemplates();
+                }
+                else
+                {
+                    qWarning() << "Template processing failed for ID:" << templateId;
+                }
+
+                emit downloadFinished(templateId, success);
+            }
+        );
     }
 
     auto LocalTemplateManager::loadLocalTemplates() -> void
@@ -114,6 +125,8 @@ namespace noi_engine_editor
             tMap["author"] = info.author;
             tMap["version"] = info.version;
             tMap["description"] = info.description;
+            tMap["engineVersion"] = info.engineVersion;
+            tMap["resourceCompilerVersion"] = info.resourceCompilerVersion;
 
             m_templates.append(tMap);
         }

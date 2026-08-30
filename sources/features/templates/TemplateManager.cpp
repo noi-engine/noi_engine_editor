@@ -57,7 +57,7 @@ namespace noi_engine_editor
             const auto doc = QJsonDocument::fromJson(reply->readAll());
             if (!doc.isArray()) {
                 setPending(false);
-                emit fetchFailed("JSON de liste invalide.");
+                emit fetchFailed(tr("Invalid template list JSON."));
                 return;
             }
 

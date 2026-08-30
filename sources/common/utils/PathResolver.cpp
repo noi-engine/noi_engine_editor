@@ -44,17 +44,22 @@ auto noi_engine_editor::PathResolver::noiEnginePath(const QString& version) -> Q
 
 auto noi_engine_editor::PathResolver::noiEngineContentPath(const QString& version) -> QString
 {
-    return noiEnginePath(version) + "/content";
+    return noiEnginePath(version) + "/noi_engine";
 }
 
 auto noi_engine_editor::PathResolver::resourceCompilerRootPath() -> QString
 {
-    return toolsPath() + "/resource_compiler";
+    return toolsPath() + "/resources_compiler";
 }
 
 auto noi_engine_editor::PathResolver::resourceCompilerPath(const QString& version) -> QString
 {
     return QDir(resourceCompilerRootPath()).filePath(version);
+}
+
+auto noi_engine_editor::PathResolver::resourceCompilerContentPath(const QString& version) -> QString
+{
+    return resourceCompilerPath(version) + "/resources_compiler";
 }
 
 auto noi_engine_editor::PathResolver::fallBackDefaultProjectsPath() -> QString

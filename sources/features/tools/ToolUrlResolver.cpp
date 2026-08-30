@@ -18,30 +18,38 @@ namespace
         if (arch == "x86_64") return "x64";
         return arch;
     }
-}
 
-auto noi_engine_editor::ToolUrlResolver::releaseApiUrl(
-    const QString& owner,
-    const QString& repository,
-    const QString& version
-) -> QString
-{
-    if (version.isEmpty() || version == "latest")
+    auto directDownloadUrl(
+        const QString& owner,
+        const QString& repository,
+        const QString& version,
+        const QString& assetName
+    ) -> QString
     {
-        return QString("https://api.github.com/repos/%1/%2/releases/latest").arg(owner, repository);
+        const auto tag = version.startsWith("v") ? version : "v" + version;
+        return QString("https://github.com/%1/%2/releases/download/%3/%4")
+            .arg(owner, repository, tag, assetName);
     }
-
-    return QString("https://api.github.com/repos/%1/%2/releases/tags/%3").arg(owner, repository, version);
 }
 
-auto noi_engine_editor::ToolUrlResolver::noiEngineReleaseApiUrl(const QString& version) -> QString
+auto noi_engine_editor::ToolUrlResolver::noiEngineDownloadUrl(const QString& version) -> QString
 {
-    return releaseApiUrl("noi-engine", "noi_engine", version);
+    return directDownloadUrl(
+        "noi-engine",
+        "noi_engine_release",
+        version,
+        currentPlatformNoiEngineAssetName()
+    );
 }
 
-auto noi_engine_editor::ToolUrlResolver::resourceCompilerReleaseApiUrl(const QString& version) -> QString
+auto noi_engine_editor::ToolUrlResolver::resourceCompilerDownloadUrl(const QString& version) -> QString
 {
-    return releaseApiUrl("noi-engine", "resources_compiler", version);
+    return directDownloadUrl(
+        "noi-engine",
+        "resources_compiler",
+        version,
+        resourceCompilerAssetName()
+    );
 }
 
 auto noi_engine_editor::ToolUrlResolver::currentPlatformNoiEngineAssetName() -> QString

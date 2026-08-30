@@ -50,7 +50,6 @@ namespace
             }
         }
 
-        // Utiliser removeRecursively() au lieu de rmdir() pour supprimer proprement le dossier vidé
         if (!extractedSubDir.removeRecursively())
         {
             qWarning() << "[TemplateInstaller] Failed to remove unwrapped directory:" << extractedSubDirPath;

@@ -16,8 +16,12 @@ CustomPage {
         manager: RecentProjectsManager
     }
 
-    ToolsManagerDialog {
-        id: toolsManagerDialog
+    SettingsDialog {
+        id: settingsDialog
+    }
+
+    CreateProjectDialog {
+        id: createProjectDialog
     }
 
     Rectangle {
@@ -134,7 +138,7 @@ CustomPage {
                             primary: true
                             text: qsTr("Create New Project")
                             icon: "add"
-                            onClicked: Router.push("/create")
+                            onClicked: createProjectDialog.open()
                         }
 
                         AppButton {
@@ -155,19 +159,9 @@ CustomPage {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 44
                             primary: false
-                            text: qsTr("Tools")
-                            icon: "build"
-                            onClicked: toolsManagerDialog.open()
-                        }
-
-                        AppButton {
-                            Layout.fillWidth: true
-                            Layout.preferredHeight: 44
-                            primary: false
                             text: qsTr("Settings")
                             icon: "settings"
-                            enabled: false
-                            opacity: 0.4
+                            onClicked: settingsDialog.open()
                         }
 
                         AppButton {

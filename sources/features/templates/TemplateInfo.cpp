@@ -8,6 +8,8 @@ auto noi_engine_editor::TemplateInfo::deserialize(const QJsonObject &json, const
     .author = json["author"].toString(),
     .version = json["version"].toString(),
     .description = json["description"].toString(),
-    .repositoryUrl = repoUrl
+    .repositoryUrl = repoUrl,
+    .engineVersion = json["noi_engine_version"].toString(),
+    .resourceCompilerVersion = json["resources_compiler_version"].toString()
     };
 }

@@ -20,7 +20,6 @@ Rectangle {
 
     radius: 14
 
-    // Changement de couleur au survol pour plus de dynamisme
     color: {
         if (root.primary)
             return mouseArea.containsMouse ? Qt.lighter(Theme.primaryColor, 1.05) : Theme.primaryColor
@@ -31,7 +30,6 @@ Rectangle {
     border.color: root.primary ? "transparent" : (mouseArea.containsMouse ? Theme.primaryColor : Theme.borderColor)
     border.width: 1
 
-    // Animation de scale au survol
     scale: mouseArea.containsMouse ? 1.02 : 1.0
 
     Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
@@ -83,7 +81,6 @@ Rectangle {
         RowLayout {
             spacing: 5
 
-            // Un petit décalage du texte d'action au survol pour le style
             Item {
                 width: mouseArea.containsMouse ? 5 : 0
                 Behavior on width { NumberAnimation { duration: 150 } }

@@ -81,7 +81,6 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         # Pages
         QML_FILES
         sources/pages/HomePage.qml
-        sources/pages/CreateProjectPage.qml
         sources/pages/ProjectEditorPage.qml
 
         # home
@@ -95,6 +94,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         QML_FILES
         sources/features/projects/components/RecentProjectItem.qml
         sources/features/projects/components/RecentProjectsSection.qml
+        sources/features/projects/components/CreateProjectDialog.qml
         SOURCES
         sources/features/projects/ProjectInfo.hpp
         sources/features/projects/ProjectInfo.cpp
@@ -111,6 +111,8 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         SOURCES
         sources/features/settings/SettingsManager.hpp
         sources/features/settings/SettingsManager.cpp
+        QML_FILES
+        sources/features/settings/components/SettingsDialog.qml
 
         # templates
         SOURCES
@@ -136,7 +138,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/tools/ToolsManager.hpp
         sources/features/tools/ToolsManager.cpp
         QML_FILES
-        sources/features/tools/components/ToolsManagerDialog.qml
+        sources/features/tools/components/ToolsSettingsTab.qml
 
         # editor
         QML_FILES

@@ -12,6 +12,7 @@ namespace noi_engine_editor
         QML_ELEMENT
         Q_PROPERTY(QVariantList templates READ templates NOTIFY templatesChanged)
         Q_PROPERTY(bool isDownloading READ isDownloading NOTIFY isDownloadingChanged)
+        Q_PROPERTY(QString downloadingTemplateId READ downloadingTemplateId NOTIFY isDownloadingChanged)
 
     public:
         explicit LocalTemplateManager(QObject* parent = nullptr);
@@ -19,6 +20,7 @@ namespace noi_engine_editor
 
         [[nodiscard]] auto templates() const -> QVariantList;
         [[nodiscard]] auto isDownloading() const -> bool;
+        [[nodiscard]] auto downloadingTemplateId() const -> QString;
 
         Q_INVOKABLE [[nodiscard]] auto isInstalled(const QString& templateId) const -> bool;
         Q_INVOKABLE auto loadLocalTemplates() -> void;
@@ -33,5 +35,6 @@ namespace noi_engine_editor
         QVariantList m_templates;
         QNetworkAccessManager m_networkManager;
         bool m_isDownloading{false};
+        QString m_downloadingTemplateId;
     };
 }

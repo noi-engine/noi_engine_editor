@@ -11,13 +11,15 @@ namespace noi_engine_editor::PathResolver
     auto init() -> void;
     [[nodiscard]] auto confPath() -> QString;
     [[nodiscard]] auto recentProjectsPath() -> QString;
-
     [[nodiscard]] auto toolsPath() -> QString;
+
     [[nodiscard]] auto noiEngineRootPath() -> QString;
     [[nodiscard]] auto noiEnginePath(const QString& version) -> QString;
     [[nodiscard]] auto noiEngineContentPath(const QString& version) -> QString;
+
     [[nodiscard]] auto resourceCompilerRootPath() -> QString;
     [[nodiscard]] auto resourceCompilerPath(const QString& version) -> QString;
+    [[nodiscard]] auto resourceCompilerContentPath(const QString& version) -> QString;
 
     [[nodiscard]] auto templatesPath() -> QString;
     [[nodiscard]] auto templateFilePath(const QString& templatePath) -> QString;

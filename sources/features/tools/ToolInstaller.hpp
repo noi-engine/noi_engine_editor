@@ -1,7 +1,5 @@
 #pragma once
 
-#include <QByteArray>
-#include <QString>
 #include <QNetworkAccessManager>
 #include <functional>
 
@@ -12,11 +10,7 @@ namespace noi_engine_editor
     public:
         explicit ToolInstaller(QNetworkAccessManager& networkManager);
 
-        auto install(
-            const QString& downloadUrl,
-            const QString& targetPath,
-            const std::function<void(bool success)>& onFinished
-        ) -> void;
+        auto install(const QString& downloadUrl, const QString& targetPath, const std::function<void(bool success)>& onFinished) -> void;
 
     private:
         auto downloadZip(

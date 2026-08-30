@@ -9,7 +9,7 @@ RowLayout {
     signal createProjectRequested()
     signal openProjectRequested()
 
-    spacing: 24 // Espacement légèrement augmenté pour mieux aérer
+    spacing: 24
 
     ActionCard {
         primary: true
