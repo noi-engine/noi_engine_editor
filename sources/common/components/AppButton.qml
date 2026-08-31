@@ -16,6 +16,7 @@ Rectangle {
     implicitHeight: 40
 
     radius: 10
+    opacity: root.enabled ? 1.0 : 0.45
 
     color: {
         if (primary) return mouseArea.pressed ? Theme.primaryDark : Theme.primaryColor

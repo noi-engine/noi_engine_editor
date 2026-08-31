@@ -11,6 +11,8 @@ namespace noi_engine_editor
         QML_ELEMENT
         Q_PROPERTY(QString scenePath READ scenePath WRITE setScenePath NOTIFY scenePathChanged)
         Q_PROPERTY(QString resourcesPath READ resourcesPath WRITE setResourcesPath NOTIFY resourcesPathChanged)
+        Q_PROPERTY(QString scriptsLibraryPath READ scriptsLibraryPath WRITE setScriptsLibraryPath NOTIFY scriptsLibraryPathChanged)
+        Q_PROPERTY(int scriptsGeneration READ scriptsGeneration WRITE setScriptsGeneration NOTIFY scriptsGenerationChanged)
         Q_PROPERTY(int gameWidth READ gameWidth WRITE setGameWidth NOTIFY gameWidthChanged)
         Q_PROPERTY(int gameHeight READ gameHeight WRITE setGameHeight NOTIFY gameHeightChanged)
 
@@ -22,6 +24,12 @@ namespace noi_engine_editor
 
         QString resourcesPath() const;
         void setResourcesPath(const QString& path);
+
+        QString scriptsLibraryPath() const;
+        void setScriptsLibraryPath(const QString& path);
+
+        int scriptsGeneration() const;
+        void setScriptsGeneration(int generation);
 
         int gameWidth() const;
         void setGameWidth(int width);
@@ -35,12 +43,16 @@ namespace noi_engine_editor
         void scenePathChanged();
         void cameraZoomChanged();
         void resourcesPathChanged();
+        void scriptsLibraryPathChanged();
+        void scriptsGenerationChanged();
         void gameWidthChanged();
         void gameHeightChanged();
 
     private:
         QString m_scenePath;
         QString m_resourcesPath;
+        QString m_scriptsLibraryPath;
+        int m_scriptsGeneration = 0;
         int m_gameWidth = 0;
         int m_gameHeight = 0;
     };

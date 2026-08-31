@@ -58,6 +58,8 @@ Item {
                     anchors.fill: parent
                     scenePath: root.scenePath
                     resourcesPath: CurrentProjectManager.resourcesPath()
+                    scriptsLibraryPath: CurrentProjectManager.scriptsLibraryPath()
+                    scriptsGeneration: ProjectBuilder.compileGeneration
                     gameWidth: CurrentProjectManager.windowWidth
                     gameHeight: CurrentProjectManager.windowHeight
                 }

@@ -16,7 +16,8 @@ namespace noi_engine_editor
         QOpenGLFramebufferObject* createFramebufferObject(const QSize& size) override;
 
     public:
-        explicit OpenGLRenderer(int gameWidth, int gameHeight, const QString& resourcesPath);
+        explicit OpenGLRenderer(int gameWidth, int gameHeight, const QString& resourcesPath,
+                                 const QString& scriptsLibraryPath);
         ~OpenGLRenderer() override = default;
 
     private:
@@ -24,6 +25,8 @@ namespace noi_engine_editor
         int m_height{};
         QString m_currentPath{};
         QString m_resourcesPath{};
+        QString m_scriptsLibraryPath{};
+        int m_scriptsGeneration{-1};
         std::unique_ptr<OpenglNoiEngineGame> m_game{nullptr};
     };
 }

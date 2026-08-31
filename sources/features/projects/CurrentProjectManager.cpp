@@ -1,5 +1,6 @@
 #include "CurrentProjectManager.hpp"
 
+#include <QDir>
 #include <QJsonObject>
 
 #include "../../common/utils/JsonSerializer.hpp"
@@ -70,6 +71,16 @@ namespace noi_engine_editor
     auto CurrentProjectManager::resourcesPath() const -> QString
     {
         return PathResolver::projectResourcesPath(this->m_path);
+    }
+
+    auto CurrentProjectManager::scriptsLibraryPath() const -> QString
+    {
+        if (m_project.scriptsLibrary.isEmpty())
+        {
+            return {};
+        }
+
+        return QDir(this->m_path).filePath(m_project.scriptsLibrary);
     }
 
     auto CurrentProjectManager::closeProject() -> void

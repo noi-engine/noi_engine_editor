@@ -12,6 +12,7 @@ auto noi_engine_editor::ProjectInfo::serialize() const -> QJsonObject
     obj["version"] = version;
     obj["category"] = category;
     obj["start_scene"] = startScene;
+    obj["scripts_library"] = scriptsLibrary;
     obj["lastOpened"] = lastOpened.toString(Qt::ISODate);
 
     QJsonObject windowObj;
@@ -30,6 +31,7 @@ auto noi_engine_editor::ProjectInfo::deserialize(const QJsonObject& object) -> P
     info.version = object.value("version").toString("0.0.1");
     info.category = object.value("category").toString("2D");
     info.startScene = object.value("start_scene").toString();
+    info.scriptsLibrary = object.value("scripts_library").toString();
     info.lastOpened = QDateTime::fromString(
         object.value("lastOpened").toString(),
         Qt::ISODate

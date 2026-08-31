@@ -89,6 +89,19 @@ Rectangle {
         Item { Layout.fillWidth: true }
 
         AppButton {
+            icon: "build"
+            text: ProjectBuilder.isCompiling ? qsTr("Compiling...") : qsTr("Compile")
+            enabled: !ProjectBuilder.isCompiling
+            onClicked: ProjectBuilder.compile(CurrentProjectManager.path)
+        }
+
+        AppButton {
+            icon: "play_arrow"
+            text: qsTr("Play")
+            enabled: false
+        }
+
+        AppButton {
             icon: "settings"
             text: qsTr("Settings")
             onClicked: root.settingsRequested()

@@ -1,5 +1,6 @@
 #include "OpenglNoiEngineGame.hpp"
 #include <QDebug>
+#include <QFileInfo>
 #include <noi_engine/core/resources/resource_loader.hpp>
 #include <noi_engine/core/components/camera_2d.hpp>
 #include <noi_engine/core/components/dirty.hpp>
@@ -7,6 +8,47 @@
 #include <noi_engine/core/renderer/renderer.hpp>
 
 constexpr float PIXELS_PER_UNIT = 100.0f;
+
+namespace
+{
+    using register_scripts_fn = void (*)(noi_engine::game&);
+    constexpr auto REGISTER_SCRIPTS_SYMBOL = "noi_engine_register_scripts";
+}
+
+auto noi_engine_editor::OpenglNoiEngineGame::load_scripts(const QString& scriptsLibraryPath) -> void
+{
+    if (m_scriptsLibrary.isLoaded())
+    {
+        return;
+    }
+
+    if (!QFileInfo::exists(scriptsLibraryPath))
+    {
+        qWarning() << "Game scripts library not found (build the project first):" << scriptsLibraryPath;
+        return;
+    }
+
+    m_scriptsLibrary.setFileName(scriptsLibraryPath);
+
+    if (!m_scriptsLibrary.load())
+    {
+        qWarning() << "Failed to load game scripts library" << scriptsLibraryPath << ":" <<
+            m_scriptsLibrary.errorString();
+        return;
+    }
+
+    const auto register_scripts = reinterpret_cast<register_scripts_fn>(
+        m_scriptsLibrary.resolve(REGISTER_SCRIPTS_SYMBOL));
+
+    if (!register_scripts)
+    {
+        qWarning() << "Game scripts library" << scriptsLibraryPath << "has no" << REGISTER_SCRIPTS_SYMBOL <<
+            "entry point";
+        return;
+    }
+
+    register_scripts(*this);
+}
 
 auto noi_engine_editor::OpenglNoiEngineGame::get_world() -> noi_engine::world&
 {

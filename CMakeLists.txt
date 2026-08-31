@@ -32,7 +32,7 @@ set(CMAKE_AUTORCC ON)
 set(NOI_ENGINE_EDITOR_PROJECT_NAME noi_engine_editor)
 set(QML_IMPORT_PATH "${CMAKE_BINARY_DIR}" CACHE STRING "QML Import Path" FORCE)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick OpenGL)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick OpenGL)
 
 qt_standard_project_setup(REQUIRES 6.10)
 qt_add_executable(${NOI_ENGINE_EDITOR_PROJECT_NAME} resources.qrc main.cpp)
@@ -143,6 +143,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         # editor
         QML_FILES
         sources/features/editor/components/EditorToolbar.qml
+        sources/features/editor/components/CompilerOutputPanel.qml
         sources/features/editor/components/SceneHierarchyPanel.qml
         sources/features/editor/components/HierarchyItem.qml
         sources/features/editor/components/viewport/ViewportPanel.qml
@@ -165,6 +166,11 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         SOURCES
         sources/features/editor/CurrentProjectResourcesManager.cpp
         sources/features/editor/CurrentProjectResourcesManager.hpp
+
+        # build
+        SOURCES
+        sources/features/build_project/ProjectBuilder.hpp
+        sources/features/build_project/ProjectBuilder.cpp
 )
 
 set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES
@@ -199,6 +205,7 @@ target_link_directories(${NOI_ENGINE_EDITOR_PROJECT_NAME}
 
 target_link_libraries(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         PRIVATE
+        Qt6::Core
         Qt6::Quick
         Qt6::OpenGL
         Templi

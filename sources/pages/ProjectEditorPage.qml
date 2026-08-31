@@ -12,6 +12,17 @@ CustomPage {
     property var selectedEntity: null
     property string activeBottomPanel: ""
     property string currentScenePath: ""
+    property string pendingScenePath: ""
+
+    function openScene(filePath) {
+        if (ProjectBuilder.isCompiling) {
+            root.pendingScenePath = filePath;
+        } else {
+            root.currentScenePath = filePath;
+        }
+    }
+
+    Component.onCompleted: ProjectBuilder.compile(CurrentProjectManager.path)
 
     Rectangle {
         anchors.fill: parent
@@ -20,6 +31,21 @@ CustomPage {
 
     ProjectSettingsDialog {
         id: settingsDialog
+    }
+
+    Connections {
+        target: ProjectBuilder
+        function onIsCompilingChanged() {
+            if (ProjectBuilder.isCompiling) {
+                root.activeBottomPanel = "output";
+            }
+        }
+        function onCompileFinished(success) {
+            if (root.pendingScenePath !== "") {
+                root.currentScenePath = root.pendingScenePath;
+                root.pendingScenePath = "";
+            }
+        }
     }
 
     ColumnLayout {
@@ -81,18 +107,23 @@ CustomPage {
                     currentIndex: {
                         if (root.activeBottomPanel === "scenes") return 0;
                         if (root.activeBottomPanel === "resources") return 1;
+                        if (root.activeBottomPanel === "output") return 2;
                         return -1;
                     }
 
                     SceneBrowserPanel {
                         id: scenePanel
                         onSceneOpenRequested: function(filePath) {
-                            root.currentScenePath = filePath;
+                            root.openScene(filePath);
                         }
                     }
 
                     ResourcePanel {
                         id: resourcePanel
+                    }
+
+                    CompilerOutputPanel {
+                        id: outputPanel
                     }
                 }
             }
@@ -126,6 +157,12 @@ CustomPage {
                     text: qsTr("Folder Resources")
                     isOpen: root.activeBottomPanel === "resources"
                     onClicked: root.activeBottomPanel = (root.activeBottomPanel === "resources") ? "" : "resources"
+                }
+
+                BottomTabButton {
+                    text: qsTr("Output")
+                    isOpen: root.activeBottomPanel === "output"
+                    onClicked: root.activeBottomPanel = (root.activeBottomPanel === "output") ? "" : "output"
                 }
 
                 Item { Layout.fillWidth: true }

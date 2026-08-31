@@ -25,9 +25,11 @@ namespace noi_engine_editor
         return resourcesDir.relativeFilePath(cleanFilePath);
     }
 
-    OpenGLRenderer::OpenGLRenderer(const int gameWidth, const int gameHeight, const QString& resourcesPath) :
+    OpenGLRenderer::OpenGLRenderer(const int gameWidth, const int gameHeight, const QString& resourcesPath,
+                                   const QString& scriptsLibraryPath) :
         m_resourcesPath(
-            resourcesPath)
+            resourcesPath),
+        m_scriptsLibraryPath(scriptsLibraryPath)
     {
         noi_engine::game::init(
             [](const char* name) -> void*
@@ -78,6 +80,12 @@ namespace noi_engine_editor
                 this->m_width = realWidth;
                 this->m_height = realHeight;
                 this->m_game->on_resize(m_width, m_height);
+            }
+
+            if (const auto newGeneration = view->scriptsGeneration(); m_scriptsGeneration != newGeneration)
+            {
+                m_scriptsGeneration = newGeneration;
+                this->m_game->load_scripts(m_scriptsLibraryPath);
             }
         }
 
