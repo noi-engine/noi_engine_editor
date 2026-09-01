@@ -108,6 +108,7 @@ CustomPage {
                         if (root.activeBottomPanel === "scenes") return 0;
                         if (root.activeBottomPanel === "resources") return 1;
                         if (root.activeBottomPanel === "output") return 2;
+                        if (root.activeBottomPanel === "logs") return 3;
                         return -1;
                     }
 
@@ -124,6 +125,10 @@ CustomPage {
 
                     CompilerOutputPanel {
                         id: outputPanel
+                    }
+
+                    EditorLogsPanel {
+                        id: logsPanel
                     }
                 }
             }
@@ -163,6 +168,12 @@ CustomPage {
                     text: qsTr("Output")
                     isOpen: root.activeBottomPanel === "output"
                     onClicked: root.activeBottomPanel = (root.activeBottomPanel === "output") ? "" : "output"
+                }
+
+                BottomTabButton {
+                    text: qsTr("Editor Logs")
+                    isOpen: root.activeBottomPanel === "logs"
+                    onClicked: root.activeBottomPanel = (root.activeBottomPanel === "logs") ? "" : "logs"
                 }
 
                 Item { Layout.fillWidth: true }

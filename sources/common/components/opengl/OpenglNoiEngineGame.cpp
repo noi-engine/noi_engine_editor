@@ -24,7 +24,7 @@ auto noi_engine_editor::OpenglNoiEngineGame::load_scripts(const QString& scripts
 
     if (!QFileInfo::exists(scriptsLibraryPath))
     {
-        qWarning() << "Game scripts library not found (build the project first):" << scriptsLibraryPath;
+        qWarning() << "[OpenglNoiEngineGame] Game scripts library not found (build the project first):" << scriptsLibraryPath;
         return;
     }
 
@@ -32,7 +32,7 @@ auto noi_engine_editor::OpenglNoiEngineGame::load_scripts(const QString& scripts
 
     if (!m_scriptsLibrary.load())
     {
-        qWarning() << "Failed to load game scripts library" << scriptsLibraryPath << ":" <<
+        qWarning() << "[OpenglNoiEngineGame] Failed to load game scripts library" << scriptsLibraryPath << ":" <<
             m_scriptsLibrary.errorString();
         return;
     }
@@ -42,7 +42,7 @@ auto noi_engine_editor::OpenglNoiEngineGame::load_scripts(const QString& scripts
 
     if (!register_scripts)
     {
-        qWarning() << "Game scripts library" << scriptsLibraryPath << "has no" << REGISTER_SCRIPTS_SYMBOL <<
+        qWarning() << "[OpenglNoiEngineGame] Game scripts library" << scriptsLibraryPath << "has no" << REGISTER_SCRIPTS_SYMBOL <<
             "entry point";
         return;
     }

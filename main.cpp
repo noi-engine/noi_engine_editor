@@ -2,11 +2,14 @@
 #include <QQmlApplicationEngine>
 
 #include "sources/common/utils/PathResolver.hpp"
+#include "sources/features/editor/EditorLogger.hpp"
 
 using namespace noi_engine_editor;
 
 auto main(int argc, char* argv[]) -> int
 {
+    EditorLogger::install();
+
     const QGuiApplication app(argc, argv);
 
     app.setOrganizationName("noi_engine");

@@ -75,7 +75,7 @@ namespace noi_engine_editor
                 }
                 else
                 {
-                    qWarning() << "Template processing failed for ID:" << templateId;
+                    qWarning() << "[LocalTemplateManager] Template processing failed for ID:" << templateId;
                 }
 
                 emit downloadFinished(templateId, success);

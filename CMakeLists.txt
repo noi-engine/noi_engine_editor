@@ -6,6 +6,16 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# QT
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(NOI_ENGINE_EDITOR_PROJECT_NAME noi_engine_editor)
+set(QML_IMPORT_PATH "${CMAKE_BINARY_DIR}" CACHE STRING "QML Import Path" FORCE)
+
+find_package(Qt6 REQUIRED COMPONENTS Core Quick OpenGL)
+
+qt_standard_project_setup(REQUIRES 6.10)
+
 set(NOI_ENGINE_EDITOR_NAME noi_engine_editor)
 set(NOI_ENGINE_EDITOR_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(NOI_ENGINE_EDITOR_IS_MAIN_PROJECT OFF)
@@ -26,15 +36,6 @@ add_subdirectory(external/zip EXCLUDE_FROM_ALL)
 add_subdirectory(external/Templi)
 add_subdirectory(external/noi_engine)
 
-# QT
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(NOI_ENGINE_EDITOR_PROJECT_NAME noi_engine_editor)
-set(QML_IMPORT_PATH "${CMAKE_BINARY_DIR}" CACHE STRING "QML Import Path" FORCE)
-
-find_package(Qt6 REQUIRED COMPONENTS Core Quick OpenGL)
-
-qt_standard_project_setup(REQUIRES 6.10)
 qt_add_executable(${NOI_ENGINE_EDITOR_PROJECT_NAME} resources.qrc main.cpp)
 
 set(NOI_ENGINE_EDITOR_QML_SINGLETONS
@@ -54,29 +55,29 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         QML_FILES
         Main.qml
         sources/common/components/AppButton.qml
-        sources/common/components/IconBadge.qml
         sources/common/components/CustomPage.qml
+        sources/common/components/IconBadge.qml
         sources/common/components/SearchField.qml
-        sources/common/components/icons/MuiIcon.qml
         sources/common/components/icons/IconLoaderCreator.js
-        sources/common/utils/LocalPathAndUrlConverter.js
         sources/common/components/icons/MaterialSymbolsRegular/codepoints.js
+        sources/common/components/icons/MuiIcon.qml
+        sources/common/utils/LocalPathAndUrlConverter.js
         ${NOI_ENGINE_EDITOR_QML_SINGLETONS}
         SOURCES
-        sources/noi_engine_editorConfig.hpp
-        sources/common/utils/JsonSerializer.hpp
-        sources/common/utils/PathResolver.cpp
-        sources/common/utils/PathResolver.hpp
-        sources/common/utils/JsonIO.cpp
-        sources/common/utils/JsonIO.hpp
-        sources/common/utils/ZipExtractor.cpp
-        sources/common/utils/ZipExtractor.hpp
-        sources/common/components/opengl/OpenglRenderer.cpp
-        sources/common/components/opengl/OpenglRenderer.hpp
-        sources/common/components/opengl/OpenglView.cpp
-        sources/common/components/opengl/OpenglView.hpp
         sources/common/components/opengl/OpenglNoiEngineGame.hpp
         sources/common/components/opengl/OpenglNoiEngineGame.cpp
+        sources/common/components/opengl/OpenglRenderer.hpp
+        sources/common/components/opengl/OpenglRenderer.cpp
+        sources/common/components/opengl/OpenglView.hpp
+        sources/common/components/opengl/OpenglView.cpp
+        sources/common/utils/JsonIO.hpp
+        sources/common/utils/JsonIO.cpp
+        sources/common/utils/JsonSerializer.hpp
+        sources/common/utils/PathResolver.hpp
+        sources/common/utils/PathResolver.cpp
+        sources/common/utils/ZipExtractor.hpp
+        sources/common/utils/ZipExtractor.cpp
+        sources/noi_engine_editorConfig.hpp
 
         # Pages
         QML_FILES
@@ -92,18 +93,18 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
 
         # projects
         QML_FILES
+        sources/features/projects/components/CreateProjectDialog.qml
         sources/features/projects/components/RecentProjectItem.qml
         sources/features/projects/components/RecentProjectsSection.qml
-        sources/features/projects/components/CreateProjectDialog.qml
         SOURCES
-        sources/features/projects/ProjectInfo.hpp
-        sources/features/projects/ProjectInfo.cpp
-        sources/features/projects/ProjectCreator.hpp
-        sources/features/projects/ProjectCreator.cpp
-        sources/features/projects/RecentProjectsManager.hpp
-        sources/features/projects/RecentProjectsManager.cpp
         sources/features/projects/CurrentProjectManager.hpp
         sources/features/projects/CurrentProjectManager.cpp
+        sources/features/projects/ProjectCreator.hpp
+        sources/features/projects/ProjectCreator.cpp
+        sources/features/projects/ProjectInfo.hpp
+        sources/features/projects/ProjectInfo.cpp
+        sources/features/projects/RecentProjectsManager.hpp
+        sources/features/projects/RecentProjectsManager.cpp
         sources/features/projects/components/RecentProjectsModel.hpp
         sources/features/projects/components/RecentProjectsModel.cpp
 
@@ -116,61 +117,61 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
 
         # templates
         SOURCES
-        sources/features/templates/TemplateUrlResolver.hpp
-        sources/features/templates/TemplateUrlResolver.cpp
-        sources/features/templates/TemplateManager.hpp
-        sources/features/templates/TemplateManager.cpp
-        sources/features/templates/TemplateInstaller.cpp
-        sources/features/templates/TemplateInstaller.hpp
-        sources/features/templates/TemplateInfo.hpp
-        sources/features/templates/TemplateInfo.cpp
         sources/features/templates/LocalTemplateManager.hpp
         sources/features/templates/LocalTemplateManager.cpp
+        sources/features/templates/TemplateInfo.hpp
+        sources/features/templates/TemplateInfo.cpp
+        sources/features/templates/TemplateInstaller.hpp
+        sources/features/templates/TemplateInstaller.cpp
+        sources/features/templates/TemplateManager.hpp
+        sources/features/templates/TemplateManager.cpp
+        sources/features/templates/TemplateUrlResolver.hpp
+        sources/features/templates/TemplateUrlResolver.cpp
         QML_FILES
         sources/features/templates/components/TemplateMarketplaceDialog.qml
 
         # tools
         SOURCES
-        sources/features/tools/ToolUrlResolver.hpp
-        sources/features/tools/ToolUrlResolver.cpp
         sources/features/tools/ToolInstaller.hpp
         sources/features/tools/ToolInstaller.cpp
         sources/features/tools/ToolsManager.hpp
         sources/features/tools/ToolsManager.cpp
+        sources/features/tools/ToolUrlResolver.hpp
+        sources/features/tools/ToolUrlResolver.cpp
         QML_FILES
         sources/features/tools/components/ToolsSettingsTab.qml
 
         # editor
         QML_FILES
-        sources/features/editor/components/EditorToolbar.qml
+        sources/features/editor/components/BottomTabButton.qml
         sources/features/editor/components/CompilerOutputPanel.qml
-        sources/features/editor/components/SceneHierarchyPanel.qml
+        sources/features/editor/components/EditorLogsPanel.qml
+        sources/features/editor/components/EditorToolbar.qml
         sources/features/editor/components/HierarchyItem.qml
-        sources/features/editor/components/viewport/ViewportPanel.qml
         sources/features/editor/components/InspectorPanel.qml
-        sources/features/editor/components/PropertyField.qml
         sources/features/editor/components/ProjectSettingsDialog.qml
-        sources/features/editor/components/resources/ResourcePanel.qml
-        sources/features/editor/components/resources/ResourceItemDelegate.qml
-        sources/features/editor/components/resources/RenameDialog.qml
+        sources/features/editor/components/PropertyField.qml
+        sources/features/editor/components/SceneHierarchyPanel.qml
         sources/features/editor/components/resources/DeleteConfirmDialog.qml
         sources/features/editor/components/resources/ImportDialog.qml
         sources/features/editor/components/resources/NewFolderDialog.qml
-        sources/features/editor/components/resources/ResourceToolbar.qml
+        sources/features/editor/components/resources/RenameDialog.qml
         sources/features/editor/components/resources/ResourceDropArea.qml
-        sources/features/editor/components/BottomTabButton.qml
+        sources/features/editor/components/resources/ResourceItemDelegate.qml
+        sources/features/editor/components/resources/ResourcePanel.qml
+        sources/features/editor/components/resources/ResourceToolbar.qml
         sources/features/editor/components/scenes/SceneBrowserPanel.qml
-        sources/features/editor/components/viewport/ViewportToolbar.qml
         sources/features/editor/components/viewport/ActionGroupPopup.qml
         sources/features/editor/components/viewport/ToolButtonCustom.qml
+        sources/features/editor/components/viewport/ViewportPanel.qml
+        sources/features/editor/components/viewport/ViewportToolbar.qml
         SOURCES
-        sources/features/editor/CurrentProjectResourcesManager.cpp
         sources/features/editor/CurrentProjectResourcesManager.hpp
-
-        # build
-        SOURCES
-        sources/features/build_project/ProjectBuilder.hpp
-        sources/features/build_project/ProjectBuilder.cpp
+        sources/features/editor/CurrentProjectResourcesManager.cpp
+        sources/features/editor/EditorLogger.hpp
+        sources/features/editor/EditorLogger.cpp
+        sources/features/editor/ProjectBuilder.hpp
+        sources/features/editor/ProjectBuilder.cpp
 )
 
 set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES
@@ -179,9 +180,9 @@ set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
         MACOSX_BUNDLE TRUE
         WIN32_EXECUTABLE TRUE
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
 )
 
-# TODO(begin): find a better way
 file(GLOB_RECURSE ALL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/sources/*.hpp")
 
 set(INCLUDE_DIRS "")
@@ -196,7 +197,6 @@ target_include_directories(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         ${CMAKE_CURRENT_BINARY_DIR}
         ${INCLUDE_DIRS}
 )
-# TODO(end): find a better way
 
 target_link_directories(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         PRIVATE
@@ -212,5 +212,3 @@ target_link_libraries(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         noi_engine
         zip
 )
-
-set_target_properties(${NOI_ENGINE_EDITOR_PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

@@ -28,7 +28,7 @@ namespace noi_engine_editor
         }
         catch (const std::runtime_error &e)
         {
-            qDebug() << e.what();
+            qWarning() << "[CurrentProjectManager] Failed to open project:" << e.what();
             emit projectOpenFailed(tr("Invalid project file"));
             return false;
         }
@@ -63,7 +63,7 @@ namespace noi_engine_editor
         }
         catch (const std::exception& e)
         {
-            qDebug() << "Failed to save project:" << e.what(); //TODO
+            qWarning() << "[CurrentProjectManager] Failed to save project:" << e.what();
             return false;
         }
     }

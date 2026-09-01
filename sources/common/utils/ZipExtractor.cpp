@@ -12,7 +12,7 @@ namespace noi_engine::zip_utils
         {
             if (!dir.mkpath("."))
             {
-                qWarning() << "Failed to create destination directory:" << destinationDir;
+                qWarning() << "[ZipExtractor] Failed to create destination directory:" << destinationDir;
                 return false;
             }
         }
