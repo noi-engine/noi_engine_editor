@@ -44,6 +44,7 @@ namespace noi_engine_editor
         emit startSceneChanged();
         emit windowWidthChanged();
         emit windowHeightChanged();
+        emit engineVersionChanged();
         return true;
     }
 
@@ -90,6 +91,7 @@ namespace noi_engine_editor
         m_project = ProjectInfo{};
 
         emit projectChanged();
+        emit engineVersionChanged();
     }
 
     auto CurrentProjectManager::name() const -> QString
@@ -110,6 +112,11 @@ namespace noi_engine_editor
     auto CurrentProjectManager::startScene() const -> QString
     {
         return m_project.startScene;
+    }
+
+    auto CurrentProjectManager::engineVersion() const -> QString
+    {
+        return m_project.engineVersion;
     }
 
     auto CurrentProjectManager::windowWidth() const -> int

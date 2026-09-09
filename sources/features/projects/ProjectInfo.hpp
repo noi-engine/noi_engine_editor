@@ -16,6 +16,7 @@ namespace noi_engine_editor
         QString category{"2D"};
         QString version{"0.0.1"};
         QString scriptsLibrary;
+        QString engineVersion;
 
         int windowWidth{1280};
         int windowHeight{720};

@@ -3,8 +3,7 @@
 #include <QString>
 #include <QQuickFramebufferObject>
 
-#include <memory>
-#include "OpenglNoiEngineGame.hpp"
+#include "PreviewBridgeLoader.hpp"
 
 namespace noi_engine_editor
 {
@@ -17,8 +16,11 @@ namespace noi_engine_editor
 
     public:
         explicit OpenGLRenderer(int gameWidth, int gameHeight, const QString& resourcesPath,
-                                 const QString& scriptsLibraryPath);
-        ~OpenGLRenderer() override = default;
+                                 const QString& scriptsLibraryPath, const QString& engineVersion);
+        ~OpenGLRenderer() override;
+
+        OpenGLRenderer(const OpenGLRenderer&) = delete;
+        OpenGLRenderer& operator=(const OpenGLRenderer&) = delete;
 
     private:
         int m_width{};
@@ -26,7 +28,9 @@ namespace noi_engine_editor
         QString m_currentPath{};
         QString m_resourcesPath{};
         QString m_scriptsLibraryPath{};
+        QString m_engineVersion{};
         int m_scriptsGeneration{-1};
-        std::unique_ptr<OpenglNoiEngineGame> m_game{nullptr};
+        PreviewBridgeLoader m_bridge{};
+        noi_engine_editor_bridge_game_handle m_gameHandle{nullptr};
     };
 }

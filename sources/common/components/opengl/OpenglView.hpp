@@ -13,6 +13,7 @@ namespace noi_engine_editor
         Q_PROPERTY(QString resourcesPath READ resourcesPath WRITE setResourcesPath NOTIFY resourcesPathChanged)
         Q_PROPERTY(QString scriptsLibraryPath READ scriptsLibraryPath WRITE setScriptsLibraryPath NOTIFY scriptsLibraryPathChanged)
         Q_PROPERTY(int scriptsGeneration READ scriptsGeneration WRITE setScriptsGeneration NOTIFY scriptsGenerationChanged)
+        Q_PROPERTY(QString engineVersion READ engineVersion WRITE setEngineVersion NOTIFY engineVersionChanged)
         Q_PROPERTY(int gameWidth READ gameWidth WRITE setGameWidth NOTIFY gameWidthChanged)
         Q_PROPERTY(int gameHeight READ gameHeight WRITE setGameHeight NOTIFY gameHeightChanged)
 
@@ -31,6 +32,9 @@ namespace noi_engine_editor
         int scriptsGeneration() const;
         void setScriptsGeneration(int generation);
 
+        QString engineVersion() const;
+        void setEngineVersion(const QString& version);
+
         int gameWidth() const;
         void setGameWidth(int width);
 
@@ -45,6 +49,7 @@ namespace noi_engine_editor
         void resourcesPathChanged();
         void scriptsLibraryPathChanged();
         void scriptsGenerationChanged();
+        void engineVersionChanged();
         void gameWidthChanged();
         void gameHeightChanged();
 
@@ -52,6 +57,7 @@ namespace noi_engine_editor
         QString m_scenePath;
         QString m_resourcesPath;
         QString m_scriptsLibraryPath;
+        QString m_engineVersion;
         int m_scriptsGeneration = 0;
         int m_gameWidth = 0;
         int m_gameHeight = 0;

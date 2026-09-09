@@ -16,6 +16,7 @@ namespace noi_engine_editor::PathResolver
     [[nodiscard]] auto noiEngineRootPath() -> QString;
     [[nodiscard]] auto noiEnginePath(const QString& version) -> QString;
     [[nodiscard]] auto noiEngineContentPath(const QString& version) -> QString;
+    [[nodiscard]] auto noiEngineEditorBridgeLibraryPath(const QString& version) -> QString;
 
     [[nodiscard]] auto resourceCompilerRootPath() -> QString;
     [[nodiscard]] auto resourceCompilerPath(const QString& version) -> QString;

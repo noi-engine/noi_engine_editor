@@ -32,11 +32,12 @@ namespace noi_engine_editor
             Templi::generate_with_templi_config(
                 templatePath.toStdString(),
                 projectPath.toStdString(),
-                [name](const Templi::Placeholder& placeholder) -> std::string
+                [name, engineVersion](const Templi::Placeholder& placeholder) -> std::string
                 {
                     if (placeholder.m_name == "PROJECT_NAME") return name.toStdString();
                     if (placeholder.m_name == "PROJECT_VERSION") return "0.0.1";
                     if (placeholder.m_name == "PROJECT_CATEGORY") return "2D";
+                    if (placeholder.m_name == "ENGINE_VERSION") return engineVersion.toStdString();
                     return "";
                 }
             );

@@ -34,7 +34,6 @@ endif ()
 
 add_subdirectory(external/zip EXCLUDE_FROM_ALL)
 add_subdirectory(external/Templi)
-add_subdirectory(external/noi_engine)
 
 qt_add_executable(${NOI_ENGINE_EDITOR_PROJECT_NAME} resources.qrc main.cpp)
 
@@ -64,8 +63,8 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/common/utils/LocalPathAndUrlConverter.js
         ${NOI_ENGINE_EDITOR_QML_SINGLETONS}
         SOURCES
-        sources/common/components/opengl/OpenglNoiEngineGame.hpp
-        sources/common/components/opengl/OpenglNoiEngineGame.cpp
+        sources/common/components/opengl/PreviewBridgeLoader.hpp
+        sources/common/components/opengl/PreviewBridgeLoader.cpp
         sources/common/components/opengl/OpenglRenderer.hpp
         sources/common/components/opengl/OpenglRenderer.cpp
         sources/common/components/opengl/OpenglView.hpp
@@ -196,11 +195,7 @@ target_include_directories(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}
         ${INCLUDE_DIRS}
-)
-
-target_link_directories(${NOI_ENGINE_EDITOR_PROJECT_NAME}
-        PRIVATE
-        ${CMAKE_BINARY_DIR}/lib
+        ${CMAKE_CURRENT_SOURCE_DIR}/bridge/include
 )
 
 target_link_libraries(${NOI_ENGINE_EDITOR_PROJECT_NAME}
@@ -209,6 +204,5 @@ target_link_libraries(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         Qt6::Quick
         Qt6::OpenGL
         Templi
-        noi_engine
         zip
 )

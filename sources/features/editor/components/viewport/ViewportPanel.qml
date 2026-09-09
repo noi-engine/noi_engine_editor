@@ -60,6 +60,7 @@ Item {
                     resourcesPath: CurrentProjectManager.resourcesPath()
                     scriptsLibraryPath: CurrentProjectManager.scriptsLibraryPath()
                     scriptsGeneration: ProjectBuilder.compileGeneration
+                    engineVersion: CurrentProjectManager.engineVersion
                     gameWidth: CurrentProjectManager.windowWidth
                     gameHeight: CurrentProjectManager.windowHeight
                 }

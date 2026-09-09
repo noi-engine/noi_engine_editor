@@ -16,6 +16,7 @@ namespace noi_engine_editor
         Q_PROPERTY(QString version READ version WRITE setVersion NOTIFY versionChanged)
         Q_PROPERTY(QString category READ category WRITE setCategory NOTIFY categoryChanged)
         Q_PROPERTY(QString startScene READ startScene WRITE setStartScene NOTIFY startSceneChanged)
+        Q_PROPERTY(QString engineVersion READ engineVersion NOTIFY engineVersionChanged)
         Q_PROPERTY(int windowWidth READ windowWidth WRITE setWindowWidth NOTIFY windowWidthChanged)
         Q_PROPERTY(int windowHeight READ windowHeight WRITE setWindowHeight NOTIFY windowHeightChanged)
 
@@ -38,6 +39,7 @@ namespace noi_engine_editor
         [[nodiscard]] auto version() const -> QString;
         [[nodiscard]] auto category() const -> QString;
         [[nodiscard]] auto startScene() const -> QString;
+        [[nodiscard]] auto engineVersion() const -> QString;
         [[nodiscard]] auto windowWidth() const -> int;
         [[nodiscard]] auto windowHeight() const -> int;
 
@@ -56,6 +58,7 @@ namespace noi_engine_editor
         void versionChanged();
         void categoryChanged();
         void startSceneChanged();
+        void engineVersionChanged();
         void windowWidthChanged();
         void windowHeightChanged();
 
