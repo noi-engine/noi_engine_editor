@@ -7,7 +7,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-find_package(noi_engine REQUIRED)
+if (NOT DEFINED NOI_ENGINE_SOURCE_DIR)
+    set(NOI_ENGINE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/noi_engine)
+endif ()
+
+add_subdirectory(${NOI_ENGINE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/noi_engine)
 
 add_library(noi_engine_editor_bridge SHARED
         src/bridge.cpp
