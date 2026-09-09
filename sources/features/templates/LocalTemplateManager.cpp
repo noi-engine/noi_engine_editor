@@ -13,6 +13,45 @@
 #include <QDebug>
 #include "TemplateInstaller.hpp"
 
+#include <algorithm>
+
+namespace
+{
+    // Compares dot-separated, numeric version strings (e.g. "0.0.9" vs "0.0.10").
+    // Falls back to plain string comparison for any non-numeric segment.
+    auto compareVersions(const QString& lhs, const QString& rhs) -> int
+    {
+        const auto lhsParts = lhs.split('.');
+        const auto rhsParts = rhs.split('.');
+        const auto count = std::max(lhsParts.size(), rhsParts.size());
+
+        for (int i = 0; i < count; ++i)
+        {
+            const auto lhsPart = i < lhsParts.size() ? lhsParts[i] : QString("0");
+            const auto rhsPart = i < rhsParts.size() ? rhsParts[i] : QString("0");
+
+            bool lhsIsNumber = false;
+            bool rhsIsNumber = false;
+            const auto lhsNumber = lhsPart.toLongLong(&lhsIsNumber);
+            const auto rhsNumber = rhsPart.toLongLong(&rhsIsNumber);
+
+            if (lhsIsNumber && rhsIsNumber)
+            {
+                if (lhsNumber != rhsNumber)
+                {
+                    return lhsNumber < rhsNumber ? -1 : 1;
+                }
+            }
+            else if (const auto cmp = lhsPart.compare(rhsPart); cmp != 0)
+            {
+                return cmp < 0 ? -1 : 1;
+            }
+        }
+
+        return 0;
+    }
+}
+
 namespace noi_engine_editor
 {
     LocalTemplateManager::LocalTemplateManager(QObject* parent)
@@ -36,19 +75,30 @@ namespace noi_engine_editor
         return m_downloadingTemplateId;
     }
 
-    auto LocalTemplateManager::isInstalled(const QString& templateId) const -> bool
+    auto LocalTemplateManager::installedVersions(const QString& templateId) const -> QVariantList
     {
-        for (const auto& item : m_templates)
+        const QDir templateRootDir(PathResolver::templateRootPath(templateId));
+
+        auto versions = templateRootDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        std::sort(versions.begin(), versions.end(), [](const QString& lhs, const QString& rhs) {
+            return compareVersions(lhs, rhs) > 0;
+        });
+
+        QVariantList result;
+        for (const auto& version : versions)
         {
-            if (item.toMap().value("id").toString() == templateId)
-            {
-                return true;
-            }
+            result.append(version);
         }
-        return false;
+        return result;
     }
 
-    auto LocalTemplateManager::downloadTemplate(const QString& templateId, const QString& repositoryUrl) -> void
+    auto LocalTemplateManager::latestInstalledVersion(const QString& templateId) const -> QString
+    {
+        const auto versions = installedVersions(templateId);
+        return versions.isEmpty() ? QString() : versions.first().toString();
+    }
+
+    auto LocalTemplateManager::downloadTemplate(const QString& templateId, const QString& version, const QString& repositoryUrl) -> void
     {
         if (m_isDownloading)
         {
@@ -62,6 +112,7 @@ namespace noi_engine_editor
         auto installer = std::make_shared<TemplateInstaller>(m_networkManager);
         installer->install(
             templateId,
+            version,
             repositoryUrl,
             [this, templateId, installer](const bool success)
             {
@@ -83,6 +134,19 @@ namespace noi_engine_editor
         );
     }
 
+    auto LocalTemplateManager::removeTemplateVersion(const QString& templateId, const QString& version) -> void
+    {
+        QDir(PathResolver::templateAbsolutePath(templateId, version)).removeRecursively();
+
+        if (QDir templateRootDir(PathResolver::templateRootPath(templateId));
+            templateRootDir.exists() && templateRootDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot).isEmpty())
+        {
+            templateRootDir.removeRecursively();
+        }
+
+        loadLocalTemplates();
+    }
+
     auto LocalTemplateManager::loadLocalTemplates() -> void
     {
         m_templates.clear();
@@ -95,38 +159,58 @@ namespace noi_engine_editor
             return;
         }
 
-        const auto subDirs = templatesDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        const auto templateIds = templatesDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
 
-        for (const auto& subDir : subDirs)
+        for (const auto& templateId : templateIds)
         {
-            const auto subDirPath = templatesDir.absoluteFilePath(subDir);
-            const auto jsonPath = PathResolver::templateFilePath(subDirPath);
+            const QDir templateRootDir(templatesDir.absoluteFilePath(templateId));
+            const auto versions = templateRootDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
 
-            QFile file(jsonPath);
-            if (!file.open(QIODevice::ReadOnly))
+            bool found = false;
+            TemplateInfo latest;
+
+            for (const auto& version : versions)
+            {
+                const auto versionDirPath = templateRootDir.absoluteFilePath(version);
+                const auto jsonPath = PathResolver::templateFilePath(versionDirPath);
+
+                QFile file(jsonPath);
+                if (!file.open(QIODevice::ReadOnly))
+                {
+                    continue;
+                }
+
+                const auto fileData = file.readAll();
+                file.close();
+
+                QJsonParseError parseError;
+                const auto doc = QJsonDocument::fromJson(fileData, &parseError);
+                if (parseError.error != QJsonParseError::NoError || !doc.isObject())
+                {
+                    continue;
+                }
+
+                const auto info = TemplateInfo::deserialize(doc.object(), "");
+                if (!found || compareVersions(info.version, latest.version) > 0)
+                {
+                    latest = info;
+                    found = true;
+                }
+            }
+
+            if (!found)
             {
                 continue;
             }
 
-            const auto fileData = file.readAll();
-            file.close();
-
-            QJsonParseError parseError;
-            const auto doc = QJsonDocument::fromJson(fileData, &parseError);
-            if (parseError.error != QJsonParseError::NoError || !doc.isObject())
-            {
-                continue;
-            }
-
-            const auto info = TemplateInfo::deserialize(doc.object(), "");
             QVariantMap tMap;
-            tMap["id"] = info.id;
-            tMap["name"] = info.name;
-            tMap["author"] = info.author;
-            tMap["version"] = info.version;
-            tMap["description"] = info.description;
-            tMap["engineVersion"] = info.engineVersion;
-            tMap["resourceCompilerVersion"] = info.resourceCompilerVersion;
+            tMap["id"] = latest.id;
+            tMap["name"] = latest.name;
+            tMap["author"] = latest.author;
+            tMap["version"] = latest.version;
+            tMap["description"] = latest.description;
+            tMap["engineVersion"] = latest.engineVersion;
+            tMap["resourceCompilerVersion"] = latest.resourceCompilerVersion;
 
             m_templates.append(tMap);
         }

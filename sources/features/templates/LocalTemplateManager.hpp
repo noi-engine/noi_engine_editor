@@ -22,9 +22,11 @@ namespace noi_engine_editor
         [[nodiscard]] auto isDownloading() const -> bool;
         [[nodiscard]] auto downloadingTemplateId() const -> QString;
 
-        Q_INVOKABLE [[nodiscard]] auto isInstalled(const QString& templateId) const -> bool;
+        Q_INVOKABLE [[nodiscard]] auto installedVersions(const QString& templateId) const -> QVariantList;
+        Q_INVOKABLE [[nodiscard]] auto latestInstalledVersion(const QString& templateId) const -> QString;
         Q_INVOKABLE auto loadLocalTemplates() -> void;
-        Q_INVOKABLE auto downloadTemplate(const QString& templateId, const QString& repositoryUrl) -> void;
+        Q_INVOKABLE auto downloadTemplate(const QString& templateId, const QString& version, const QString& repositoryUrl) -> void;
+        Q_INVOKABLE auto removeTemplateVersion(const QString& templateId, const QString& version) -> void;
 
     signals:
         auto templatesChanged() -> void;

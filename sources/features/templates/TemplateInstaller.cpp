@@ -69,12 +69,13 @@ namespace noi_engine_editor
 
     auto TemplateInstaller::install(
         const QString& templateId,
+        const QString& version,
         const QString& repositoryUrl,
         const std::function<void(bool success)>& onFinished
     ) -> void
     {
         const auto downloadUrl = TemplateUrlResolver::zipUrl(repositoryUrl);
-        const auto targetPath = QDir(PathResolver::templatesPath()).filePath(templateId);
+        const auto targetPath = PathResolver::templateAbsolutePath(templateId, version);
 
         downloadZip(
             downloadUrl,
@@ -105,6 +106,7 @@ namespace noi_engine_editor
     {
         QNetworkRequest request((QUrl(downloadUrl)));
         request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+        request.setRawHeader("User-Agent", "noi_engine_editor");
 
         auto* reply = m_networkManager.get(request);
 

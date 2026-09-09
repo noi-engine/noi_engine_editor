@@ -15,6 +15,7 @@ namespace noi_engine_editor
         const QString& name,
         const QString& location,
         const QString& templateId,
+        const QString& templateVersion,
         const QString& engineVersion,
         const QString& resourceCompilerVersion
     ) -> bool
@@ -28,7 +29,7 @@ namespace noi_engine_editor
 
         try
         {
-            const auto templatePath = PathResolver::templateAbsolutePath(templateId);
+            const auto templatePath = PathResolver::templateAbsolutePath(templateId, templateVersion);
             Templi::generate_with_templi_config(
                 templatePath.toStdString(),
                 projectPath.toStdString(),

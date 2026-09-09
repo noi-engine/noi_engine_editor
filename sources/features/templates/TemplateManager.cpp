@@ -3,9 +3,11 @@
 #include "TemplateUrlResolver.hpp"
 
 #include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QDebug>
 
 namespace noi_engine_editor
 {
@@ -42,13 +44,17 @@ namespace noi_engine_editor
         setPending(true);
 
         const QUrl indexUrl(TemplateUrlResolver::templatesJsonUrl());
-        QNetworkReply* reply = m_networkManager.get(QNetworkRequest(indexUrl));
+        QNetworkRequest request(indexUrl);
+        request.setRawHeader("User-Agent", "noi_engine_editor");
+        QNetworkReply* reply = m_networkManager.get(request);
 
-        connect(reply, &QNetworkReply::finished, this, [this, reply]() -> void {
+        connect(reply, &QNetworkReply::finished, this, [this, reply, indexUrl]() -> void {
             reply->deleteLater();
 
             if (reply->error() != QNetworkReply::NoError)
             {
+                qWarning() << "[TemplateManager] Failed to fetch template index from:" << indexUrl
+                           << "| Error:" << reply->errorString();
                 setPending(false);
                 emit fetchFailed(reply->errorString());
                 return;
@@ -56,6 +62,7 @@ namespace noi_engine_editor
 
             const auto doc = QJsonDocument::fromJson(reply->readAll());
             if (!doc.isArray()) {
+                qWarning() << "[TemplateManager] Invalid template index JSON received from:" << indexUrl;
                 setPending(false);
                 emit fetchFailed(tr("Invalid template list JSON."));
                 return;
@@ -79,9 +86,11 @@ namespace noi_engine_editor
     auto TemplateManager::fetchIndividualTemplate(const QString& repositoryUrl) -> void
     {
         const QUrl detailUrl(TemplateUrlResolver::templateJsonUrl(repositoryUrl));
-        QNetworkReply* reply = m_networkManager.get(QNetworkRequest(detailUrl));
+        QNetworkRequest request(detailUrl);
+        request.setRawHeader("User-Agent", "noi_engine_editor");
+        QNetworkReply* reply = m_networkManager.get(request);
 
-        connect(reply, &QNetworkReply::finished, this, [this, reply, repositoryUrl]() -> void {
+        connect(reply, &QNetworkReply::finished, this, [this, reply, repositoryUrl, detailUrl]() -> void {
             reply->deleteLater();
 
             if (reply->error() == QNetworkReply::NoError) {
@@ -90,7 +99,13 @@ namespace noi_engine_editor
                     QVariantMap tMap = doc.object().toVariantMap();
                     tMap["repositoryUrl"] = repositoryUrl;
                     m_templates.append(tMap);
+                } else {
+                    qWarning() << "[TemplateManager] Invalid template metadata JSON from repository:" << repositoryUrl;
                 }
+            } else {
+                qWarning() << "[TemplateManager] Failed to fetch template metadata from:" << detailUrl
+                           << "(repository:" << repositoryUrl << ")"
+                           << "| Error:" << reply->errorString();
             }
 
             m_pendingRequests--;

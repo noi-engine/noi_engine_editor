@@ -23,7 +23,8 @@ namespace noi_engine_editor::PathResolver
 
     [[nodiscard]] auto templatesPath() -> QString;
     [[nodiscard]] auto templateFilePath(const QString& templatePath) -> QString;
-    [[nodiscard]] auto templateAbsolutePath(const QString& templateId) -> QString;
+    [[nodiscard]] auto templateRootPath(const QString& templateId) -> QString;
+    [[nodiscard]] auto templateAbsolutePath(const QString& templateId, const QString& version) -> QString;
 
     [[nodiscard]] auto fallBackDefaultProjectsPath() -> QString;
     [[nodiscard]] auto projectFilePath(const QString& projectPath) -> QString;

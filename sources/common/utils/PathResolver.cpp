@@ -82,9 +82,14 @@ auto noi_engine_editor::PathResolver::templateFilePath(const QString& templatePa
     return templatePath + "/noi_engine.template.json";
 }
 
-auto noi_engine_editor::PathResolver::templateAbsolutePath(const QString& templateId) -> QString
+auto noi_engine_editor::PathResolver::templateRootPath(const QString& templateId) -> QString
 {
     return QDir(templatesPath()).filePath(templateId);
+}
+
+auto noi_engine_editor::PathResolver::templateAbsolutePath(const QString& templateId, const QString& version) -> QString
+{
+    return QDir(templateRootPath(templateId)).filePath(version);
 }
 
 auto createDirOrThrow(const QString& path) -> void

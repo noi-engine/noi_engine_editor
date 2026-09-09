@@ -14,6 +14,7 @@ namespace noi_engine_editor
 
         auto install(
             const QString& templateId,
+            const QString& version,
             const QString& repositoryUrl,
             const std::function<void(bool success)>& onFinished
         ) -> void;

@@ -2,6 +2,8 @@
 
 #include <QMetaObject>
 #include <QMutexLocker>
+#include <cstdio>
+#include <cstdlib>
 
 noi_engine_editor::EditorLogger::EditorLogger(QObject* parent) : QObject(parent)
 {
@@ -37,6 +39,19 @@ auto noi_engine_editor::EditorLogger::messageHandler(
     if (s_previousHandler)
     {
         s_previousHandler(type, context, message);
+    }
+    else
+    {
+        // qInstallMessageHandler() returns null when no handler was previously installed
+        // (i.e. Qt was still using its built-in default). In that case the default
+        // console output is skipped entirely unless we print it ourselves here.
+        fprintf(stderr, "%s\n", qFormatLogMessage(type, context, message).toLocal8Bit().constData());
+        fflush(stderr);
+    }
+
+    if (type == QtFatalMsg)
+    {
+        abort();
     }
 
     const char* label = "LOG";

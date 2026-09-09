@@ -20,6 +20,11 @@ Dialog {
 
     TemplateManager {
         id: remoteTemplateManager
+
+        onFetchFailed: error => {
+            errorLabel.text = qsTr("Failed to load templates: %1").arg(error)
+            errorLabel.visible = true
+        }
     }
 
     Connections {
@@ -34,15 +39,12 @@ Dialog {
                 errorLabel.visible = true;
             }
         }
-
-        function onTemplatesChanged() {
-            if (templateListView.model) {
-                templateListView.model = remoteTemplateManager.templates
-            }
-        }
     }
 
-    onOpened: remoteTemplateManager.fetchTemplates()
+    onOpened: {
+        errorLabel.visible = false
+        remoteTemplateManager.fetchTemplates()
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -55,14 +57,29 @@ Dialog {
             visible: remoteTemplateManager.isPending
         }
 
-        Text {
-            id: errorLabel
-
+        RowLayout {
             Layout.fillWidth: true
-            visible: false
-            wrapMode: Text.WordWrap
-            color: Theme.error
-            font.pixelSize: 12
+            visible: errorLabel.visible
+            spacing: 10
+
+            Text {
+                id: errorLabel
+
+                Layout.fillWidth: true
+                visible: false
+                wrapMode: Text.WordWrap
+                color: Theme.error
+                font.pixelSize: 12
+            }
+
+            AppButton {
+                text: qsTr("Retry")
+                icon: "refresh"
+                onClicked: {
+                    errorLabel.visible = false
+                    remoteTemplateManager.fetchTemplates()
+                }
+            }
         }
 
         ListView {
@@ -75,13 +92,20 @@ Dialog {
             spacing: 8
 
             delegate: Rectangle {
+                id: delegateRoot
                 required property var modelData
 
-                readonly property bool installed: {
-                    if (!root.localTemplateManager) return false
-                    let dummy = root.localTemplateManager.templates
-                    return root.localTemplateManager.isInstalled(modelData.id)
-                }
+                property bool showOldVersions: false
+                property var installedVersionsList: root.localTemplateManager
+                    ? root.localTemplateManager.installedVersions(modelData.id)
+                    : []
+
+                readonly property string latestInstalledVersion: installedVersionsList.length > 0
+                    ? installedVersionsList[0]
+                    : ""
+
+                readonly property bool installed: latestInstalledVersion === modelData.version
+                readonly property bool hasOlderVersion: installedVersionsList.length > 0 && !installed
 
                 readonly property bool downloading: root.localTemplateManager
                     ? (root.localTemplateManager.isDownloading && root.localTemplateManager.downloadingTemplateId === modelData.id)
@@ -91,22 +115,40 @@ Dialog {
                     ? (root.localTemplateManager.isDownloading && root.localTemplateManager.downloadingTemplateId !== modelData.id)
                     : false
 
+                function refreshInstalledVersions() {
+                    installedVersionsList = root.localTemplateManager
+                        ? root.localTemplateManager.installedVersions(modelData.id)
+                        : []
+                }
+
+                Connections {
+                    target: root.localTemplateManager
+                    function onTemplatesChanged() {
+                        delegateRoot.refreshInstalledVersions()
+                    }
+                }
+
                 width: ListView.view ? ListView.view.width : 0
-                height: 64
+                height: mainColumn.implicitHeight + 20
                 radius: 8
                 color: Theme.bgSecondary
                 border.color: Theme.borderColor
 
                 ColumnLayout {
-                    anchors.fill: parent
+                    id: mainColumn
+
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
                     anchors.margins: 10
-                    spacing: 4
+                    spacing: 8
 
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 10
 
                         ColumnLayout {
+                            Layout.fillWidth: true
                             spacing: 2
 
                             Text {
@@ -117,14 +159,13 @@ Dialog {
                             }
 
                             Text {
+                                Layout.fillWidth: true
                                 text: modelData.description
                                 color: Theme.darkGrey
                                 font.pixelSize: 11
                                 elide: Text.ElideRight
                             }
                         }
-
-                        Item { Layout.fillWidth: true }
 
                         BusyIndicator {
                             visible: downloading
@@ -134,16 +175,65 @@ Dialog {
                         }
 
                         AppButton {
-                            text: installed
+                            visible: delegateRoot.installedVersionsList.length > 0
+                            text: delegateRoot.showOldVersions ? qsTr("Hide versions") : qsTr("Old versions")
+                            icon: "history"
+                            onClicked: delegateRoot.showOldVersions = !delegateRoot.showOldVersions
+                        }
+
+                        AppButton {
+                            text: delegateRoot.installed
                                 ? qsTr("Installed")
-                                : (downloading ? qsTr("Downloading...") : qsTr("Download"))
-                            icon: installed ? "check" : (downloading ? "sync" : "download")
-                            enabled: !installed && !downloading && !otherDownloading && root.localTemplateManager !== null
+                                : (downloading
+                                    ? qsTr("Downloading...")
+                                    : (delegateRoot.hasOlderVersion ? qsTr("Update") : qsTr("Download")))
+                            icon: delegateRoot.installed ? "check" : (downloading ? "sync" : "download")
+                            enabled: !delegateRoot.installed && !downloading && !otherDownloading && root.localTemplateManager !== null
 
                             onClicked: {
-                                if (!installed && root.localTemplateManager) {
+                                if (!delegateRoot.installed && root.localTemplateManager) {
                                     errorLabel.visible = false;
-                                    root.localTemplateManager.downloadTemplate(modelData.id, modelData.repositoryUrl)
+                                    root.localTemplateManager.downloadTemplate(modelData.id, modelData.version, modelData.repositoryUrl)
+                                }
+                            }
+                        }
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        visible: delegateRoot.showOldVersions
+                        spacing: 4
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 1
+                            color: Theme.borderColor
+                            opacity: 0.5
+                        }
+
+                        Repeater {
+                            model: delegateRoot.installedVersionsList
+
+                            delegate: RowLayout {
+                                required property string modelData
+
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: qsTr("v%1").arg(modelData)
+                                    color: Theme.white
+                                    font.pixelSize: 12
+                                }
+
+                                AppButton {
+                                    text: qsTr("Remove")
+                                    icon: "delete"
+                                    onClicked: {
+                                        root.localTemplateManager.removeTemplateVersion(delegateRoot.modelData.id, modelData)
+                                        delegateRoot.refreshInstalledVersions()
+                                    }
                                 }
                             }
                         }

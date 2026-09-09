@@ -481,6 +481,7 @@ Dialog {
                             nameField.text.trim(),
                             locationField.text,
                             root.selectedTemplate.id,
+                            root.selectedTemplate.version,
                             root.selectedTemplate.engineVersion,
                             root.selectedTemplate.resourceCompilerVersion
                         );

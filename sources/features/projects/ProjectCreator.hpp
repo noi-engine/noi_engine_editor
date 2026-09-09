@@ -17,6 +17,7 @@ namespace noi_engine_editor
             const QString& name,
             const QString& location,
             const QString& templateId,
+            const QString& templateVersion,
             const QString& engineVersion,
             const QString& resourceCompilerVersion
         ) -> bool;
