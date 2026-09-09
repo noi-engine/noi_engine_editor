@@ -31,6 +31,7 @@ namespace noi_engine_editor
         Q_INVOKABLE [[nodiscard]] auto saveProject() const -> bool;
         Q_INVOKABLE [[nodiscard]] auto resourcesPath() const -> QString;
         Q_INVOKABLE [[nodiscard]] auto scriptsLibraryPath() const -> QString;
+        Q_INVOKABLE [[nodiscard]] auto bridgeLibraryPath() const -> QString;
 
         [[nodiscard]] auto path() const -> QString;
         [[nodiscard]] auto isOpen() const -> bool;

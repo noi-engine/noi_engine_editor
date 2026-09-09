@@ -47,11 +47,6 @@ auto noi_engine_editor::PathResolver::noiEngineContentPath(const QString& versio
     return noiEnginePath(version) + "/noi_engine";
 }
 
-auto noi_engine_editor::PathResolver::noiEngineEditorBridgeLibraryPath(const QString& version) -> QString
-{
-    return noiEngineContentPath(version) + "/editor_bridge/libnoi_engine_editor_bridge.so";
-}
-
 auto noi_engine_editor::PathResolver::resourceCompilerRootPath() -> QString
 {
     return toolsPath() + "/resources_compiler";

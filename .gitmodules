@@ -1,9 +1,6 @@
 [submodule "external/Templi"]
 	path = external/Templi
 	url = https://github.com/RickaPrincy/Templi
-[submodule "external/noi_engine"]
-	path = external/noi_engine
-	url = https://github.com/noi-engine/noi_engine
 [submodule "external/zip"]
 	path = external/zip
 	url = https://github.com/kuba--/zip.git

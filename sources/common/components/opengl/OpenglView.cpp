@@ -61,6 +61,24 @@ namespace noi_engine_editor
         update();
     }
 
+    QString OpenGLView::bridgeLibraryPath() const
+    {
+        return this->m_bridgeLibraryPath;
+    }
+
+    void OpenGLView::setBridgeLibraryPath(const QString& path)
+    {
+        if (m_bridgeLibraryPath == path)
+        {
+            return;
+        }
+
+        m_bridgeLibraryPath = path;
+        Q_EMIT bridgeLibraryPathChanged();
+
+        update();
+    }
+
     int OpenGLView::scriptsGeneration() const
     {
         return this->m_scriptsGeneration;
@@ -136,6 +154,6 @@ namespace noi_engine_editor
     QQuickFramebufferObject::Renderer* OpenGLView::createRenderer() const
     {
         return new OpenGLRenderer(this->m_gameWidth, this->m_gameHeight, this->resourcesPath(), this->scriptsLibraryPath(),
-                                  this->engineVersion());
+                                  this->bridgeLibraryPath(), this->engineVersion());
     }
 }

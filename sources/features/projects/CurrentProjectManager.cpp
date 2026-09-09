@@ -84,6 +84,16 @@ namespace noi_engine_editor
         return QDir(this->m_path).filePath(m_project.scriptsLibrary);
     }
 
+    auto CurrentProjectManager::bridgeLibraryPath() const -> QString
+    {
+        if (m_project.bridgeLibrary.isEmpty())
+        {
+            return {};
+        }
+
+        return QDir(this->m_path).filePath(m_project.bridgeLibrary);
+    }
+
     auto CurrentProjectManager::closeProject() -> void
     {
         m_path.clear();

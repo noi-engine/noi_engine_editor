@@ -1,6 +1,5 @@
 #include "OpenglView.hpp"
 #include "OpenglRenderer.hpp"
-#include "../../utils/PathResolver.hpp"
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
 #include <QDir>
@@ -27,14 +26,13 @@ namespace noi_engine_editor
     }
 
     OpenGLRenderer::OpenGLRenderer(const int gameWidth, const int gameHeight, const QString& resourcesPath,
-                                   const QString& scriptsLibraryPath, const QString& engineVersion) :
+                                   const QString& scriptsLibraryPath, const QString& bridgeLibraryPath,
+                                   const QString& engineVersion) :
         m_resourcesPath(
             resourcesPath),
         m_scriptsLibraryPath(scriptsLibraryPath),
         m_engineVersion(engineVersion)
     {
-        const auto bridgeLibraryPath = PathResolver::noiEngineEditorBridgeLibraryPath(engineVersion);
-
         if (!m_bridge.load(bridgeLibraryPath))
         {
             qWarning() << "[OpenGLRenderer] No usable noi_engine preview bridge for engine version" << engineVersion

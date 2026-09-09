@@ -59,6 +59,7 @@ Item {
                     scenePath: root.scenePath
                     resourcesPath: CurrentProjectManager.resourcesPath()
                     scriptsLibraryPath: CurrentProjectManager.scriptsLibraryPath()
+                    bridgeLibraryPath: CurrentProjectManager.bridgeLibraryPath()
                     scriptsGeneration: ProjectBuilder.compileGeneration
                     engineVersion: CurrentProjectManager.engineVersion
                     gameWidth: CurrentProjectManager.windowWidth
