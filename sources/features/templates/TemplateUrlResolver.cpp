@@ -3,8 +3,7 @@
 
 auto noi_engine_editor::TemplateUrlResolver::templatesJsonUrl() -> QString
 {
-    return "https://raw.githubusercontent.com/noi-engine/templates/refs/heads/"
-        "main/templates.json";
+    return "https://gist.githubusercontent.com/RickaPrincy/e65848fd557eab6a0a4e19c96412ad68/raw/00a155e2beb1b45860ec1e80c405e816d8d74a27/noi_engine_templates.json";
 }
 
 auto noi_engine_editor::TemplateUrlResolver::templateJsonUrl(const QString& repositoryUrl) -> QString
