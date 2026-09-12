@@ -7,21 +7,10 @@ Rectangle {
     id: root
 
     required property string entityName
-    required property string entityType
-    required property int entityDepth
 
     property bool selected: false
 
     signal clicked()
-
-    function iconFor(type) {
-        switch (type) {
-            case "camera": return "camera_alt"
-            case "light": return "light_mode"
-            case "mesh": return "view_in_ar"
-            default: return "folder"
-        }
-    }
 
     Layout.fillWidth: true
     height: 32
@@ -32,12 +21,12 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 10 + root.entityDepth * 18
+        anchors.leftMargin: 10
         anchors.rightMargin: 10
         spacing: 8
 
         MuiIcon {
-            name: root.iconFor(root.entityType)
+            name: "category"
             font.pixelSize: 15
             color: root.selected ? Theme.primaryColor : Theme.grey
         }

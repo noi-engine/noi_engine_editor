@@ -7,9 +7,10 @@ import noi_engine_editor
 Rectangle {
     id: root
 
-    signal entitySelected(var entity)
+    property var entities: []
+    property var selectedEntity: null
 
-    property string selectedName: ""
+    signal entitySelected(var entity)
 
     color: Theme.bgSecondary
 
@@ -20,46 +21,34 @@ Rectangle {
         color: Theme.borderColor
     }
 
-    ListModel {
-        id: entitiesModel
+    ListModel { id: entitiesModel }
 
-        ListElement { name: "Main Camera"; type: "camera"; depth: 0 }
-        ListElement { name: "Directional Light"; type: "light"; depth: 0 }
-        ListElement { name: "Ground"; type: "mesh"; depth: 0 }
-        ListElement { name: "Player"; type: "mesh"; depth: 0 }
-        ListElement { name: "UI Canvas"; type: "empty"; depth: 0 }
-        ListElement { name: "Score Label"; type: "mesh"; depth: 1 }
+    function refreshEntities() {
+        entitiesModel.clear();
+        const items = root.entities || [];
+        for (let i = 0; i < items.length; i++) {
+            const e = items[i];
+            entitiesModel.append({
+                "entityId": e.id,
+                "entityGeneration": e.generation,
+                "rowName": e.name
+            });
+        }
     }
+
+    Component.onCompleted: refreshEntities()
+    onEntitiesChanged: refreshEntities()
 
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 10
         spacing: 10
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Text {
-                Layout.fillWidth: true
-                text: qsTr("Hierarchy")
-                font.pixelSize: 13
-                font.weight: Font.DemiBold
-                color: Theme.white
-            }
-
-            MuiIcon {
-                name: "add"
-                font.pixelSize: 18
-                color: Theme.grey
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -6
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: entitiesModel.append({ name: "Entity", type: "empty", depth: 0 })
-                }
-            }
+        Text {
+            text: qsTr("HIERARCHY (%1)").arg(entitiesModel.count)
+            font.pixelSize: 13
+            font.weight: Font.DemiBold
+            color: Theme.white
         }
 
         ListView {
@@ -77,19 +66,20 @@ Rectangle {
             }
 
             delegate: HierarchyItem {
-                required property string name
-                required property string type
-                required property int depth
+                required property int index
+                required property int entityId
+                required property int entityGeneration
+                required property string rowName
 
                 width: listView.width
 
-                entityName: name
-                entityType: type
-                entityDepth: depth
+                entityName: rowName !== "" ? rowName : ("Entity #" + entityId)
 
-                selected: root.selectedName === name
+                selected: root.selectedEntity !== null
+                    && root.selectedEntity.id === entityId
+                    && root.selectedEntity.generation === entityGeneration
 
-                onClicked: root.entitySelected({ name: name, type: type })
+                onClicked: root.entitySelected(root.entities[index])
             }
         }
     }

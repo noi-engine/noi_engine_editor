@@ -167,6 +167,109 @@ namespace noi_engine_editor
         Q_EMIT loadedResourcesChanged();
     }
 
+    QVariantList OpenGLView::loadedEntities() const
+    {
+        return this->m_loadedEntities;
+    }
+
+    void OpenGLView::setLoadedEntities(const QVariantList& entities)
+    {
+        if (m_loadedEntities == entities)
+        {
+            return;
+        }
+
+        m_loadedEntities = entities;
+        Q_EMIT loadedEntitiesChanged();
+    }
+
+    bool OpenGLView::hasInspectedEntity() const
+    {
+        return this->m_hasInspectedEntity;
+    }
+
+    void OpenGLView::setHasInspectedEntity(const bool hasEntity)
+    {
+        if (m_hasInspectedEntity == hasEntity)
+        {
+            return;
+        }
+
+        m_hasInspectedEntity = hasEntity;
+        Q_EMIT inspectedEntityChanged();
+
+        update();
+    }
+
+    quint32 OpenGLView::inspectedEntityId() const
+    {
+        return this->m_inspectedEntityId;
+    }
+
+    void OpenGLView::setInspectedEntityId(const quint32 entityId)
+    {
+        if (m_inspectedEntityId == entityId)
+        {
+            return;
+        }
+
+        m_inspectedEntityId = entityId;
+        Q_EMIT inspectedEntityChanged();
+
+        update();
+    }
+
+    quint32 OpenGLView::inspectedEntityGeneration() const
+    {
+        return this->m_inspectedEntityGeneration;
+    }
+
+    void OpenGLView::setInspectedEntityGeneration(const quint32 entityGeneration)
+    {
+        if (m_inspectedEntityGeneration == entityGeneration)
+        {
+            return;
+        }
+
+        m_inspectedEntityGeneration = entityGeneration;
+        Q_EMIT inspectedEntityChanged();
+
+        update();
+    }
+
+    QVariantList OpenGLView::inspectedComponents() const
+    {
+        return this->m_inspectedComponents;
+    }
+
+    void OpenGLView::setInspectedComponents(const QVariantList& components)
+    {
+        if (m_inspectedComponents == components)
+        {
+            return;
+        }
+
+        m_inspectedComponents = components;
+        Q_EMIT inspectedComponentsChanged();
+    }
+
+    void OpenGLView::setComponentProperty(const quint32 entityId, const quint32 entityGeneration,
+                                           const QString& componentType, const QString& propertyName,
+                                           const QString& propertyType, const QVariant& value)
+    {
+        m_pendingPropertyEdits.append(PendingPropertyEdit{
+            entityId, entityGeneration, componentType, propertyName, propertyType, value});
+
+        update(); // there's no continuous render loop - nudge one so synchronize() applies this promptly
+    }
+
+    QVector<PendingPropertyEdit> OpenGLView::takePendingPropertyEdits()
+    {
+        auto edits = std::move(m_pendingPropertyEdits);
+        m_pendingPropertyEdits.clear();
+        return edits;
+    }
+
     QQuickFramebufferObject::Renderer* OpenGLView::createRenderer() const
     {
         return new OpenGLRenderer(this->m_gameWidth, this->m_gameHeight, this->resourcesPath(), this->scriptsLibraryPath(),

@@ -10,6 +10,15 @@ Item {
     property var selectedEntity: null
 
     readonly property alias loadedResources: openGLView.loadedResources
+    readonly property alias loadedEntities: openGLView.loadedEntities
+    readonly property alias inspectedComponents: openGLView.inspectedComponents
+    property alias hasInspectedEntity: openGLView.hasInspectedEntity
+    property alias inspectedEntityId: openGLView.inspectedEntityId
+    property alias inspectedEntityGeneration: openGLView.inspectedEntityGeneration
+
+    function setComponentProperty(entityId, entityGeneration, componentType, propertyName, propertyType, value) {
+        openGLView.setComponentProperty(entityId, entityGeneration, componentType, propertyName, propertyType, value)
+    }
 
     property string activeTool: "move"
     property real cameraZoom: 1.0

@@ -8,6 +8,8 @@
 
 namespace noi_engine_editor
 {
+    class OpenGLView;
+
     class OpenGLRenderer : public QQuickFramebufferObject::Renderer
     {
     protected:
@@ -28,6 +30,12 @@ namespace noi_engine_editor
         auto ensureBridgeLoaded() -> void;
         static auto resourceEntryCallback(void* userData, noi_engine_editor_bridge_resource_type type,
                                            const char* label, uint32_t id, uint32_t generation) -> void;
+        static auto entityEntryCallback(void* userData, uint32_t entityId, uint32_t entityGeneration,
+                                         const char* name, const char* componentTypesCsv) -> void;
+        static auto propertyEntryCallback(void* userData, const char* propertyName,
+                                           noi_engine_editor_bridge_property_value value, int readOnly) -> void;
+        auto applyPendingPropertyEdits(OpenGLView* view) -> void;
+        auto buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities) -> QVariantList;
 
         int m_width{};
         int m_height{};

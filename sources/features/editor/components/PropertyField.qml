@@ -10,6 +10,9 @@ RowLayout {
     property string label: ""
     property string value: "0"
     property color accentColor: Theme.grey
+    property bool readOnly: false
+
+    signal edited(string newValue)
 
     spacing: 6
 
@@ -33,14 +36,23 @@ RowLayout {
         Layout.preferredHeight: 26
 
         text: root.value
+        readOnly: root.readOnly
+        opacity: root.readOnly ? 0.55 : 1.0
         font.pixelSize: 12
         color: Theme.white
+        selectByMouse: true
 
         background: Rectangle {
             radius: 6
             color: Theme.bgTertiary
             border.color: Theme.borderColor
             border.width: 1
+        }
+
+        onEditingFinished: {
+            if (!root.readOnly && text !== root.value) {
+                root.edited(text)
+            }
         }
     }
 }

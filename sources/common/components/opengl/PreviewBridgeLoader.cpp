@@ -30,9 +30,16 @@ namespace noi_engine_editor
         m_engineVersion = reinterpret_cast<engine_version_fn>(m_library.resolve("noi_engine_editor_bridge_engine_version"));
         m_enumerateResources = reinterpret_cast<enumerate_resources_fn>(
             m_library.resolve("noi_engine_editor_bridge_enumerate_resources"));
+        m_enumerateEntities = reinterpret_cast<enumerate_entities_fn>(
+            m_library.resolve("noi_engine_editor_bridge_enumerate_entities"));
+        m_enumerateComponentProperties = reinterpret_cast<enumerate_component_properties_fn>(
+            m_library.resolve("noi_engine_editor_bridge_enumerate_component_properties"));
+        m_setComponentProperty = reinterpret_cast<set_component_property_fn>(
+            m_library.resolve("noi_engine_editor_bridge_set_component_property"));
 
         if (!m_initGl || !m_create || !m_destroy || !m_run || !m_onResize || !m_setScene2d || !m_loadScripts ||
-            !m_engineVersion || !m_enumerateResources)
+            !m_engineVersion || !m_enumerateResources || !m_enumerateEntities || !m_enumerateComponentProperties ||
+            !m_setComponentProperty)
         {
             qWarning() << "[PreviewBridgeLoader] Preview bridge" << bridgeLibraryPath <<
                 "is missing one or more required entry points";
@@ -97,5 +104,28 @@ namespace noi_engine_editor
                                                   void* const userData) const -> void
     {
         m_enumerateResources(handle, callback, userData);
+    }
+
+    auto PreviewBridgeLoader::enumerateEntities(const noi_engine_editor_bridge_game_handle handle,
+                                                 const noi_engine_editor_bridge_entity_entry_callback callback,
+                                                 void* const userData) const -> void
+    {
+        m_enumerateEntities(handle, callback, userData);
+    }
+
+    auto PreviewBridgeLoader::enumerateComponentProperties(
+        const noi_engine_editor_bridge_game_handle handle, const uint32_t entityId, const uint32_t entityGeneration,
+        const char* const componentType, const noi_engine_editor_bridge_property_entry_callback callback,
+        void* const userData) const -> void
+    {
+        m_enumerateComponentProperties(handle, entityId, entityGeneration, componentType, callback, userData);
+    }
+
+    auto PreviewBridgeLoader::setComponentProperty(const noi_engine_editor_bridge_game_handle handle,
+                                                    const uint32_t entityId, const uint32_t entityGeneration,
+                                                    const char* const componentType, const char* const propertyName,
+                                                    const noi_engine_editor_bridge_property_value value) const -> bool
+    {
+        return m_setComponentProperty(handle, entityId, entityGeneration, componentType, propertyName, value) != 0;
     }
 }

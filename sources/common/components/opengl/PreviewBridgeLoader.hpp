@@ -25,6 +25,17 @@ namespace noi_engine_editor
         auto enumerateResources(noi_engine_editor_bridge_game_handle handle,
                                  noi_engine_editor_bridge_resource_entry_callback callback,
                                  void* userData) const -> void;
+        auto enumerateEntities(noi_engine_editor_bridge_game_handle handle,
+                                noi_engine_editor_bridge_entity_entry_callback callback,
+                                void* userData) const -> void;
+        auto enumerateComponentProperties(noi_engine_editor_bridge_game_handle handle, uint32_t entityId,
+                                           uint32_t entityGeneration, const char* componentType,
+                                           noi_engine_editor_bridge_property_entry_callback callback,
+                                           void* userData) const -> void;
+        [[nodiscard]] auto setComponentProperty(noi_engine_editor_bridge_game_handle handle, uint32_t entityId,
+                                                 uint32_t entityGeneration, const char* componentType,
+                                                 const char* propertyName,
+                                                 noi_engine_editor_bridge_property_value value) const -> bool;
 
     private:
         using init_gl_fn = void (*)(noi_engine_editor_bridge_gl_proc_loader);
@@ -37,6 +48,14 @@ namespace noi_engine_editor
         using engine_version_fn = const char* (*)();
         using enumerate_resources_fn = void (*)(noi_engine_editor_bridge_game_handle,
                                                   noi_engine_editor_bridge_resource_entry_callback, void*);
+        using enumerate_entities_fn = void (*)(noi_engine_editor_bridge_game_handle,
+                                                noi_engine_editor_bridge_entity_entry_callback, void*);
+        using enumerate_component_properties_fn = void (*)(noi_engine_editor_bridge_game_handle, uint32_t, uint32_t,
+                                                             const char*,
+                                                             noi_engine_editor_bridge_property_entry_callback, void*);
+        using set_component_property_fn = int (*)(noi_engine_editor_bridge_game_handle, uint32_t, uint32_t,
+                                                    const char*, const char*,
+                                                    noi_engine_editor_bridge_property_value);
 
         QLibrary m_library;
         init_gl_fn m_initGl{nullptr};
@@ -48,5 +67,8 @@ namespace noi_engine_editor
         load_scripts_fn m_loadScripts{nullptr};
         engine_version_fn m_engineVersion{nullptr};
         enumerate_resources_fn m_enumerateResources{nullptr};
+        enumerate_entities_fn m_enumerateEntities{nullptr};
+        enumerate_component_properties_fn m_enumerateComponentProperties{nullptr};
+        set_component_property_fn m_setComponentProperty{nullptr};
     };
 }

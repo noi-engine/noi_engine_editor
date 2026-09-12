@@ -84,8 +84,9 @@ CustomPage {
 
                 SceneHierarchyPanel {
                     SplitView.preferredWidth: 260
-                    SplitView.minimumWidth: 200
-                    selectedName: root.selectedEntity ? root.selectedEntity.name : ""
+                    SplitView.minimumWidth: 220
+                    entities: viewportPanel.loadedEntities
+                    selectedEntity: root.selectedEntity
                     onEntitySelected: entity => root.selectedEntity = entity
                 }
 
@@ -95,12 +96,21 @@ CustomPage {
                     SplitView.minimumWidth: 400
                     scenePath: root.currentScenePath
                     selectedEntity: root.selectedEntity
+                    hasInspectedEntity: root.selectedEntity !== null
+                    inspectedEntityId: root.selectedEntity ? root.selectedEntity.id : 0
+                    inspectedEntityGeneration: root.selectedEntity ? root.selectedEntity.generation : 0
                 }
 
                 InspectorPanel {
                     SplitView.preferredWidth: 300
                     SplitView.minimumWidth: 260
                     entity: root.selectedEntity
+                    componentsData: viewportPanel.inspectedComponents
+
+                    onPropertyEdited: (componentType, propertyName, propertyType, value) => {
+                        viewportPanel.setComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
+                            componentType, propertyName, propertyType, value)
+                    }
                 }
             }
 

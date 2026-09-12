@@ -146,6 +146,153 @@ namespace noi_engine_editor
         });
     }
 
+    void OpenGLRenderer::entityEntryCallback(void* userData, const uint32_t entityId, const uint32_t entityGeneration,
+                                              const char* name, const char* componentTypesCsv)
+    {
+        auto* list = static_cast<QVariantList*>(userData);
+        const auto csv = QString::fromUtf8(componentTypesCsv);
+        const auto componentTypes = csv.isEmpty() ? QStringList{} : csv.split(QLatin1Char(','));
+
+        list->append(QVariantMap{
+            {QStringLiteral("id"), entityId},
+            {QStringLiteral("generation"), entityGeneration},
+            {QStringLiteral("name"), QString::fromUtf8(name)},
+            {QStringLiteral("componentTypes"), componentTypes},
+        });
+    }
+
+    void OpenGLRenderer::propertyEntryCallback(void* userData, const char* propertyName,
+                                                const noi_engine_editor_bridge_property_value value,
+                                                const int readOnly)
+    {
+        auto* list = static_cast<QVariantList*>(userData);
+        QVariant qvalue;
+        QString typeName;
+
+        switch (value.type)
+        {
+            case NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_FLOAT:
+                typeName = QStringLiteral("float");
+                qvalue = value.number[0];
+                break;
+            case NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_VEC3:
+                typeName = QStringLiteral("vec3");
+                qvalue = QVariantList{value.number[0], value.number[1], value.number[2]};
+                break;
+            case NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_STRING:
+                typeName = QStringLiteral("string");
+                qvalue = QString::fromUtf8(value.text ? value.text : "");
+                break;
+            case NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_BOOL:
+                typeName = QStringLiteral("bool");
+                qvalue = static_cast<bool>(value.flag);
+                break;
+        }
+
+        list->append(QVariantMap{
+            {QStringLiteral("name"), QString::fromUtf8(propertyName)},
+            {QStringLiteral("type"), typeName},
+            {QStringLiteral("value"), qvalue},
+            {QStringLiteral("readOnly"), readOnly != 0},
+        });
+    }
+
+    void OpenGLRenderer::applyPendingPropertyEdits(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        const auto edits = view->takePendingPropertyEdits();
+        for (const auto& edit : edits)
+        {
+            noi_engine_editor_bridge_property_value value{};
+
+            if (edit.propertyType == QStringLiteral("float"))
+            {
+                value.type = NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_FLOAT;
+                value.number[0] = edit.value.toFloat();
+            }
+            else if (edit.propertyType == QStringLiteral("vec3"))
+            {
+                const auto components = edit.value.toList();
+                value.type = NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_VEC3;
+                value.number[0] = components.value(0).toFloat();
+                value.number[1] = components.value(1).toFloat();
+                value.number[2] = components.value(2).toFloat();
+            }
+            else if (edit.propertyType == QStringLiteral("string"))
+            {
+                value.type = NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_STRING;
+                const auto text = edit.value.toString().toUtf8();
+                value.text = text.constData();
+                if (!m_bridge.setComponentProperty(this->m_gameHandle, edit.entityId, edit.entityGeneration,
+                                                    edit.componentType.toUtf8().constData(),
+                                                    edit.propertyName.toUtf8().constData(), value))
+                {
+                    qWarning() << "[OpenGLRenderer] Failed to set" << edit.componentType << "." << edit.propertyName;
+                }
+                continue; // `text` (the QByteArray) must outlive the call; handled inline above
+            }
+            else if (edit.propertyType == QStringLiteral("bool"))
+            {
+                value.type = NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_BOOL;
+                value.flag = edit.value.toBool() ? 1 : 0;
+            }
+            else
+            {
+                continue;
+            }
+
+            if (!m_bridge.setComponentProperty(this->m_gameHandle, edit.entityId, edit.entityGeneration,
+                                                edit.componentType.toUtf8().constData(),
+                                                edit.propertyName.toUtf8().constData(), value))
+            {
+                qWarning() << "[OpenGLRenderer] Failed to set" << edit.componentType << "." << edit.propertyName;
+            }
+        }
+    }
+
+    QVariantList OpenGLRenderer::buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities)
+    {
+        QVariantList inspectedComponents;
+
+        if (!this->m_gameHandle || !view->hasInspectedEntity())
+        {
+            return inspectedComponents;
+        }
+
+        const auto targetId = view->inspectedEntityId();
+        const auto targetGeneration = view->inspectedEntityGeneration();
+
+        for (const auto& entityVariant : loadedEntities)
+        {
+            const auto entityMap = entityVariant.toMap();
+            if (entityMap.value(QStringLiteral("id")).toUInt() != targetId ||
+                entityMap.value(QStringLiteral("generation")).toUInt() != targetGeneration)
+            {
+                continue;
+            }
+
+            const auto componentTypes = entityMap.value(QStringLiteral("componentTypes")).toStringList();
+            for (const auto& componentType : componentTypes)
+            {
+                QVariantList properties;
+                m_bridge.enumerateComponentProperties(this->m_gameHandle, targetId, targetGeneration,
+                                                       componentType.toUtf8().constData(),
+                                                       &OpenGLRenderer::propertyEntryCallback, &properties);
+                inspectedComponents.append(QVariantMap{
+                    {QStringLiteral("type"), componentType},
+                    {QStringLiteral("properties"), properties},
+                });
+            }
+            break;
+        }
+
+        return inspectedComponents;
+    }
+
     void OpenGLRenderer::synchronize(QQuickFramebufferObject* item)
     {
         auto* view = static_cast<OpenGLView*>(item);
@@ -193,11 +340,17 @@ namespace noi_engine_editor
             }
         }
 
+        this->applyPendingPropertyEdits(view);
+
         QVariantList loadedResources;
+        QVariantList loadedEntities;
         if (this->m_gameHandle)
         {
             m_bridge.enumerateResources(this->m_gameHandle, &OpenGLRenderer::resourceEntryCallback, &loadedResources);
+            m_bridge.enumerateEntities(this->m_gameHandle, &OpenGLRenderer::entityEntryCallback, &loadedEntities);
         }
         view->setLoadedResources(loadedResources);
+        view->setLoadedEntities(loadedEntities);
+        view->setInspectedComponents(this->buildInspectedComponents(view, loadedEntities));
     }
 }
