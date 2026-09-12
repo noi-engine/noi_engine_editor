@@ -22,6 +22,9 @@ namespace noi_engine_editor
         auto setScene2d(noi_engine_editor_bridge_game_handle handle, const QString& scenePath) const -> void;
         [[nodiscard]] auto loadScripts(noi_engine_editor_bridge_game_handle handle,
                                         const QString& scriptsLibraryPath) const -> bool;
+        auto enumerateResources(noi_engine_editor_bridge_game_handle handle,
+                                 noi_engine_editor_bridge_resource_entry_callback callback,
+                                 void* userData) const -> void;
 
     private:
         using init_gl_fn = void (*)(noi_engine_editor_bridge_gl_proc_loader);
@@ -32,6 +35,8 @@ namespace noi_engine_editor
         using set_scene_2d_fn = void (*)(noi_engine_editor_bridge_game_handle, const char*);
         using load_scripts_fn = int (*)(noi_engine_editor_bridge_game_handle, const char*);
         using engine_version_fn = const char* (*)();
+        using enumerate_resources_fn = void (*)(noi_engine_editor_bridge_game_handle,
+                                                  noi_engine_editor_bridge_resource_entry_callback, void*);
 
         QLibrary m_library;
         init_gl_fn m_initGl{nullptr};
@@ -42,5 +47,6 @@ namespace noi_engine_editor
         set_scene_2d_fn m_setScene2d{nullptr};
         load_scripts_fn m_loadScripts{nullptr};
         engine_version_fn m_engineVersion{nullptr};
+        enumerate_resources_fn m_enumerateResources{nullptr};
     };
 }

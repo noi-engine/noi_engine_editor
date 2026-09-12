@@ -148,6 +148,8 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/EditorToolbar.qml
         sources/features/editor/components/HierarchyItem.qml
         sources/features/editor/components/InspectorPanel.qml
+        sources/features/editor/components/LoadedResourceItem.qml
+        sources/features/editor/components/LoadedResourcesPanel.qml
         sources/features/editor/components/ProjectSettingsDialog.qml
         sources/features/editor/components/PropertyField.qml
         sources/features/editor/components/SceneHierarchyPanel.qml

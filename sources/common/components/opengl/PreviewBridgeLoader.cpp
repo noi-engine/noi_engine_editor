@@ -28,9 +28,11 @@ namespace noi_engine_editor
         m_setScene2d = reinterpret_cast<set_scene_2d_fn>(m_library.resolve("noi_engine_editor_bridge_set_scene_2d"));
         m_loadScripts = reinterpret_cast<load_scripts_fn>(m_library.resolve("noi_engine_editor_bridge_load_scripts"));
         m_engineVersion = reinterpret_cast<engine_version_fn>(m_library.resolve("noi_engine_editor_bridge_engine_version"));
+        m_enumerateResources = reinterpret_cast<enumerate_resources_fn>(
+            m_library.resolve("noi_engine_editor_bridge_enumerate_resources"));
 
         if (!m_initGl || !m_create || !m_destroy || !m_run || !m_onResize || !m_setScene2d || !m_loadScripts ||
-            !m_engineVersion)
+            !m_engineVersion || !m_enumerateResources)
         {
             qWarning() << "[PreviewBridgeLoader] Preview bridge" << bridgeLibraryPath <<
                 "is missing one or more required entry points";
@@ -88,5 +90,12 @@ namespace noi_engine_editor
                                            const QString& scriptsLibraryPath) const -> bool
     {
         return m_loadScripts(handle, scriptsLibraryPath.toUtf8().constData()) != 0;
+    }
+
+    auto PreviewBridgeLoader::enumerateResources(const noi_engine_editor_bridge_game_handle handle,
+                                                  const noi_engine_editor_bridge_resource_entry_callback callback,
+                                                  void* const userData) const -> void
+    {
+        m_enumerateResources(handle, callback, userData);
     }
 }

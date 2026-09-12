@@ -2,6 +2,7 @@
 
 #include <QQuickItem>
 #include <QQuickFramebufferObject>
+#include <QVariantList>
 
 namespace noi_engine_editor
 {
@@ -10,6 +11,7 @@ namespace noi_engine_editor
         Q_OBJECT
         QML_ELEMENT
         Q_PROPERTY(QString scenePath READ scenePath WRITE setScenePath NOTIFY scenePathChanged)
+        Q_PROPERTY(QVariantList loadedResources READ loadedResources NOTIFY loadedResourcesChanged)
         Q_PROPERTY(QString resourcesPath READ resourcesPath WRITE setResourcesPath NOTIFY resourcesPathChanged)
         Q_PROPERTY(QString scriptsLibraryPath READ scriptsLibraryPath WRITE setScriptsLibraryPath NOTIFY scriptsLibraryPathChanged)
         Q_PROPERTY(QString bridgeLibraryPath READ bridgeLibraryPath WRITE setBridgeLibraryPath NOTIFY bridgeLibraryPathChanged)
@@ -45,6 +47,11 @@ namespace noi_engine_editor
         int gameHeight() const;
         void setGameHeight(int height);
 
+        QVariantList loadedResources() const;
+        // Called only by OpenGLRenderer::synchronize(), the one safe rendezvous point
+        // between the render thread (which owns the game handle) and this GUI-thread item.
+        void setLoadedResources(const QVariantList& resources);
+
         [[nodiscard]] Renderer* createRenderer() const override;
 
     signals:
@@ -57,6 +64,7 @@ namespace noi_engine_editor
         void engineVersionChanged();
         void gameWidthChanged();
         void gameHeightChanged();
+        void loadedResourcesChanged();
 
     private:
         QString m_scenePath;
@@ -67,5 +75,6 @@ namespace noi_engine_editor
         int m_scriptsGeneration = 0;
         int m_gameWidth = 0;
         int m_gameHeight = 0;
+        QVariantList m_loadedResources;
     };
 }

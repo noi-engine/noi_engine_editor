@@ -90,6 +90,7 @@ CustomPage {
                 }
 
                 ViewportPanel {
+                    id: viewportPanel
                     SplitView.fillWidth: true
                     SplitView.minimumWidth: 400
                     scenePath: root.currentScenePath
@@ -115,6 +116,7 @@ CustomPage {
                         if (root.activeBottomPanel === "resources") return 1;
                         if (root.activeBottomPanel === "output") return 2;
                         if (root.activeBottomPanel === "logs") return 3;
+                        if (root.activeBottomPanel === "loadedResources") return 4;
                         return -1;
                     }
 
@@ -135,6 +137,11 @@ CustomPage {
 
                     EditorLogsPanel {
                         id: logsPanel
+                    }
+
+                    LoadedResourcesPanel {
+                        id: loadedResourcesPanel
+                        resources: viewportPanel.loadedResources
                     }
                 }
             }
@@ -180,6 +187,12 @@ CustomPage {
                     text: qsTr("Editor Logs")
                     isOpen: root.activeBottomPanel === "logs"
                     onClicked: root.activeBottomPanel = (root.activeBottomPanel === "logs") ? "" : "logs"
+                }
+
+                BottomTabButton {
+                    text: qsTr("Loaded Resources")
+                    isOpen: root.activeBottomPanel === "loadedResources"
+                    onClicked: root.activeBottomPanel = (root.activeBottomPanel === "loadedResources") ? "" : "loadedResources"
                 }
 
                 Item { Layout.fillWidth: true }

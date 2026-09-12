@@ -9,6 +9,8 @@ Item {
     property string scenePath: ""
     property var selectedEntity: null
 
+    readonly property alias loadedResources: openGLView.loadedResources
+
     property string activeTool: "move"
     property real cameraZoom: 1.0
 

@@ -7,9 +7,26 @@
 #include <stdexcept>
 #include <QDebug>
 #include <QQuickWindow>
+#include <QVariantMap>
 
 namespace noi_engine_editor
 {
+    namespace
+    {
+        auto resourceTypeName(const noi_engine_editor_bridge_resource_type type) -> QString
+        {
+            switch (type)
+            {
+                case NOI_ENGINE_EDITOR_BRIDGE_RESOURCE_MESH: return QStringLiteral("mesh");
+                case NOI_ENGINE_EDITOR_BRIDGE_RESOURCE_SCRIPT: return QStringLiteral("script");
+                case NOI_ENGINE_EDITOR_BRIDGE_RESOURCE_SHADER: return QStringLiteral("shader");
+                case NOI_ENGINE_EDITOR_BRIDGE_RESOURCE_TEXTURE: return QStringLiteral("texture");
+                case NOI_ENGINE_EDITOR_BRIDGE_RESOURCE_MATERIAL: return QStringLiteral("material");
+            }
+            return QStringLiteral("unknown");
+        }
+    }
+
     static auto getSceneResourceDotPath(const QString& resourcesDirPath, const QString& scenePath) -> QString
     {
         const auto cleanFilePath = QFileInfo(scenePath).canonicalFilePath();
@@ -117,9 +134,21 @@ namespace noi_engine_editor
         return new QOpenGLFramebufferObject(size, format);
     }
 
+    void OpenGLRenderer::resourceEntryCallback(void* userData, const noi_engine_editor_bridge_resource_type type,
+                                                const char* label, const uint32_t id, const uint32_t generation)
+    {
+        auto* list = static_cast<QVariantList*>(userData);
+        list->append(QVariantMap{
+            {QStringLiteral("type"), resourceTypeName(type)},
+            {QStringLiteral("label"), QString::fromUtf8(label)},
+            {QStringLiteral("id"), id},
+            {QStringLiteral("generation"), generation},
+        });
+    }
+
     void OpenGLRenderer::synchronize(QQuickFramebufferObject* item)
     {
-        const auto* view = static_cast<OpenGLView*>(item);
+        auto* view = static_cast<OpenGLView*>(item);
         const auto dpr = view->window() ? view->window()->devicePixelRatio() : 1.0;
         const auto realWidth = static_cast<int>(view->width() * dpr);
         const auto realHeight = static_cast<int>(view->height() * dpr);
@@ -163,5 +192,12 @@ namespace noi_engine_editor
                 m_bridge.onResize(this->m_gameHandle, m_width, m_height);
             }
         }
+
+        QVariantList loadedResources;
+        if (this->m_gameHandle)
+        {
+            m_bridge.enumerateResources(this->m_gameHandle, &OpenGLRenderer::resourceEntryCallback, &loadedResources);
+        }
+        view->setLoadedResources(loadedResources);
     }
 }

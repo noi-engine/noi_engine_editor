@@ -151,6 +151,22 @@ namespace noi_engine_editor
         update();
     }
 
+    QVariantList OpenGLView::loadedResources() const
+    {
+        return this->m_loadedResources;
+    }
+
+    void OpenGLView::setLoadedResources(const QVariantList& resources)
+    {
+        if (m_loadedResources == resources)
+        {
+            return;
+        }
+
+        m_loadedResources = resources;
+        Q_EMIT loadedResourcesChanged();
+    }
+
     QQuickFramebufferObject::Renderer* OpenGLView::createRenderer() const
     {
         return new OpenGLRenderer(this->m_gameWidth, this->m_gameHeight, this->resourcesPath(), this->scriptsLibraryPath(),

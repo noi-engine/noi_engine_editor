@@ -2,6 +2,7 @@
 
 #include <QString>
 #include <QQuickFramebufferObject>
+#include <QVariantList>
 
 #include "PreviewBridgeLoader.hpp"
 
@@ -25,6 +26,8 @@ namespace noi_engine_editor
 
     private:
         auto ensureBridgeLoaded() -> void;
+        static auto resourceEntryCallback(void* userData, noi_engine_editor_bridge_resource_type type,
+                                           const char* label, uint32_t id, uint32_t generation) -> void;
 
         int m_width{};
         int m_height{};
