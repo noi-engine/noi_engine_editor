@@ -9,8 +9,20 @@ Rectangle {
 
     property var entity: null
     property var componentsData: []
+    property var loadedResources: []
 
     signal propertyEdited(string componentType, string propertyName, string propertyType, var value)
+
+    function resourceLabelsFor(resourceType) {
+        const items = root.loadedResources || [];
+        const labels = [""];
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type === resourceType) {
+                labels.push(items[i].label);
+            }
+        }
+        return labels;
+    }
 
     color: Theme.bgSecondary
 
@@ -154,6 +166,72 @@ Rectangle {
                                         onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec3",
                                             [propRow.modelData.value[0], propRow.modelData.value[1], parseFloat(v)])
                                     }
+                                }
+
+                                RowLayout {
+                                    visible: propRow.modelData.type === "vec4"
+                                    Layout.fillWidth: true
+                                    spacing: 6
+
+                                    Rectangle {
+                                        Layout.preferredWidth: 22
+                                        Layout.preferredHeight: 22
+                                        radius: 5
+                                        border.color: Theme.borderColor
+                                        border.width: 1
+                                        color: Qt.rgba(propRow.modelData.value[0], propRow.modelData.value[1],
+                                                        propRow.modelData.value[2], propRow.modelData.value[3])
+                                    }
+
+                                    PropertyField {
+                                        Layout.fillWidth: true
+                                        label: "R"
+                                        accentColor: "#E05B5B"
+                                        readOnly: propRow.modelData.readOnly
+                                        value: Number(propRow.modelData.value[0]).toFixed(2)
+                                        onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
+                                            [parseFloat(v), propRow.modelData.value[1], propRow.modelData.value[2], propRow.modelData.value[3]])
+                                    }
+                                    PropertyField {
+                                        Layout.fillWidth: true
+                                        label: "G"
+                                        accentColor: "#35C98A"
+                                        readOnly: propRow.modelData.readOnly
+                                        value: Number(propRow.modelData.value[1]).toFixed(2)
+                                        onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
+                                            [propRow.modelData.value[0], parseFloat(v), propRow.modelData.value[2], propRow.modelData.value[3]])
+                                    }
+                                    PropertyField {
+                                        Layout.fillWidth: true
+                                        label: "B"
+                                        accentColor: "#4B8CE0"
+                                        readOnly: propRow.modelData.readOnly
+                                        value: Number(propRow.modelData.value[2]).toFixed(2)
+                                        onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
+                                            [propRow.modelData.value[0], propRow.modelData.value[1], parseFloat(v), propRow.modelData.value[3]])
+                                    }
+                                    PropertyField {
+                                        Layout.fillWidth: true
+                                        label: "A"
+                                        accentColor: Theme.lightGrey
+                                        readOnly: propRow.modelData.readOnly
+                                        value: Number(propRow.modelData.value[3]).toFixed(2)
+                                        onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
+                                            [propRow.modelData.value[0], propRow.modelData.value[1], propRow.modelData.value[2], parseFloat(v)])
+                                    }
+                                }
+
+                                ComboBox {
+                                    visible: propRow.modelData.type === "resourceRef"
+                                    Layout.fillWidth: true
+                                    enabled: !propRow.modelData.readOnly
+
+                                    model: root.resourceLabelsFor(propRow.modelData.resourceType)
+
+                                    Component.onCompleted: currentIndex = find(propRow.modelData.value)
+
+                                    onActivated: (index) => root.propertyEdited(componentSection.componentType,
+                                        propRow.modelData.name, "resourceRef", textAt(index))
                                 }
 
                                 PropertyField {

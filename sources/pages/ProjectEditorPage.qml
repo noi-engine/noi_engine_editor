@@ -106,6 +106,7 @@ CustomPage {
                     SplitView.minimumWidth: 260
                     entity: root.selectedEntity
                     componentsData: viewportPanel.inspectedComponents
+                    loadedResources: viewportPanel.loadedResources
 
                     onPropertyEdited: (componentType, propertyName, propertyType, value) => {
                         viewportPanel.setComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,

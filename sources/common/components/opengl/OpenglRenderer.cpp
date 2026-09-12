@@ -168,6 +168,7 @@ namespace noi_engine_editor
         auto* list = static_cast<QVariantList*>(userData);
         QVariant qvalue;
         QString typeName;
+        QString resourceType;
 
         switch (value.type)
         {
@@ -179,6 +180,10 @@ namespace noi_engine_editor
                 typeName = QStringLiteral("vec3");
                 qvalue = QVariantList{value.number[0], value.number[1], value.number[2]};
                 break;
+            case NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_VEC4:
+                typeName = QStringLiteral("vec4");
+                qvalue = QVariantList{value.number[0], value.number[1], value.number[2], value.number[3]};
+                break;
             case NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_STRING:
                 typeName = QStringLiteral("string");
                 qvalue = QString::fromUtf8(value.text ? value.text : "");
@@ -187,6 +192,11 @@ namespace noi_engine_editor
                 typeName = QStringLiteral("bool");
                 qvalue = static_cast<bool>(value.flag);
                 break;
+            case NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_RESOURCE_REF:
+                typeName = QStringLiteral("resourceRef");
+                qvalue = QString::fromUtf8(value.text ? value.text : "");
+                resourceType = resourceTypeName(value.resource_type);
+                break;
         }
 
         list->append(QVariantMap{
@@ -194,6 +204,7 @@ namespace noi_engine_editor
             {QStringLiteral("type"), typeName},
             {QStringLiteral("value"), qvalue},
             {QStringLiteral("readOnly"), readOnly != 0},
+            {QStringLiteral("resourceType"), resourceType},
         });
     }
 
@@ -222,9 +233,20 @@ namespace noi_engine_editor
                 value.number[1] = components.value(1).toFloat();
                 value.number[2] = components.value(2).toFloat();
             }
-            else if (edit.propertyType == QStringLiteral("string"))
+            else if (edit.propertyType == QStringLiteral("vec4"))
             {
-                value.type = NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_STRING;
+                const auto components = edit.value.toList();
+                value.type = NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_VEC4;
+                value.number[0] = components.value(0).toFloat();
+                value.number[1] = components.value(1).toFloat();
+                value.number[2] = components.value(2).toFloat();
+                value.number[3] = components.value(3).toFloat();
+            }
+            else if (edit.propertyType == QStringLiteral("string") || edit.propertyType == QStringLiteral("resourceRef"))
+            {
+                value.type = edit.propertyType == QStringLiteral("string")
+                    ? NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_STRING
+                    : NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_RESOURCE_REF;
                 const auto text = edit.value.toString().toUtf8();
                 value.text = text.constData();
                 if (!m_bridge.setComponentProperty(this->m_gameHandle, edit.entityId, edit.entityGeneration,
