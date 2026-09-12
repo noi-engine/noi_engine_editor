@@ -9,6 +9,7 @@ Item {
     signal sceneOpenRequested(string filePath)
 
     readonly property string rawRootFolder: CurrentProjectManager.resourcesPath()
+    readonly property bool scenesAvailable: !ProjectBuilder.isCompiling && !ProjectBuilder.lastCompileFailed
     property string pendingScenePath: ""
     property string pendingSceneName: ""
     property real itemScale: 1.0
@@ -113,6 +114,14 @@ Item {
                         font.bold: true
                     }
 
+                    Text {
+                        visible: !rootItem.scenesAvailable
+                        text: ProjectBuilder.isCompiling ? qsTr("Compiling…") : qsTr("Build failed — fix errors to open scenes")
+                        color: ProjectBuilder.isCompiling ? Theme.darkGrey : "#ff6b6b"
+                        font.pixelSize: 10
+                        font.italic: true
+                    }
+
                     Item { Layout.fillWidth: true }
 
                     MuiIcon {
@@ -165,6 +174,7 @@ Item {
                 delegate: Item {
                     width: gridView.cellWidth
                     height: gridView.cellHeight
+                    opacity: rootItem.scenesAvailable ? 1.0 : 0.45
 
                     Rectangle {
                         anchors.fill: parent
@@ -217,6 +227,7 @@ Item {
                             id: itemArea
                             anchors.fill: parent
                             hoverEnabled: true
+                            enabled: rootItem.scenesAvailable
                             cursorShape: Qt.PointingHandCursor
                             onDoubleClicked: {
                                 rootItem.pendingScenePath = model.filePath;

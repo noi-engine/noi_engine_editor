@@ -13,9 +13,10 @@ CustomPage {
     property string activeBottomPanel: ""
     property string currentScenePath: ""
     property string pendingScenePath: ""
+    property bool compileFailureDismissed: false
 
     function openScene(filePath) {
-        if (ProjectBuilder.isCompiling) {
+        if (ProjectBuilder.isCompiling || ProjectBuilder.lastCompileFailed) {
             root.pendingScenePath = filePath;
         } else {
             root.currentScenePath = filePath;
@@ -38,11 +39,16 @@ CustomPage {
         function onIsCompilingChanged() {
             if (ProjectBuilder.isCompiling) {
                 root.activeBottomPanel = "output";
+                root.compileFailureDismissed = false;
             }
         }
         function onCompileFinished(success) {
             if (root.pendingScenePath !== "") {
-                root.currentScenePath = root.pendingScenePath;
+                if (success) {
+                    root.currentScenePath = root.pendingScenePath;
+                } else {
+                    root.activeBottomPanel = "output";
+                }
                 root.pendingScenePath = "";
             }
         }
@@ -177,6 +183,90 @@ CustomPage {
                 }
 
                 Item { Layout.fillWidth: true }
+            }
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        visible: ProjectBuilder.isCompiling && !ProjectBuilder.hasCompiledOnce
+        color: Qt.rgba(0, 0, 0, 0.75)
+
+        ColumnLayout {
+            anchors.centerIn: parent
+            spacing: 16
+
+            BusyIndicator {
+                Layout.alignment: Qt.AlignHCenter
+                running: true
+            }
+
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                text: qsTr("Building project…")
+                color: Theme.white
+                font.pixelSize: 15
+                font.bold: true
+            }
+
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                text: qsTr("This only happens once per project.")
+                color: Theme.darkGrey
+                font.pixelSize: 12
+            }
+        }
+    }
+
+    Rectangle {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.topMargin: 64
+        anchors.leftMargin: 16
+        anchors.rightMargin: 16
+        height: 44
+        radius: 6
+        color: "#3a1414"
+        border.color: "#8a2b2b"
+        visible: ProjectBuilder.lastCompileFailed && !ProjectBuilder.isCompiling && !root.compileFailureDismissed
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 12
+            anchors.rightMargin: 12
+            spacing: 10
+
+            MuiIcon {
+                name: "error"
+                font.pixelSize: 18
+                color: "#ff6b6b"
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("Project failed to compile — fix the errors, then recompile. See the Output panel for details.")
+                color: Theme.white
+                font.pixelSize: 12
+                elide: Text.ElideRight
+            }
+
+            AppButton {
+                text: qsTr("View Output")
+                onClicked: root.activeBottomPanel = "output"
+            }
+
+            MuiIcon {
+                name: "close"
+                font.pixelSize: 16
+                color: Theme.grey
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -4
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.compileFailureDismissed = true
+                }
             }
         }
     }

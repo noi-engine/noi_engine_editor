@@ -24,15 +24,21 @@ namespace noi_engine_editor
         OpenGLRenderer& operator=(const OpenGLRenderer&) = delete;
 
     private:
+        auto ensureBridgeLoaded() -> void;
+
         int m_width{};
         int m_height{};
+        int m_gameWidth{};
+        int m_gameHeight{};
         QString m_currentPath{};
         QString m_resourcesPath{};
         QString m_scriptsLibraryPath{};
+        QString m_bridgeLibraryPath{};
         QString m_engineVersion{};
         int m_scriptsGeneration{-1};
         int m_lastWarnedScriptsGeneration{-2};
         bool m_scriptsLoaded{false};
+        bool m_bridgeLoadWarned{false};
         PreviewBridgeLoader m_bridge{};
         noi_engine_editor_bridge_game_handle m_gameHandle{nullptr};
     };

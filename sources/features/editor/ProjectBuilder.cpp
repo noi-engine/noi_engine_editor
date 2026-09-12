@@ -21,6 +21,16 @@ auto noi_engine_editor::ProjectBuilder::compileGeneration() const -> int
     return m_compileGeneration;
 }
 
+auto noi_engine_editor::ProjectBuilder::lastCompileFailed() const -> bool
+{
+    return m_lastCompileFailed;
+}
+
+auto noi_engine_editor::ProjectBuilder::hasCompiledOnce() const -> bool
+{
+    return m_hasCompiledOnce;
+}
+
 auto noi_engine_editor::ProjectBuilder::setCompiling(const bool compiling) -> void
 {
     if (m_isCompiling == compiling)
@@ -30,6 +40,21 @@ auto noi_engine_editor::ProjectBuilder::setCompiling(const bool compiling) -> vo
 
     m_isCompiling = compiling;
     emit isCompilingChanged();
+}
+
+auto noi_engine_editor::ProjectBuilder::setLastCompileFailed(const bool failed) -> void
+{
+    if (m_lastCompileFailed != failed)
+    {
+        m_lastCompileFailed = failed;
+        emit lastCompileFailedChanged();
+    }
+
+    if (!m_hasCompiledOnce)
+    {
+        m_hasCompiledOnce = true;
+        emit hasCompiledOnceChanged();
+    }
 }
 
 auto noi_engine_editor::ProjectBuilder::appendOutput(const QString& text) -> void
@@ -88,6 +113,7 @@ auto noi_engine_editor::ProjectBuilder::compile(const QString& projectPath) -> v
                 {
                     appendOutput(QStringLiteral("\nConfigure failed.\n"));
                     setCompiling(false);
+                    setLastCompileFailed(true);
                     emit compileFinished(false);
                     return;
                 }
@@ -121,6 +147,7 @@ auto noi_engine_editor::ProjectBuilder::compile(const QString& projectPath) -> v
                             }
 
                             setCompiling(false);
+                            setLastCompileFailed(!success);
                             emit compileFinished(success);
                         });
 

@@ -27,22 +27,41 @@ namespace noi_engine_editor
     OpenGLRenderer::OpenGLRenderer(const int gameWidth, const int gameHeight, const QString& resourcesPath,
                                    const QString& scriptsLibraryPath, const QString& bridgeLibraryPath,
                                    const QString& engineVersion) :
+        m_gameWidth(gameWidth),
+        m_gameHeight(gameHeight),
         m_resourcesPath(
             resourcesPath),
         m_scriptsLibraryPath(scriptsLibraryPath),
+        m_bridgeLibraryPath(bridgeLibraryPath),
         m_engineVersion(engineVersion)
     {
-        if (!m_bridge.load(bridgeLibraryPath))
+        this->ensureBridgeLoaded();
+    }
+
+    void OpenGLRenderer::ensureBridgeLoaded()
+    {
+        if (this->m_gameHandle)
         {
-            qWarning() << "[OpenGLRenderer] No usable noi_engine preview bridge for engine version" << engineVersion
-                << "- preview disabled for this project.";
             return;
         }
 
-        if (const auto loadedVersion = m_bridge.engineVersion(); loadedVersion != engineVersion)
+        if (!m_bridge.load(this->m_bridgeLibraryPath))
         {
-            qWarning() << "[OpenGLRenderer] Preview bridge at" << bridgeLibraryPath << "reports engine version"
-                << loadedVersion << "but the project declares" << engineVersion << "- the download may be corrupted.";
+            if (!m_bridgeLoadWarned)
+            {
+                m_bridgeLoadWarned = true;
+                qWarning() << "[OpenGLRenderer] No usable noi_engine preview bridge for engine version" <<
+                    this->m_engineVersion <<
+                    "yet - will keep retrying (the project may still be building).";
+            }
+            return;
+        }
+
+        if (const auto loadedVersion = m_bridge.engineVersion(); loadedVersion != this->m_engineVersion)
+        {
+            qWarning() << "[OpenGLRenderer] Preview bridge at" << this->m_bridgeLibraryPath << "reports engine version"
+                << loadedVersion << "but the project declares" << this->m_engineVersion <<
+                "- the download may be corrupted.";
         }
 
         m_bridge.initGl(
@@ -54,12 +73,17 @@ namespace noi_engine_editor
                 return reinterpret_cast<void*>(currentCtx->getProcAddress(name));
             });
 
-        this->m_gameHandle = m_bridge.create(gameWidth, gameHeight, this->m_resourcesPath);
+        this->m_gameHandle = m_bridge.create(this->m_gameWidth, this->m_gameHeight, this->m_resourcesPath);
     }
 
     OpenGLRenderer::~OpenGLRenderer()
     {
-        if (m_gameHandle && m_bridge.isLoaded())
+        // Qt Quick also tears renderer nodes down via QQuickWindowPrivate::cleanupNodesOnShutdown()
+        // (both on window/app close and on plain item removal, e.g. navigating away from the editor
+        // page), and at that point there is no current OpenGL context. The bridge/engine release GPU
+        // resources (buffers, shaders, textures) on destruction, which segfaults without a live context,
+        // so skip it in that case - the process/window teardown reclaims the GPU resources anyway.
+        if (m_gameHandle && m_bridge.isLoaded() && QOpenGLContext::currentContext())
         {
             m_bridge.destroy(m_gameHandle);
         }
@@ -67,6 +91,11 @@ namespace noi_engine_editor
 
     void OpenGLRenderer::render()
     {
+        if (!this->m_gameHandle)
+        {
+            this->ensureBridgeLoaded();
+        }
+
         if (this->m_gameHandle)
         {
             if (auto* f = QOpenGLContext::currentContext()->functions())
