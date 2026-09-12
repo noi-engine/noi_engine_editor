@@ -19,6 +19,14 @@ namespace noi_engine_editor
         QVariant value;
     };
 
+    // Same rationale as PendingPropertyEdit: queued until synchronize() applies it.
+    struct PendingComponentAdd
+    {
+        quint32 entityId{};
+        quint32 entityGeneration{};
+        QString componentType;
+    };
+
     class OpenGLView : public QQuickFramebufferObject
     {
         Q_OBJECT
@@ -101,6 +109,11 @@ namespace noi_engine_editor
         // runs with the GUI thread blocked - the same contract setLoadedResources() relies on.
         QVector<PendingPropertyEdit> takePendingPropertyEdits();
 
+        // Called from QML to add a default-constructed component to an entity. Queued and
+        // drained the same way as setComponentProperty.
+        Q_INVOKABLE void addComponent(quint32 entityId, quint32 entityGeneration, const QString& componentType);
+        QVector<PendingComponentAdd> takePendingComponentAdds();
+
         [[nodiscard]] Renderer* createRenderer() const override;
 
     signals:
@@ -134,5 +147,6 @@ namespace noi_engine_editor
         quint32 m_inspectedEntityGeneration = 0;
         QVariantList m_inspectedComponents;
         QVector<PendingPropertyEdit> m_pendingPropertyEdits;
+        QVector<PendingComponentAdd> m_pendingComponentAdds;
     };
 }

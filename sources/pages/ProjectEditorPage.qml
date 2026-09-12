@@ -112,6 +112,10 @@ CustomPage {
                         viewportPanel.setComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
                             componentType, propertyName, propertyType, value)
                     }
+
+                    onComponentAddRequested: (componentType) => {
+                        viewportPanel.addComponent(root.selectedEntity.id, root.selectedEntity.generation, componentType)
+                    }
                 }
             }
 

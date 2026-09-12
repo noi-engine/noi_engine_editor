@@ -18,7 +18,7 @@ RowLayout {
 
     Rectangle {
         Layout.preferredWidth: 20
-        Layout.preferredHeight: 26
+        Layout.preferredHeight: 30
         radius: 6
         color: root.accentColor
 
@@ -33,7 +33,12 @@ RowLayout {
 
     TextField {
         Layout.fillWidth: true
-        Layout.preferredHeight: 26
+        Layout.preferredHeight: 30
+
+        topPadding: 0
+        bottomPadding: 0
+        leftPadding: 8
+        rightPadding: 8
 
         text: root.value
         readOnly: root.readOnly
@@ -41,6 +46,7 @@ RowLayout {
         font.pixelSize: 12
         color: Theme.white
         selectByMouse: true
+        verticalAlignment: TextInput.AlignVCenter
 
         background: Rectangle {
             radius: 6

@@ -20,6 +20,10 @@ Item {
         openGLView.setComponentProperty(entityId, entityGeneration, componentType, propertyName, propertyType, value)
     }
 
+    function addComponent(entityId, entityGeneration, componentType) {
+        openGLView.addComponent(entityId, entityGeneration, componentType)
+    }
+
     property string activeTool: "move"
     property real cameraZoom: 1.0
 

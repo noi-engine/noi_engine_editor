@@ -36,10 +36,12 @@ namespace noi_engine_editor
             m_library.resolve("noi_engine_editor_bridge_enumerate_component_properties"));
         m_setComponentProperty = reinterpret_cast<set_component_property_fn>(
             m_library.resolve("noi_engine_editor_bridge_set_component_property"));
+        m_addComponent = reinterpret_cast<add_component_fn>(
+            m_library.resolve("noi_engine_editor_bridge_add_component"));
 
         if (!m_initGl || !m_create || !m_destroy || !m_run || !m_onResize || !m_setScene2d || !m_loadScripts ||
             !m_engineVersion || !m_enumerateResources || !m_enumerateEntities || !m_enumerateComponentProperties ||
-            !m_setComponentProperty)
+            !m_setComponentProperty || !m_addComponent)
         {
             qWarning() << "[PreviewBridgeLoader] Preview bridge" << bridgeLibraryPath <<
                 "is missing one or more required entry points";
@@ -127,5 +129,12 @@ namespace noi_engine_editor
                                                     const noi_engine_editor_bridge_property_value value) const -> bool
     {
         return m_setComponentProperty(handle, entityId, entityGeneration, componentType, propertyName, value) != 0;
+    }
+
+    auto PreviewBridgeLoader::addComponent(const noi_engine_editor_bridge_game_handle handle, const uint32_t entityId,
+                                            const uint32_t entityGeneration,
+                                            const char* const componentType) const -> bool
+    {
+        return m_addComponent(handle, entityId, entityGeneration, componentType) != 0;
     }
 }

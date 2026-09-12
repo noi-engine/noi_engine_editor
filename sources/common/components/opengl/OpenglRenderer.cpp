@@ -276,6 +276,24 @@ namespace noi_engine_editor
         }
     }
 
+    void OpenGLRenderer::applyPendingComponentAdds(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        const auto adds = view->takePendingComponentAdds();
+        for (const auto& add : adds)
+        {
+            if (!m_bridge.addComponent(this->m_gameHandle, add.entityId, add.entityGeneration,
+                                        add.componentType.toUtf8().constData()))
+            {
+                qWarning() << "[OpenGLRenderer] Failed to add component" << add.componentType;
+            }
+        }
+    }
+
     QVariantList OpenGLRenderer::buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities)
     {
         QVariantList inspectedComponents;
@@ -362,6 +380,7 @@ namespace noi_engine_editor
             }
         }
 
+        this->applyPendingComponentAdds(view);
         this->applyPendingPropertyEdits(view);
 
         QVariantList loadedResources;

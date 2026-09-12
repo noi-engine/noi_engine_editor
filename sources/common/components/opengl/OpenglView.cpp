@@ -270,6 +270,21 @@ namespace noi_engine_editor
         return edits;
     }
 
+    void OpenGLView::addComponent(const quint32 entityId, const quint32 entityGeneration,
+                                   const QString& componentType)
+    {
+        m_pendingComponentAdds.append(PendingComponentAdd{entityId, entityGeneration, componentType});
+
+        update(); // there's no continuous render loop - nudge one so synchronize() applies this promptly
+    }
+
+    QVector<PendingComponentAdd> OpenGLView::takePendingComponentAdds()
+    {
+        auto adds = std::move(m_pendingComponentAdds);
+        m_pendingComponentAdds.clear();
+        return adds;
+    }
+
     QQuickFramebufferObject::Renderer* OpenGLView::createRenderer() const
     {
         return new OpenGLRenderer(this->m_gameWidth, this->m_gameHeight, this->resourcesPath(), this->scriptsLibraryPath(),

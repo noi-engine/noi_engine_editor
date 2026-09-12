@@ -35,6 +35,7 @@ namespace noi_engine_editor
         static auto propertyEntryCallback(void* userData, const char* propertyName,
                                            noi_engine_editor_bridge_property_value value, int readOnly) -> void;
         auto applyPendingPropertyEdits(OpenGLView* view) -> void;
+        auto applyPendingComponentAdds(OpenGLView* view) -> void;
         auto buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities) -> QVariantList;
 
         int m_width{};
