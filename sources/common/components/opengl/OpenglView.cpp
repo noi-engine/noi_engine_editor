@@ -285,6 +285,93 @@ namespace noi_engine_editor
         return adds;
     }
 
+    bool OpenGLView::hasInspectedMaterial() const
+    {
+        return this->m_hasInspectedMaterial;
+    }
+
+    void OpenGLView::setHasInspectedMaterial(const bool hasMaterial)
+    {
+        if (m_hasInspectedMaterial == hasMaterial)
+        {
+            return;
+        }
+
+        m_hasInspectedMaterial = hasMaterial;
+        Q_EMIT inspectedMaterialChanged();
+
+        update();
+    }
+
+    quint32 OpenGLView::inspectedMaterialId() const
+    {
+        return this->m_inspectedMaterialId;
+    }
+
+    void OpenGLView::setInspectedMaterialId(const quint32 materialId)
+    {
+        if (m_inspectedMaterialId == materialId)
+        {
+            return;
+        }
+
+        m_inspectedMaterialId = materialId;
+        Q_EMIT inspectedMaterialChanged();
+
+        update();
+    }
+
+    quint32 OpenGLView::inspectedMaterialGeneration() const
+    {
+        return this->m_inspectedMaterialGeneration;
+    }
+
+    void OpenGLView::setInspectedMaterialGeneration(const quint32 materialGeneration)
+    {
+        if (m_inspectedMaterialGeneration == materialGeneration)
+        {
+            return;
+        }
+
+        m_inspectedMaterialGeneration = materialGeneration;
+        Q_EMIT inspectedMaterialChanged();
+
+        update();
+    }
+
+    QVariantList OpenGLView::inspectedMaterialProperties() const
+    {
+        return this->m_inspectedMaterialProperties;
+    }
+
+    void OpenGLView::setInspectedMaterialProperties(const QVariantList& properties)
+    {
+        if (m_inspectedMaterialProperties == properties)
+        {
+            return;
+        }
+
+        m_inspectedMaterialProperties = properties;
+        Q_EMIT inspectedMaterialPropertiesChanged();
+    }
+
+    void OpenGLView::setMaterialProperty(const quint32 materialId, const quint32 materialGeneration,
+                                          const QString& propertyName, const QString& propertyType,
+                                          const QVariant& value)
+    {
+        m_pendingMaterialPropertyEdits.append(PendingMaterialPropertyEdit{
+            materialId, materialGeneration, propertyName, propertyType, value});
+
+        update(); // there's no continuous render loop - nudge one so synchronize() applies this promptly
+    }
+
+    QVector<PendingMaterialPropertyEdit> OpenGLView::takePendingMaterialPropertyEdits()
+    {
+        auto edits = std::move(m_pendingMaterialPropertyEdits);
+        m_pendingMaterialPropertyEdits.clear();
+        return edits;
+    }
+
     QQuickFramebufferObject::Renderer* OpenGLView::createRenderer() const
     {
         return new OpenGLRenderer(this->m_gameWidth, this->m_gameHeight, this->resourcesPath(), this->scriptsLibraryPath(),

@@ -36,7 +36,9 @@ namespace noi_engine_editor
                                            noi_engine_editor_bridge_property_value value, int readOnly) -> void;
         auto applyPendingPropertyEdits(OpenGLView* view) -> void;
         auto applyPendingComponentAdds(OpenGLView* view) -> void;
+        auto applyPendingMaterialPropertyEdits(OpenGLView* view) -> void;
         auto buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities) -> QVariantList;
+        auto buildInspectedMaterialProperties(OpenGLView* view) -> QVariantList;
 
         int m_width{};
         int m_height{};

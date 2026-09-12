@@ -10,6 +10,8 @@ Rectangle {
     property var entity: null
     property var componentsData: []
     property var loadedResources: []
+    property var material: null
+    property var materialProperties: []
 
     signal propertyEdited(string componentType, string propertyName, string propertyType, var value)
     signal componentAddRequested(string componentType)
@@ -18,6 +20,24 @@ Rectangle {
         "transform", "camera_2d", "camera_3d", "orbit_camera", "render_layer",
         "name_component", "mesh_renderer", "mesh_renderer_properties", "script_component"
     ]
+
+    readonly property bool hasSelection: root.entity !== null || root.material !== null
+
+    // Material mode reuses the exact same "sections of properties" rendering as entity mode
+    // by wrapping its flat property list as a single synthetic "material" section.
+    readonly property var effectiveComponentsData: root.material
+        ? [{"type": "material", "properties": root.materialProperties}]
+        : root.componentsData
+
+    readonly property string headerTitle: root.material
+        ? (root.material.label !== "" ? root.material.label : ("Material #" + root.material.id))
+        : (root.entity ? (root.entity.name !== "" ? root.entity.name : ("Entity #" + root.entity.id)) : "")
+
+    readonly property string headerSubtitle: root.material
+        ? qsTr("#%1 / gen %2").arg(root.material.id).arg(root.material.generation)
+        : (root.entity ? qsTr("#%1 / gen %2").arg(root.entity.id).arg(root.entity.generation) : "")
+
+    readonly property string headerIcon: root.material ? "palette" : "category"
 
     function resourceLabelsFor(resourceType) {
         const items = root.loadedResources || [];
@@ -45,18 +65,18 @@ Rectangle {
     }
 
     EmptyState {
-        visible: !root.entity
+        visible: !root.hasSelection
 
         anchors.centerIn: parent
         width: parent.width - 24
 
         icon: "ads_click"
         title: qsTr("No Selection")
-        description: qsTr("Select an entity in the hierarchy to inspect its properties.")
+        description: qsTr("Select an entity in the hierarchy, or a material in Loaded Resources, to inspect its properties.")
     }
 
     Flickable {
-        visible: root.entity !== null
+        visible: root.hasSelection
 
         anchors.fill: parent
         anchors.margins: 14
@@ -79,7 +99,7 @@ Rectangle {
                 spacing: 10
 
                 IconBadge {
-                    icon: "category"
+                    icon: root.headerIcon
                 }
 
                 ColumnLayout {
@@ -88,7 +108,7 @@ Rectangle {
 
                     Text {
                         Layout.fillWidth: true
-                        text: root.entity ? (root.entity.name !== "" ? root.entity.name : ("Entity #" + root.entity.id)) : ""
+                        text: root.headerTitle
                         font.pixelSize: 14
                         font.weight: Font.DemiBold
                         color: Theme.white
@@ -96,7 +116,7 @@ Rectangle {
                     }
 
                     Text {
-                        text: root.entity ? qsTr("#%1 / gen %2").arg(root.entity.id).arg(root.entity.generation) : ""
+                        text: root.headerSubtitle
                         font.pixelSize: 11
                         color: Theme.grey
                     }
@@ -104,7 +124,7 @@ Rectangle {
             }
 
             Repeater {
-                model: root.componentsData
+                model: root.effectiveComponentsData
 
                 delegate: Rectangle {
                     id: componentSection

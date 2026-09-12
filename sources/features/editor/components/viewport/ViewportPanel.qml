@@ -16,12 +16,21 @@ Item {
     property alias inspectedEntityId: openGLView.inspectedEntityId
     property alias inspectedEntityGeneration: openGLView.inspectedEntityGeneration
 
+    readonly property alias inspectedMaterialProperties: openGLView.inspectedMaterialProperties
+    property alias hasInspectedMaterial: openGLView.hasInspectedMaterial
+    property alias inspectedMaterialId: openGLView.inspectedMaterialId
+    property alias inspectedMaterialGeneration: openGLView.inspectedMaterialGeneration
+
     function setComponentProperty(entityId, entityGeneration, componentType, propertyName, propertyType, value) {
         openGLView.setComponentProperty(entityId, entityGeneration, componentType, propertyName, propertyType, value)
     }
 
     function addComponent(entityId, entityGeneration, componentType) {
         openGLView.addComponent(entityId, entityGeneration, componentType)
+    }
+
+    function setMaterialProperty(materialId, materialGeneration, propertyName, propertyType, value) {
+        openGLView.setMaterialProperty(materialId, materialGeneration, propertyName, propertyType, value)
     }
 
     property string activeTool: "move"

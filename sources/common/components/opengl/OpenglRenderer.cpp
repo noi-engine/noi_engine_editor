@@ -294,6 +294,72 @@ namespace noi_engine_editor
         }
     }
 
+    void OpenGLRenderer::applyPendingMaterialPropertyEdits(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        const auto edits = view->takePendingMaterialPropertyEdits();
+        for (const auto& edit : edits)
+        {
+            noi_engine_editor_bridge_property_value value{};
+
+            if (edit.propertyType == QStringLiteral("float"))
+            {
+                value.type = NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_FLOAT;
+                value.number[0] = edit.value.toFloat();
+            }
+            else if (edit.propertyType == QStringLiteral("vec4"))
+            {
+                const auto components = edit.value.toList();
+                value.type = NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_VEC4;
+                value.number[0] = components.value(0).toFloat();
+                value.number[1] = components.value(1).toFloat();
+                value.number[2] = components.value(2).toFloat();
+                value.number[3] = components.value(3).toFloat();
+            }
+            else if (edit.propertyType == QStringLiteral("resourceRef"))
+            {
+                value.type = NOI_ENGINE_EDITOR_BRIDGE_PROPERTY_RESOURCE_REF;
+                const auto text = edit.value.toString().toUtf8();
+                value.text = text.constData();
+                if (!m_bridge.setMaterialProperty(this->m_gameHandle, edit.materialId, edit.materialGeneration,
+                                                   edit.propertyName.toUtf8().constData(), value))
+                {
+                    qWarning() << "[OpenGLRenderer] Failed to set material property" << edit.propertyName;
+                }
+                continue; // `text` (the QByteArray) must outlive the call; handled inline above
+            }
+            else
+            {
+                continue;
+            }
+
+            if (!m_bridge.setMaterialProperty(this->m_gameHandle, edit.materialId, edit.materialGeneration,
+                                               edit.propertyName.toUtf8().constData(), value))
+            {
+                qWarning() << "[OpenGLRenderer] Failed to set material property" << edit.propertyName;
+            }
+        }
+    }
+
+    QVariantList OpenGLRenderer::buildInspectedMaterialProperties(OpenGLView* view)
+    {
+        QVariantList properties;
+
+        if (!this->m_gameHandle || !view->hasInspectedMaterial())
+        {
+            return properties;
+        }
+
+        m_bridge.enumerateMaterialProperties(this->m_gameHandle, view->inspectedMaterialId(),
+                                              view->inspectedMaterialGeneration(),
+                                              &OpenGLRenderer::propertyEntryCallback, &properties);
+        return properties;
+    }
+
     QVariantList OpenGLRenderer::buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities)
     {
         QVariantList inspectedComponents;
@@ -382,6 +448,7 @@ namespace noi_engine_editor
 
         this->applyPendingComponentAdds(view);
         this->applyPendingPropertyEdits(view);
+        this->applyPendingMaterialPropertyEdits(view);
 
         QVariantList loadedResources;
         QVariantList loadedEntities;
@@ -393,5 +460,6 @@ namespace noi_engine_editor
         view->setLoadedResources(loadedResources);
         view->setLoadedEntities(loadedEntities);
         view->setInspectedComponents(this->buildInspectedComponents(view, loadedEntities));
+        view->setInspectedMaterialProperties(this->buildInspectedMaterialProperties(view));
     }
 }

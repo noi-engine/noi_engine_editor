@@ -27,6 +27,17 @@ namespace noi_engine_editor
         QString componentType;
     };
 
+    // Same rationale as PendingPropertyEdit, but for a material resource rather than an
+    // entity's component (no componentType - materials aren't ECS components).
+    struct PendingMaterialPropertyEdit
+    {
+        quint32 materialId{};
+        quint32 materialGeneration{};
+        QString propertyName;
+        QString propertyType;
+        QVariant value;
+    };
+
     class OpenGLView : public QQuickFramebufferObject
     {
         Q_OBJECT
@@ -39,6 +50,14 @@ namespace noi_engine_editor
         Q_PROPERTY(quint32 inspectedEntityGeneration READ inspectedEntityGeneration WRITE setInspectedEntityGeneration
                        NOTIFY inspectedEntityChanged)
         Q_PROPERTY(QVariantList inspectedComponents READ inspectedComponents NOTIFY inspectedComponentsChanged)
+        Q_PROPERTY(bool hasInspectedMaterial READ hasInspectedMaterial WRITE setHasInspectedMaterial
+                       NOTIFY inspectedMaterialChanged)
+        Q_PROPERTY(quint32 inspectedMaterialId READ inspectedMaterialId WRITE setInspectedMaterialId
+                       NOTIFY inspectedMaterialChanged)
+        Q_PROPERTY(quint32 inspectedMaterialGeneration READ inspectedMaterialGeneration
+                       WRITE setInspectedMaterialGeneration NOTIFY inspectedMaterialChanged)
+        Q_PROPERTY(QVariantList inspectedMaterialProperties READ inspectedMaterialProperties
+                       NOTIFY inspectedMaterialPropertiesChanged)
         Q_PROPERTY(QString resourcesPath READ resourcesPath WRITE setResourcesPath NOTIFY resourcesPathChanged)
         Q_PROPERTY(QString scriptsLibraryPath READ scriptsLibraryPath WRITE setScriptsLibraryPath NOTIFY scriptsLibraryPathChanged)
         Q_PROPERTY(QString bridgeLibraryPath READ bridgeLibraryPath WRITE setBridgeLibraryPath NOTIFY bridgeLibraryPathChanged)
@@ -114,6 +133,24 @@ namespace noi_engine_editor
         Q_INVOKABLE void addComponent(quint32 entityId, quint32 entityGeneration, const QString& componentType);
         QVector<PendingComponentAdd> takePendingComponentAdds();
 
+        // Same primitives-only rationale as the inspectedEntity* properties above.
+        bool hasInspectedMaterial() const;
+        void setHasInspectedMaterial(bool hasMaterial);
+
+        quint32 inspectedMaterialId() const;
+        void setInspectedMaterialId(quint32 materialId);
+
+        quint32 inspectedMaterialGeneration() const;
+        void setInspectedMaterialGeneration(quint32 materialGeneration);
+
+        QVariantList inspectedMaterialProperties() const;
+        void setInspectedMaterialProperties(const QVariantList& properties); // renderer-only
+
+        Q_INVOKABLE void setMaterialProperty(quint32 materialId, quint32 materialGeneration,
+                                              const QString& propertyName, const QString& propertyType,
+                                              const QVariant& value);
+        QVector<PendingMaterialPropertyEdit> takePendingMaterialPropertyEdits();
+
         [[nodiscard]] Renderer* createRenderer() const override;
 
     signals:
@@ -130,6 +167,8 @@ namespace noi_engine_editor
         void loadedEntitiesChanged();
         void inspectedEntityChanged();
         void inspectedComponentsChanged();
+        void inspectedMaterialChanged();
+        void inspectedMaterialPropertiesChanged();
 
     private:
         QString m_scenePath;
@@ -148,5 +187,10 @@ namespace noi_engine_editor
         QVariantList m_inspectedComponents;
         QVector<PendingPropertyEdit> m_pendingPropertyEdits;
         QVector<PendingComponentAdd> m_pendingComponentAdds;
+        bool m_hasInspectedMaterial = false;
+        quint32 m_inspectedMaterialId = 0;
+        quint32 m_inspectedMaterialGeneration = 0;
+        QVariantList m_inspectedMaterialProperties;
+        QVector<PendingMaterialPropertyEdit> m_pendingMaterialPropertyEdits;
     };
 }

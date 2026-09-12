@@ -8,8 +8,12 @@ Rectangle {
 
     required property string resourceLabel
     required property string resourceType
-    required property int resourceId
-    required property int resourceGeneration
+    property bool hasHandle: true
+    property int resourceId: -1
+    property int resourceGeneration: -1
+    property bool selected: false
+
+    signal clicked()
 
     function iconFor(type) {
         switch (type) {
@@ -27,7 +31,7 @@ Rectangle {
 
     radius: 6
 
-    color: mouseArea.containsMouse ? Theme.bgTertiary : "transparent"
+    color: root.selected ? Theme.primaryLightC : (mouseArea.containsMouse ? Theme.bgTertiary : "transparent")
 
     RowLayout {
         anchors.fill: parent
@@ -38,21 +42,30 @@ Rectangle {
         MuiIcon {
             name: root.iconFor(root.resourceType)
             font.pixelSize: 15
-            color: Theme.grey
+            color: root.selected ? Theme.primaryColor : Theme.grey
         }
 
         Text {
             Layout.fillWidth: true
             text: root.resourceLabel !== "" ? root.resourceLabel : qsTr("(unlabeled)")
             font.pixelSize: 12
-            color: root.resourceLabel !== "" ? Theme.darkGrey : Theme.grey
+            color: root.resourceLabel !== "" ? (root.selected ? Theme.white : Theme.darkGrey) : Theme.grey
             font.italic: root.resourceLabel === ""
             elide: Text.ElideRight
         }
 
         Text {
+            visible: root.hasHandle
             text: "#%1 / gen %2".arg(root.resourceId).arg(root.resourceGeneration)
             font.family: "monospace"
+            font.pixelSize: 10
+            color: Theme.grey
+        }
+
+        Text {
+            visible: !root.hasHandle
+            text: qsTr("not loaded")
+            font.italic: true
             font.pixelSize: 10
             color: Theme.grey
         }
@@ -62,6 +75,7 @@ Rectangle {
         id: mouseArea
         anchors.fill: parent
         hoverEnabled: true
-        acceptedButtons: Qt.NoButton
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.clicked()
     }
 }

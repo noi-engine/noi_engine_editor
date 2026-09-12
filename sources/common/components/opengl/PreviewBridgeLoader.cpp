@@ -38,10 +38,14 @@ namespace noi_engine_editor
             m_library.resolve("noi_engine_editor_bridge_set_component_property"));
         m_addComponent = reinterpret_cast<add_component_fn>(
             m_library.resolve("noi_engine_editor_bridge_add_component"));
+        m_enumerateMaterialProperties = reinterpret_cast<enumerate_material_properties_fn>(
+            m_library.resolve("noi_engine_editor_bridge_enumerate_material_properties"));
+        m_setMaterialProperty = reinterpret_cast<set_material_property_fn>(
+            m_library.resolve("noi_engine_editor_bridge_set_material_property"));
 
         if (!m_initGl || !m_create || !m_destroy || !m_run || !m_onResize || !m_setScene2d || !m_loadScripts ||
             !m_engineVersion || !m_enumerateResources || !m_enumerateEntities || !m_enumerateComponentProperties ||
-            !m_setComponentProperty || !m_addComponent)
+            !m_setComponentProperty || !m_addComponent || !m_enumerateMaterialProperties || !m_setMaterialProperty)
         {
             qWarning() << "[PreviewBridgeLoader] Preview bridge" << bridgeLibraryPath <<
                 "is missing one or more required entry points";
@@ -136,5 +140,20 @@ namespace noi_engine_editor
                                             const char* const componentType) const -> bool
     {
         return m_addComponent(handle, entityId, entityGeneration, componentType) != 0;
+    }
+
+    auto PreviewBridgeLoader::enumerateMaterialProperties(
+        const noi_engine_editor_bridge_game_handle handle, const uint32_t materialId, const uint32_t materialGeneration,
+        const noi_engine_editor_bridge_property_entry_callback callback, void* const userData) const -> void
+    {
+        m_enumerateMaterialProperties(handle, materialId, materialGeneration, callback, userData);
+    }
+
+    auto PreviewBridgeLoader::setMaterialProperty(const noi_engine_editor_bridge_game_handle handle,
+                                                   const uint32_t materialId, const uint32_t materialGeneration,
+                                                   const char* const propertyName,
+                                                   const noi_engine_editor_bridge_property_value value) const -> bool
+    {
+        return m_setMaterialProperty(handle, materialId, materialGeneration, propertyName, value) != 0;
     }
 }

@@ -8,6 +8,9 @@ Item {
     id: rootItem
 
     property var resources: []
+    property var selectedResource: null
+
+    signal resourceSelected(var resource)
 
     function sectionLabel(type) {
         switch (type) {
@@ -99,6 +102,7 @@ Item {
                 }
 
                 delegate: LoadedResourceItem {
+                    required property int index
                     required property string itemLabel
                     required property string itemType
                     required property int itemId
@@ -110,6 +114,13 @@ Item {
                     resourceType: itemType
                     resourceId: itemId
                     resourceGeneration: itemGeneration
+
+                    selected: rootItem.selectedResource !== null
+                        && rootItem.selectedResource.type === itemType
+                        && rootItem.selectedResource.id === itemId
+                        && rootItem.selectedResource.generation === itemGeneration
+
+                    onClicked: rootItem.resourceSelected(rootItem.resources[index])
                 }
             }
 

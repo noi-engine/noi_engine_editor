@@ -10,6 +10,7 @@ CustomPage {
     title: CurrentProjectManager.name
 
     property var selectedEntity: null
+    property var selectedMaterial: null
     property string activeBottomPanel: ""
     property string currentScenePath: ""
     property string pendingScenePath: ""
@@ -87,7 +88,10 @@ CustomPage {
                     SplitView.minimumWidth: 220
                     entities: viewportPanel.loadedEntities
                     selectedEntity: root.selectedEntity
-                    onEntitySelected: entity => root.selectedEntity = entity
+                    onEntitySelected: entity => {
+                        root.selectedMaterial = null
+                        root.selectedEntity = entity
+                    }
                 }
 
                 ViewportPanel {
@@ -99,6 +103,9 @@ CustomPage {
                     hasInspectedEntity: root.selectedEntity !== null
                     inspectedEntityId: root.selectedEntity ? root.selectedEntity.id : 0
                     inspectedEntityGeneration: root.selectedEntity ? root.selectedEntity.generation : 0
+                    hasInspectedMaterial: root.selectedMaterial !== null
+                    inspectedMaterialId: root.selectedMaterial ? root.selectedMaterial.id : 0
+                    inspectedMaterialGeneration: root.selectedMaterial ? root.selectedMaterial.generation : 0
                 }
 
                 InspectorPanel {
@@ -107,10 +114,17 @@ CustomPage {
                     entity: root.selectedEntity
                     componentsData: viewportPanel.inspectedComponents
                     loadedResources: viewportPanel.loadedResources
+                    material: root.selectedMaterial
+                    materialProperties: viewportPanel.inspectedMaterialProperties
 
                     onPropertyEdited: (componentType, propertyName, propertyType, value) => {
-                        viewportPanel.setComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
-                            componentType, propertyName, propertyType, value)
+                        if (root.selectedMaterial) {
+                            viewportPanel.setMaterialProperty(root.selectedMaterial.id, root.selectedMaterial.generation,
+                                propertyName, propertyType, value)
+                        } else if (root.selectedEntity) {
+                            viewportPanel.setComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
+                                componentType, propertyName, propertyType, value)
+                        }
                     }
 
                     onComponentAddRequested: (componentType) => {
@@ -157,6 +171,15 @@ CustomPage {
                     LoadedResourcesPanel {
                         id: loadedResourcesPanel
                         resources: viewportPanel.loadedResources
+                        selectedResource: root.selectedMaterial
+
+                        onResourceSelected: (resource) => {
+                            if (resource.type !== "material") {
+                                return;
+                            }
+                            root.selectedEntity = null
+                            root.selectedMaterial = resource
+                        }
                     }
                 }
             }
