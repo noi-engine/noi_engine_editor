@@ -5,7 +5,6 @@
 #include <QDir>
 #include <QFileInfo>
 #include <stdexcept>
-#include <tuple>
 #include <QDebug>
 #include <QQuickWindow>
 
@@ -107,12 +106,25 @@ namespace noi_engine_editor
 
             if (const auto newGeneration = view->scriptsGeneration(); m_scriptsGeneration != newGeneration)
             {
-                m_scriptsGeneration = newGeneration;
-                std::ignore = m_bridge.loadScripts(this->m_gameHandle, m_scriptsLibraryPath);
+                if (m_bridge.loadScripts(this->m_gameHandle, m_scriptsLibraryPath))
+                {
+                    m_scriptsGeneration = newGeneration;
+                    m_scriptsLoaded = true;
+                }
+                else if (m_lastWarnedScriptsGeneration != newGeneration)
+                {
+                    m_lastWarnedScriptsGeneration = newGeneration;
+                    qWarning() << "[OpenGLRenderer] Failed to load scripts library:" << m_scriptsLibraryPath
+                        << "- will keep retrying; scene preview is unavailable until this succeeds.";
+                }
             }
         }
 
-        if (const auto newPath = view->scenePath(); m_currentPath != newPath)
+        // Opening a scene before scripts are loaded would let the engine look up an unregistered
+        // script by name and crash (std::out_of_range from an internal unordered_map::at). Wait
+        // until loadScripts() has succeeded at least once; m_currentPath stays stale so this is
+        // retried automatically on the next frame once scripts become available.
+        if (const auto newPath = view->scenePath(); m_scriptsLoaded && m_currentPath != newPath)
         {
             m_currentPath = newPath;
             if (!m_currentPath.isEmpty() && this->m_gameHandle)

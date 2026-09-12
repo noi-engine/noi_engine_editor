@@ -30,13 +30,23 @@ Item {
 
     Component.onCompleted: refreshScenes()
 
+    Connections {
+        target: ProjectBuilder
+
+        function onCompileFinished(success) {
+            if (success) {
+                rootItem.refreshScenes();
+            }
+        }
+    }
+
     Dialog {
         id: confirmDialog
         title: qsTr("Open Scene")
         modal: true
         anchors.centerIn: parent
         width: 320
-        standardButtons: Dialog.Yes | Dialog.No
+        standardButtons: Dialog.NoButton
 
         background: Rectangle {
             color: Theme.bgTertiary
@@ -44,11 +54,34 @@ Item {
             radius: 6
         }
 
-        contentItem: Text {
-            text: qsTr("Open '%1'? Unsaved changes will be lost.").arg(rootItem.pendingSceneName)
-            color: Theme.darkGrey
-            font.pixelSize: 12
-            wrapMode: Text.WordWrap
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 14
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("Open '%1'? Unsaved changes will be lost.").arg(rootItem.pendingSceneName)
+                color: Theme.darkGrey
+                font.pixelSize: 12
+                wrapMode: Text.WordWrap
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Item { Layout.fillWidth: true }
+
+                AppButton {
+                    text: qsTr("No")
+                    onClicked: confirmDialog.reject()
+                }
+
+                AppButton {
+                    text: qsTr("Yes")
+                    onClicked: confirmDialog.accept()
+                }
+            }
         }
 
         onAccepted: if (rootItem.pendingScenePath) rootItem.sceneOpenRequested(rootItem.pendingScenePath)

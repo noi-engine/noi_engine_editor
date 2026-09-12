@@ -31,6 +31,8 @@ namespace noi_engine_editor
         QString m_scriptsLibraryPath{};
         QString m_engineVersion{};
         int m_scriptsGeneration{-1};
+        int m_lastWarnedScriptsGeneration{-2};
+        bool m_scriptsLoaded{false};
         PreviewBridgeLoader m_bridge{};
         noi_engine_editor_bridge_game_handle m_gameHandle{nullptr};
     };
