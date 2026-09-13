@@ -21,6 +21,12 @@ Item {
     property alias inspectedMaterialId: openGLView.inspectedMaterialId
     property alias inspectedMaterialGeneration: openGLView.inspectedMaterialGeneration
 
+    readonly property alias playing: openGLView.playing
+
+    function setPlaying(playing) {
+        openGLView.setPlaying(playing)
+    }
+
     function setComponentProperty(entityId, entityGeneration, componentType, propertyName, propertyType, value) {
         openGLView.setComponentProperty(entityId, entityGeneration, componentType, propertyName, propertyType, value)
     }

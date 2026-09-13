@@ -46,6 +46,11 @@ namespace noi_engine_editor
                                                 uint32_t materialGeneration, const char* propertyName,
                                                 noi_engine_editor_bridge_property_value value) const -> bool;
 
+        auto setKeyPressed(noi_engine_editor_bridge_game_handle handle, int keyCode) const -> void;
+        auto setKeyReleased(noi_engine_editor_bridge_game_handle handle, int keyCode) const -> void;
+        auto releaseAllKeys(noi_engine_editor_bridge_game_handle handle) const -> void;
+        auto resetTimer(noi_engine_editor_bridge_game_handle handle) const -> void;
+
     private:
         using init_gl_fn = void (*)(noi_engine_editor_bridge_gl_proc_loader);
         using create_fn = noi_engine_editor_bridge_game_handle (*)(int, int, const char*);
@@ -70,6 +75,10 @@ namespace noi_engine_editor
                                                              noi_engine_editor_bridge_property_entry_callback, void*);
         using set_material_property_fn = int (*)(noi_engine_editor_bridge_game_handle, uint32_t, uint32_t,
                                                    const char*, noi_engine_editor_bridge_property_value);
+        using set_key_pressed_fn = void (*)(noi_engine_editor_bridge_game_handle, int);
+        using set_key_released_fn = void (*)(noi_engine_editor_bridge_game_handle, int);
+        using release_all_keys_fn = void (*)(noi_engine_editor_bridge_game_handle);
+        using reset_timer_fn = void (*)(noi_engine_editor_bridge_game_handle);
 
         QLibrary m_library;
         init_gl_fn m_initGl{nullptr};
@@ -87,5 +96,9 @@ namespace noi_engine_editor
         add_component_fn m_addComponent{nullptr};
         enumerate_material_properties_fn m_enumerateMaterialProperties{nullptr};
         set_material_property_fn m_setMaterialProperty{nullptr};
+        set_key_pressed_fn m_setKeyPressed{nullptr};
+        set_key_released_fn m_setKeyReleased{nullptr};
+        release_all_keys_fn m_releaseAllKeys{nullptr};
+        reset_timer_fn m_resetTimer{nullptr};
     };
 }

@@ -17,6 +17,9 @@ CustomPage {
     property bool compileFailureDismissed: false
 
     function openScene(filePath) {
+        if (viewportPanel.playing) {
+            return;
+        }
         if (ProjectBuilder.isCompiling || ProjectBuilder.lastCompileFailed) {
             root.pendingScenePath = filePath;
         } else {
@@ -63,12 +66,15 @@ CustomPage {
             Layout.fillWidth: true
             Layout.preferredHeight: 56
             currentScenePath: root.currentScenePath
+            isPlaying: viewportPanel.playing
 
             onSettingsRequested: settingsDialog.open()
             onBackRequested: {
                 CurrentProjectManager.closeProject()
                 Router.replace("/")
             }
+            onPlayRequested: viewportPanel.setPlaying(true)
+            onStopRequested: viewportPanel.setPlaying(false)
         }
 
         SplitView {
@@ -86,6 +92,7 @@ CustomPage {
                 SceneHierarchyPanel {
                     SplitView.preferredWidth: 260
                     SplitView.minimumWidth: 220
+                    enabled: !viewportPanel.playing
                     entities: viewportPanel.loadedEntities
                     selectedEntity: root.selectedEntity
                     onEntitySelected: entity => {
@@ -111,6 +118,7 @@ CustomPage {
                 InspectorPanel {
                     SplitView.preferredWidth: 300
                     SplitView.minimumWidth: 260
+                    enabled: !viewportPanel.playing
                     entity: root.selectedEntity
                     componentsData: viewportPanel.inspectedComponents
                     loadedResources: viewportPanel.loadedResources

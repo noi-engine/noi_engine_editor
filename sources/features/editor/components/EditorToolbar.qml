@@ -7,8 +7,11 @@ Rectangle {
 
     signal settingsRequested()
     signal backRequested()
+    signal playRequested()
+    signal stopRequested()
 
     property string currentScenePath: ""
+    property bool isPlaying: false
 
     readonly property string currentSceneName: {
         if (!currentScenePath) return qsTr("(No scene opened)")
@@ -91,19 +94,21 @@ Rectangle {
         AppButton {
             icon: "build"
             text: ProjectBuilder.isCompiling ? qsTr("Compiling...") : qsTr("Compile")
-            enabled: !ProjectBuilder.isCompiling
+            enabled: !ProjectBuilder.isCompiling && !root.isPlaying
             onClicked: ProjectBuilder.compile(CurrentProjectManager.path)
         }
 
         AppButton {
-            icon: "play_arrow"
-            text: qsTr("Play")
-            enabled: false
+            icon: root.isPlaying ? "stop" : "play_arrow"
+            text: root.isPlaying ? qsTr("Stop") : qsTr("Play")
+            enabled: root.currentScenePath !== "" && !ProjectBuilder.isCompiling
+            onClicked: root.isPlaying ? root.stopRequested() : root.playRequested()
         }
 
         AppButton {
             icon: "settings"
             text: qsTr("Settings")
+            enabled: !root.isPlaying
             onClicked: root.settingsRequested()
         }
     }

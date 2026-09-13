@@ -1,8 +1,87 @@
 #include "OpenglView.hpp"
 #include "OpenglRenderer.hpp"
 
+#include <QKeyEvent>
+#include <utility>
+
 namespace noi_engine_editor
 {
+    namespace
+    {
+        // Maps Qt::Key to noi_engine::key_code's numeric layout (SDL_Scancode-compatible - see
+        // noi_engine/core/input/input_codes.hpp). Returns -1 for keys with no mapping (keyboard
+        // only, and only the keys a gameplay script would plausibly read, for now).
+        int qtKeyToEngineKeyCode(const int qtKey)
+        {
+            switch (qtKey)
+            {
+                case Qt::Key_A: return 4;
+                case Qt::Key_B: return 5;
+                case Qt::Key_C: return 6;
+                case Qt::Key_D: return 7;
+                case Qt::Key_E: return 8;
+                case Qt::Key_F: return 9;
+                case Qt::Key_G: return 10;
+                case Qt::Key_H: return 11;
+                case Qt::Key_I: return 12;
+                case Qt::Key_J: return 13;
+                case Qt::Key_K: return 14;
+                case Qt::Key_L: return 15;
+                case Qt::Key_M: return 16;
+                case Qt::Key_N: return 17;
+                case Qt::Key_O: return 18;
+                case Qt::Key_P: return 19;
+                case Qt::Key_Q: return 20;
+                case Qt::Key_R: return 21;
+                case Qt::Key_S: return 22;
+                case Qt::Key_T: return 23;
+                case Qt::Key_U: return 24;
+                case Qt::Key_V: return 25;
+                case Qt::Key_W: return 26;
+                case Qt::Key_X: return 27;
+                case Qt::Key_Y: return 28;
+                case Qt::Key_Z: return 29;
+                case Qt::Key_1: return 30;
+                case Qt::Key_2: return 31;
+                case Qt::Key_3: return 32;
+                case Qt::Key_4: return 33;
+                case Qt::Key_5: return 34;
+                case Qt::Key_6: return 35;
+                case Qt::Key_7: return 36;
+                case Qt::Key_8: return 37;
+                case Qt::Key_9: return 38;
+                case Qt::Key_0: return 39;
+                case Qt::Key_Return: return 40;
+                case Qt::Key_Enter: return 40;
+                case Qt::Key_Escape: return 41;
+                case Qt::Key_Backspace: return 42;
+                case Qt::Key_Tab: return 43;
+                case Qt::Key_Space: return 44;
+                case Qt::Key_F1: return 58;
+                case Qt::Key_F2: return 59;
+                case Qt::Key_F3: return 60;
+                case Qt::Key_F4: return 61;
+                case Qt::Key_F5: return 62;
+                case Qt::Key_F6: return 63;
+                case Qt::Key_F7: return 64;
+                case Qt::Key_F8: return 65;
+                case Qt::Key_F9: return 66;
+                case Qt::Key_F10: return 67;
+                case Qt::Key_F11: return 68;
+                case Qt::Key_F12: return 69;
+                case Qt::Key_Right: return 79;
+                case Qt::Key_Left: return 80;
+                case Qt::Key_Down: return 81;
+                case Qt::Key_Up: return 82;
+                // Qt doesn't reliably distinguish left/right modifiers - map to the left variant.
+                case Qt::Key_Control: return 224;
+                case Qt::Key_Shift: return 225;
+                case Qt::Key_Alt: return 226;
+                default: return -1;
+            }
+        }
+    }
+
     OpenGLView::OpenGLView(QQuickItem* parent) : QQuickFramebufferObject(parent)
     {
     }
@@ -370,6 +449,115 @@ namespace noi_engine_editor
         auto edits = std::move(m_pendingMaterialPropertyEdits);
         m_pendingMaterialPropertyEdits.clear();
         return edits;
+    }
+
+    bool OpenGLView::isPlaying() const
+    {
+        return m_playing;
+    }
+
+    void OpenGLView::setPlaying(const bool playing)
+    {
+        if (playing)
+        {
+            if (m_playing)
+            {
+                return;
+            }
+
+            m_playing = true;
+            Q_EMIT playingChanged();
+            forceActiveFocus();
+            update();
+        }
+        else
+        {
+            if (!m_playing || m_stopRequested)
+            {
+                return;
+            }
+
+            m_stopRequested = true;
+            for (const auto qtKey : std::as_const(m_pressedQtKeys))
+            {
+                if (const auto keyCode = qtKeyToEngineKeyCode(qtKey); keyCode >= 0)
+                {
+                    m_pendingKeyEvents.append(PendingKeyEvent{keyCode, false});
+                }
+            }
+            m_pressedQtKeys.clear();
+            update(); // nudge one final frame so synchronize() can apply the releases and confirm the stop
+        }
+    }
+
+    bool OpenGLView::stopRequested() const
+    {
+        return m_stopRequested;
+    }
+
+    QVector<PendingKeyEvent> OpenGLView::takePendingKeyEvents()
+    {
+        auto events = std::move(m_pendingKeyEvents);
+        m_pendingKeyEvents.clear();
+        return events;
+    }
+
+    void OpenGLView::confirmStopped()
+    {
+        m_stopRequested = false;
+
+        if (!m_playing)
+        {
+            return;
+        }
+
+        m_playing = false;
+        Q_EMIT playingChanged();
+    }
+
+    void OpenGLView::queueKeyEvent(const int keyCode, const bool pressed)
+    {
+        if (keyCode < 0)
+        {
+            return;
+        }
+
+        m_pendingKeyEvents.append(PendingKeyEvent{keyCode, pressed});
+        update(); // there's no continuous render loop yet at this point - nudge one
+    }
+
+    void OpenGLView::keyPressEvent(QKeyEvent* event)
+    {
+        if (!m_playing || event->isAutoRepeat())
+        {
+            QQuickFramebufferObject::keyPressEvent(event);
+            return;
+        }
+
+        const auto keyCode = qtKeyToEngineKeyCode(event->key());
+        if (keyCode >= 0)
+        {
+            m_pressedQtKeys.insert(event->key());
+            queueKeyEvent(keyCode, true);
+        }
+        event->accept();
+    }
+
+    void OpenGLView::keyReleaseEvent(QKeyEvent* event)
+    {
+        if (!m_playing || event->isAutoRepeat())
+        {
+            QQuickFramebufferObject::keyReleaseEvent(event);
+            return;
+        }
+
+        const auto keyCode = qtKeyToEngineKeyCode(event->key());
+        if (keyCode >= 0)
+        {
+            m_pressedQtKeys.remove(event->key());
+            queueKeyEvent(keyCode, false);
+        }
+        event->accept();
     }
 
     QQuickFramebufferObject::Renderer* OpenGLView::createRenderer() const

@@ -42,10 +42,19 @@ namespace noi_engine_editor
             m_library.resolve("noi_engine_editor_bridge_enumerate_material_properties"));
         m_setMaterialProperty = reinterpret_cast<set_material_property_fn>(
             m_library.resolve("noi_engine_editor_bridge_set_material_property"));
+        m_setKeyPressed = reinterpret_cast<set_key_pressed_fn>(
+            m_library.resolve("noi_engine_editor_bridge_set_key_pressed"));
+        m_setKeyReleased = reinterpret_cast<set_key_released_fn>(
+            m_library.resolve("noi_engine_editor_bridge_set_key_released"));
+        m_releaseAllKeys = reinterpret_cast<release_all_keys_fn>(
+            m_library.resolve("noi_engine_editor_bridge_release_all_keys"));
+        m_resetTimer = reinterpret_cast<reset_timer_fn>(
+            m_library.resolve("noi_engine_editor_bridge_reset_timer"));
 
         if (!m_initGl || !m_create || !m_destroy || !m_run || !m_onResize || !m_setScene2d || !m_loadScripts ||
             !m_engineVersion || !m_enumerateResources || !m_enumerateEntities || !m_enumerateComponentProperties ||
-            !m_setComponentProperty || !m_addComponent || !m_enumerateMaterialProperties || !m_setMaterialProperty)
+            !m_setComponentProperty || !m_addComponent || !m_enumerateMaterialProperties || !m_setMaterialProperty ||
+            !m_setKeyPressed || !m_setKeyReleased || !m_releaseAllKeys || !m_resetTimer)
         {
             qWarning() << "[PreviewBridgeLoader] Preview bridge" << bridgeLibraryPath <<
                 "is missing one or more required entry points";
@@ -155,5 +164,27 @@ namespace noi_engine_editor
                                                    const noi_engine_editor_bridge_property_value value) const -> bool
     {
         return m_setMaterialProperty(handle, materialId, materialGeneration, propertyName, value) != 0;
+    }
+
+    auto PreviewBridgeLoader::setKeyPressed(const noi_engine_editor_bridge_game_handle handle,
+                                             const int keyCode) const -> void
+    {
+        m_setKeyPressed(handle, keyCode);
+    }
+
+    auto PreviewBridgeLoader::setKeyReleased(const noi_engine_editor_bridge_game_handle handle,
+                                              const int keyCode) const -> void
+    {
+        m_setKeyReleased(handle, keyCode);
+    }
+
+    auto PreviewBridgeLoader::releaseAllKeys(const noi_engine_editor_bridge_game_handle handle) const -> void
+    {
+        m_releaseAllKeys(handle);
+    }
+
+    auto PreviewBridgeLoader::resetTimer(const noi_engine_editor_bridge_game_handle handle) const -> void
+    {
+        m_resetTimer(handle);
     }
 }

@@ -2,8 +2,11 @@
 
 #include <QQuickItem>
 #include <QQuickFramebufferObject>
+#include <QSet>
 #include <QVariantList>
 #include <QVector>
+
+class QKeyEvent;
 
 namespace noi_engine_editor
 {
@@ -38,6 +41,15 @@ namespace noi_engine_editor
         QVariant value;
     };
 
+    // Same rationale as PendingPropertyEdit: queued until synchronize() applies it. keyCode
+    // matches noi_engine::key_code's numeric layout (SDL_Scancode-compatible), translated
+    // from Qt::Key in keyPressEvent/keyReleaseEvent.
+    struct PendingKeyEvent
+    {
+        int keyCode{};
+        bool pressed{};
+    };
+
     class OpenGLView : public QQuickFramebufferObject
     {
         Q_OBJECT
@@ -65,6 +77,10 @@ namespace noi_engine_editor
         Q_PROPERTY(QString engineVersion READ engineVersion WRITE setEngineVersion NOTIFY engineVersionChanged)
         Q_PROPERTY(int gameWidth READ gameWidth WRITE setGameWidth NOTIFY gameWidthChanged)
         Q_PROPERTY(int gameHeight READ gameHeight WRITE setGameHeight NOTIFY gameHeightChanged)
+        // Read-only from QML on purpose: reflects the *confirmed* play state, only ever flipped
+        // to false by confirmStopped() from the render thread (see OpenGLRenderer::synchronize()),
+        // never synchronously from setPlaying(false) - see setPlaying() for why.
+        Q_PROPERTY(bool playing READ isPlaying NOTIFY playingChanged)
 
     public:
         explicit OpenGLView(QQuickItem* parent = nullptr);
@@ -151,7 +167,40 @@ namespace noi_engine_editor
                                               const QVariant& value);
         QVector<PendingMaterialPropertyEdit> takePendingMaterialPropertyEdits();
 
+        [[nodiscard]] bool isPlaying() const;
+
+        // Called from QML's Play/Stop button.
+        //
+        // playing=true: takes effect immediately (no editing is currently locked yet, so there's
+        // nothing that must finish first) - flips the property, grabs keyboard focus, nudges a
+        // render.
+        //
+        // playing=false: does NOT flip the property synchronously. update() only *schedules* a
+        // future frame, so unlocking the Inspector/Hierarchy right here could race ahead of the
+        // final key-release/tick actually reaching the bridge. Instead this queues synthesized
+        // release events for every currently-held key and sets stopRequested(); only
+        // OpenGLRenderer::synchronize() calls confirmStopped(), and only after it has applied
+        // those releases through the bridge. This guarantees "the system stops first".
+        Q_INVOKABLE void setPlaying(bool playing);
+
+        // Renderer-only: true from the Stop click until synchronize() has applied the final
+        // key releases and called confirmStopped().
+        [[nodiscard]] bool stopRequested() const;
+
+        // Renderer-only: returns and clears all key events queued since the last call. Same
+        // no-mutex rendezvous-point rule as takePendingPropertyEdits().
+        QVector<PendingKeyEvent> takePendingKeyEvents();
+
+        // Renderer-only: called from synchronize() once the final tick after a Stop request has
+        // actually applied the queued key releases through the bridge. Flips playing to false and
+        // emits playingChanged() - only from here, never from setPlaying(false) directly.
+        void confirmStopped();
+
         [[nodiscard]] Renderer* createRenderer() const override;
+
+    protected:
+        void keyPressEvent(QKeyEvent* event) override;
+        void keyReleaseEvent(QKeyEvent* event) override;
 
     signals:
         void scenePathChanged();
@@ -169,8 +218,11 @@ namespace noi_engine_editor
         void inspectedComponentsChanged();
         void inspectedMaterialChanged();
         void inspectedMaterialPropertiesChanged();
+        void playingChanged();
 
     private:
+        void queueKeyEvent(int keyCode, bool pressed);
+
         QString m_scenePath;
         QString m_resourcesPath;
         QString m_scriptsLibraryPath;
@@ -192,5 +244,9 @@ namespace noi_engine_editor
         quint32 m_inspectedMaterialGeneration = 0;
         QVariantList m_inspectedMaterialProperties;
         QVector<PendingMaterialPropertyEdit> m_pendingMaterialPropertyEdits;
+        bool m_playing = false;
+        bool m_stopRequested = false;
+        QSet<int> m_pressedQtKeys;
+        QVector<PendingKeyEvent> m_pendingKeyEvents;
     };
 }

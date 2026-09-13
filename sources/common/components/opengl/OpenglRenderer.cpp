@@ -121,6 +121,14 @@ namespace noi_engine_editor
             }
 
             m_bridge.run(this->m_gameHandle);
+
+            if (m_wasPlaying)
+            {
+                // Keep ticking every frame while playing. This is QQuickFramebufferObject::
+                // Renderer::update() (schedules the next frame, paced by vsync, entirely on this
+                // render thread) - NOT the item's update() used everywhere else in this file.
+                this->update();
+            }
         }
     }
 
@@ -345,6 +353,66 @@ namespace noi_engine_editor
         }
     }
 
+    void OpenGLRenderer::applyPendingKeyEvents(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        const auto events = view->takePendingKeyEvents();
+        for (const auto& event : events)
+        {
+            if (event.pressed)
+            {
+                m_bridge.setKeyPressed(this->m_gameHandle, event.keyCode);
+            }
+            else
+            {
+                m_bridge.setKeyReleased(this->m_gameHandle, event.keyCode);
+            }
+        }
+    }
+
+    void OpenGLRenderer::updatePlayState(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        if (view->stopRequested())
+        {
+            // Final tick before actually stopping: apply whatever key releases were queued, release
+            // anything the Qt-side tracking might have missed (e.g. focus lost mid-press), then
+            // reload the scene from disk - set_scene_2d() already fully discards the live world and
+            // rebuilds it from the .scene resource, which is exactly "reset to the pre-play state".
+            // Only once all of that is done do we let the editor know it's safe to unlock editing -
+            // "the system stops first".
+            this->applyPendingKeyEvents(view);
+            m_bridge.releaseAllKeys(this->m_gameHandle);
+            if (!m_currentPath.isEmpty())
+            {
+                const auto relativeScenePath = getSceneResourceDotPath(this->m_resourcesPath, this->m_currentPath);
+                m_bridge.setScene2d(this->m_gameHandle, relativeScenePath);
+                m_bridge.onResize(this->m_gameHandle, m_width, m_height);
+            }
+            m_wasPlaying = false;
+            view->confirmStopped();
+            return;
+        }
+
+        if (view->isPlaying() && !m_wasPlaying)
+        {
+            // Fresh play-start transition: re-sync the bridge's dt timer so the first continuous
+            // tick doesn't report however long the scene sat idle in edit mode.
+            m_bridge.resetTimer(this->m_gameHandle);
+            m_wasPlaying = true;
+        }
+
+        this->applyPendingKeyEvents(view);
+    }
+
     QVariantList OpenGLRenderer::buildInspectedMaterialProperties(OpenGLView* view)
     {
         QVariantList properties;
@@ -446,6 +514,7 @@ namespace noi_engine_editor
             }
         }
 
+        this->updatePlayState(view);
         this->applyPendingComponentAdds(view);
         this->applyPendingPropertyEdits(view);
         this->applyPendingMaterialPropertyEdits(view);

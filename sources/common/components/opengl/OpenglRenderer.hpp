@@ -37,6 +37,8 @@ namespace noi_engine_editor
         auto applyPendingPropertyEdits(OpenGLView* view) -> void;
         auto applyPendingComponentAdds(OpenGLView* view) -> void;
         auto applyPendingMaterialPropertyEdits(OpenGLView* view) -> void;
+        auto applyPendingKeyEvents(OpenGLView* view) -> void;
+        auto updatePlayState(OpenGLView* view) -> void;
         auto buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities) -> QVariantList;
         auto buildInspectedMaterialProperties(OpenGLView* view) -> QVariantList;
 
@@ -53,6 +55,9 @@ namespace noi_engine_editor
         int m_lastWarnedScriptsGeneration{-2};
         bool m_scriptsLoaded{false};
         bool m_bridgeLoadWarned{false};
+        // Render-thread-owned confirmed ticking state - distinct from OpenGLView::isPlaying(),
+        // which is the GUI-thread-requested state; see updatePlayState().
+        bool m_wasPlaying{false};
         PreviewBridgeLoader m_bridge{};
         noi_engine_editor_bridge_game_handle m_gameHandle{nullptr};
     };

@@ -329,6 +329,19 @@ Rectangle {
                                                 color: highlighted ? Theme.primaryLightC : "transparent"
                                             }
                                         }
+
+                                        MouseArea {
+                                            // ComboBox changes its value on mouse wheel by default (Qt Quick
+                                            // Controls' QQuickComboBox::wheelEvent), which fires just from
+                                            // scrolling the Inspector past it - not what a "click to pick a
+                                            // value" control should do. acceptedButtons: Qt.NoButton makes
+                                            // this MouseArea ignore presses (they fall through to the
+                                            // ComboBox underneath, so clicking still opens it normally) while
+                                            // still intercepting - and swallowing - wheel events.
+                                            anchors.fill: parent
+                                            acceptedButtons: Qt.NoButton
+                                            onWheel: (wheel) => wheel.accepted = true
+                                        }
                                     }
 
                                     PropertyField {
