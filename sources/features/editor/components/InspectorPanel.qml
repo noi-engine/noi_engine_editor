@@ -55,6 +55,61 @@ Rectangle {
         return root.allComponentTypes.filter(t => present.indexOf(t) === -1);
     }
 
+    // mesh_renderer/mesh_renderer_properties on the camera entity is the red border gizmo
+    // injected by the editor's own preview (see bridge_game::set_scene_2d()) - not something
+    // the user added, and never written back to the scene file on save. It should stay visible
+    // (so its presence isn't mysterious) but not editable, and not a candidate for "Add Property".
+    readonly property bool isCameraEntity: root.entity !== null && root.entity.name === "main_camera"
+
+    function isEditorManaged(componentType) {
+        return root.isCameraEntity && (componentType === "mesh_renderer" || componentType === "mesh_renderer_properties");
+    }
+
+    // Property names on mesh_renderer_properties/material sections are stored with a
+    // "param:"/"color:"/"texture:" prefix (see bridge_game_entities.cpp /
+    // bridge_game_resources.cpp) so set_component_property can route by kind - strip it for
+    // display, keep the full name for the propertyEdited signal.
+    function displayName(fullName) {
+        const idx = fullName.indexOf(":");
+        if (idx === -1) return fullName;
+        const prefix = fullName.substring(0, idx);
+        if (prefix === "color" || prefix === "param" || prefix === "texture") {
+            return fullName.substring(idx + 1);
+        }
+        return fullName;
+    }
+
+    // Known value constraints for built-in engine components, applied via PropertyField's
+    // validator props. Anything not listed here just gets isNumeric:true (reject non-numeric
+    // input) with no range bound.
+    readonly property var fieldConstraints: ({
+        "render_layer.order": { integer: true },
+        "camera_2d.zoom": { min: 0.0001 },
+        "camera_2d.orthographic_size": { min: 0.0001 },
+        "camera_2d.aspect_ratio": { min: 0.0001 },
+        "camera_3d.fov": { min: 1, max: 179 },
+        "camera_3d.near_plane": { min: 0.0001 },
+        "camera_3d.far_plane": { min: 0.0001 },
+        "camera_3d.aspect_ratio": { min: 0.0001 },
+        "orbit_camera.distance": { min: 0 },
+        "orbit_camera.min_distance": { min: 0 },
+        "orbit_camera.max_distance": { min: 0 },
+        "orbit_camera.sensitivity": { min: 0 },
+        "orbit_camera.zoom_speed": { min: 0 },
+        "orbit_camera.min_pitch": { min: -89, max: 89 },
+        "orbit_camera.max_pitch": { min: -89, max: 89 }
+    })
+
+    function constraintFor(componentType, propertyName) {
+        return root.fieldConstraints[componentType + "." + propertyName] || {};
+    }
+
+    // Section types that hold dynamic, addable param:/color:/texture: maps (as opposed to a
+    // fixed set of fields like transform or camera_2d).
+    function supportsAddProperty(componentType) {
+        return componentType === "mesh_renderer_properties" || componentType === "material";
+    }
+
     color: Theme.bgSecondary
 
     Rectangle {
@@ -132,6 +187,7 @@ Rectangle {
                     required property var modelData
                     readonly property string componentType: componentSection.modelData.type
                     readonly property var componentProperties: componentSection.modelData.properties
+                    readonly property bool forcedReadOnly: root.isEditorManaged(componentSection.componentType)
 
                     Layout.fillWidth: true
                     implicitHeight: cardColumn.implicitHeight + 24
@@ -146,12 +202,27 @@ Rectangle {
                         anchors.margins: 12
                         spacing: 12
 
-                        Text {
-                            text: componentSection.componentType.toUpperCase()
-                            font.pixelSize: 11
-                            font.weight: Font.DemiBold
-                            font.letterSpacing: 0.5
-                            color: Theme.primaryColor
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 8
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: componentSection.componentType.toUpperCase()
+                                font.pixelSize: 11
+                                font.weight: Font.DemiBold
+                                font.letterSpacing: 0.5
+                                color: Theme.primaryColor
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                visible: componentSection.forcedReadOnly
+                                text: qsTr("editor-managed · not saved")
+                                font.pixelSize: 9
+                                font.italic: true
+                                color: Theme.grey
+                            }
                         }
 
                         Repeater {
@@ -161,6 +232,7 @@ Rectangle {
                                 id: propRow
 
                                 required property var modelData
+                                readonly property bool effectiveReadOnly: propRow.modelData.readOnly || componentSection.forcedReadOnly
 
                                 Layout.fillWidth: true
                                 implicitHeight: propColumn.implicitHeight
@@ -171,8 +243,8 @@ Rectangle {
                                     spacing: 6
 
                                     Text {
-                                        visible: propRow.modelData.type !== "bool"
-                                        text: propRow.modelData.name
+                                        visible: propRow.modelData.type !== "bool" && propRow.modelData.type !== "vec4"
+                                        text: root.displayName(propRow.modelData.name)
                                         font.pixelSize: 10
                                         color: Theme.darkGrey
                                     }
@@ -186,7 +258,8 @@ Rectangle {
                                             Layout.fillWidth: true
                                             label: "X"
                                             accentColor: "#E05B5B"
-                                            readOnly: propRow.modelData.readOnly
+                                            readOnly: propRow.effectiveReadOnly
+                                            isNumeric: true
                                             value: Number(propRow.modelData.value[0]).toFixed(2)
                                             onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec3",
                                                 [parseFloat(v), propRow.modelData.value[1], propRow.modelData.value[2]])
@@ -195,7 +268,8 @@ Rectangle {
                                             Layout.fillWidth: true
                                             label: "Y"
                                             accentColor: "#35C98A"
-                                            readOnly: propRow.modelData.readOnly
+                                            readOnly: propRow.effectiveReadOnly
+                                            isNumeric: true
                                             value: Number(propRow.modelData.value[1]).toFixed(2)
                                             onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec3",
                                                 [propRow.modelData.value[0], parseFloat(v), propRow.modelData.value[2]])
@@ -204,63 +278,99 @@ Rectangle {
                                             Layout.fillWidth: true
                                             label: "Z"
                                             accentColor: "#4B8CE0"
-                                            readOnly: propRow.modelData.readOnly
+                                            readOnly: propRow.effectiveReadOnly
+                                            isNumeric: true
                                             value: Number(propRow.modelData.value[2]).toFixed(2)
                                             onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec3",
                                                 [propRow.modelData.value[0], propRow.modelData.value[1], parseFloat(v)])
                                         }
                                     }
 
-                                    RowLayout {
+                                    // Color (vec4): swatch + stripped name on their own row, RGBA fields
+                                    // on a second full-width row - packing swatch+4 fields into one row
+                                    // left each TextField too narrow to show its value.
+                                    ColumnLayout {
                                         visible: propRow.modelData.type === "vec4"
                                         Layout.fillWidth: true
                                         spacing: 6
 
-                                        Rectangle {
-                                            Layout.preferredWidth: 26
-                                            Layout.preferredHeight: 26
-                                            radius: 6
-                                            border.color: Theme.borderColor
-                                            border.width: 1
-                                            color: Qt.rgba(propRow.modelData.value[0], propRow.modelData.value[1],
-                                                            propRow.modelData.value[2], propRow.modelData.value[3])
+                                        RowLayout {
+                                            Layout.fillWidth: true
+                                            spacing: 8
+
+                                            Rectangle {
+                                                Layout.preferredWidth: 32
+                                                Layout.preferredHeight: 32
+                                                radius: 8
+                                                border.color: Theme.borderColor
+                                                border.width: 1
+                                                color: propRow.modelData.type === "vec4"
+                                                    ? Qt.rgba(propRow.modelData.value[0], propRow.modelData.value[1],
+                                                              propRow.modelData.value[2], propRow.modelData.value[3])
+                                                    : "transparent"
+                                            }
+
+                                            Text {
+                                                Layout.fillWidth: true
+                                                text: root.displayName(propRow.modelData.name)
+                                                font.pixelSize: 11
+                                                color: Theme.darkGrey
+                                                elide: Text.ElideRight
+                                            }
                                         }
 
-                                        PropertyField {
+                                        RowLayout {
                                             Layout.fillWidth: true
-                                            label: "R"
-                                            accentColor: "#E05B5B"
-                                            readOnly: propRow.modelData.readOnly
-                                            value: Number(propRow.modelData.value[0]).toFixed(2)
-                                            onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
-                                                [parseFloat(v), propRow.modelData.value[1], propRow.modelData.value[2], propRow.modelData.value[3]])
-                                        }
-                                        PropertyField {
-                                            Layout.fillWidth: true
-                                            label: "G"
-                                            accentColor: "#35C98A"
-                                            readOnly: propRow.modelData.readOnly
-                                            value: Number(propRow.modelData.value[1]).toFixed(2)
-                                            onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
-                                                [propRow.modelData.value[0], parseFloat(v), propRow.modelData.value[2], propRow.modelData.value[3]])
-                                        }
-                                        PropertyField {
-                                            Layout.fillWidth: true
-                                            label: "B"
-                                            accentColor: "#4B8CE0"
-                                            readOnly: propRow.modelData.readOnly
-                                            value: Number(propRow.modelData.value[2]).toFixed(2)
-                                            onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
-                                                [propRow.modelData.value[0], propRow.modelData.value[1], parseFloat(v), propRow.modelData.value[3]])
-                                        }
-                                        PropertyField {
-                                            Layout.fillWidth: true
-                                            label: "A"
-                                            accentColor: Theme.lightGrey
-                                            readOnly: propRow.modelData.readOnly
-                                            value: Number(propRow.modelData.value[3]).toFixed(2)
-                                            onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
-                                                [propRow.modelData.value[0], propRow.modelData.value[1], propRow.modelData.value[2], parseFloat(v)])
+                                            spacing: 6
+
+                                            PropertyField {
+                                                Layout.fillWidth: true
+                                                label: "R"
+                                                accentColor: "#E05B5B"
+                                                readOnly: propRow.effectiveReadOnly
+                                                isNumeric: true
+                                                minValue: 0
+                                                maxValue: 1
+                                                value: Number(propRow.modelData.value[0]).toFixed(2)
+                                                onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
+                                                    [parseFloat(v), propRow.modelData.value[1], propRow.modelData.value[2], propRow.modelData.value[3]])
+                                            }
+                                            PropertyField {
+                                                Layout.fillWidth: true
+                                                label: "G"
+                                                accentColor: "#35C98A"
+                                                readOnly: propRow.effectiveReadOnly
+                                                isNumeric: true
+                                                minValue: 0
+                                                maxValue: 1
+                                                value: Number(propRow.modelData.value[1]).toFixed(2)
+                                                onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
+                                                    [propRow.modelData.value[0], parseFloat(v), propRow.modelData.value[2], propRow.modelData.value[3]])
+                                            }
+                                            PropertyField {
+                                                Layout.fillWidth: true
+                                                label: "B"
+                                                accentColor: "#4B8CE0"
+                                                readOnly: propRow.effectiveReadOnly
+                                                isNumeric: true
+                                                minValue: 0
+                                                maxValue: 1
+                                                value: Number(propRow.modelData.value[2]).toFixed(2)
+                                                onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
+                                                    [propRow.modelData.value[0], propRow.modelData.value[1], parseFloat(v), propRow.modelData.value[3]])
+                                            }
+                                            PropertyField {
+                                                Layout.fillWidth: true
+                                                label: "A"
+                                                accentColor: Theme.lightGrey
+                                                readOnly: propRow.effectiveReadOnly
+                                                isNumeric: true
+                                                minValue: 0
+                                                maxValue: 1
+                                                value: Number(propRow.modelData.value[3]).toFixed(2)
+                                                onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
+                                                    [propRow.modelData.value[0], propRow.modelData.value[1], propRow.modelData.value[2], parseFloat(v)])
+                                            }
                                         }
                                     }
 
@@ -269,7 +379,7 @@ Rectangle {
                                         visible: propRow.modelData.type === "resourceRef"
                                         Layout.fillWidth: true
                                         Layout.preferredHeight: 30
-                                        enabled: !propRow.modelData.readOnly
+                                        enabled: !propRow.effectiveReadOnly
 
                                         model: root.resourceLabelsFor(propRow.modelData.resourceType)
                                         displayText: currentText !== "" ? currentText : qsTr("(none)")
@@ -347,11 +457,20 @@ Rectangle {
                                     PropertyField {
                                         visible: propRow.modelData.type === "float" || propRow.modelData.type === "string"
                                         Layout.fillWidth: true
-                                        label: propRow.modelData.name.substring(0, 1).toUpperCase()
+                                        label: root.displayName(propRow.modelData.name).substring(0, 1).toUpperCase()
                                         accentColor: Theme.lightGrey
-                                        readOnly: propRow.modelData.readOnly
+                                        readOnly: propRow.effectiveReadOnly
+                                        isNumeric: propRow.modelData.type === "float"
+                                        integerValue: propRow.modelData.type === "float"
+                                            && !!root.constraintFor(componentSection.componentType, propRow.modelData.name).integer
+                                        minValue: propRow.modelData.type === "float"
+                                            ? (root.constraintFor(componentSection.componentType, propRow.modelData.name).min ?? NaN)
+                                            : NaN
+                                        maxValue: propRow.modelData.type === "float"
+                                            ? (root.constraintFor(componentSection.componentType, propRow.modelData.name).max ?? NaN)
+                                            : NaN
                                         value: propRow.modelData.type === "float"
-                                            ? Number(propRow.modelData.value).toFixed(3)
+                                            ? (integerValue ? String(Math.round(propRow.modelData.value)) : Number(propRow.modelData.value).toFixed(3))
                                             : String(propRow.modelData.value)
                                         onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name,
                                             propRow.modelData.type, propRow.modelData.type === "float" ? parseFloat(v) : v)
@@ -364,11 +483,11 @@ Rectangle {
 
                                         CheckBox {
                                             checked: !!propRow.modelData.value
-                                            enabled: !propRow.modelData.readOnly
+                                            enabled: !propRow.effectiveReadOnly
                                             onToggled: root.propertyEdited(componentSection.componentType, propRow.modelData.name, "bool", checked)
                                         }
                                         Text {
-                                            text: propRow.modelData.name
+                                            text: root.displayName(propRow.modelData.name)
                                             font.pixelSize: 11
                                             color: Theme.darkGrey
                                         }
@@ -383,6 +502,47 @@ Rectangle {
                             font.pixelSize: 10
                             font.italic: true
                             color: Theme.grey
+                        }
+
+                        Rectangle {
+                            visible: root.supportsAddProperty(componentSection.componentType) && !componentSection.forcedReadOnly
+                            Layout.fillWidth: true
+                            Layout.topMargin: 4
+                            Layout.preferredHeight: addPropertyRow.implicitHeight + 12
+                            radius: 6
+                            color: "transparent"
+                            border.color: Theme.borderColor
+                            border.width: 1
+
+                            RowLayout {
+                                id: addPropertyRow
+                                anchors.fill: parent
+                                anchors.margins: 6
+                                spacing: 6
+
+                                MuiIcon {
+                                    name: "add"
+                                    font.pixelSize: 14
+                                    color: Theme.grey
+                                }
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: qsTr("Add Property")
+                                    font.pixelSize: 11
+                                    color: Theme.grey
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        addPropertyPopup.componentType = componentSection.componentType
+                                        addPropertyPopup.existingNames = componentSection.componentProperties.map(p => p.name)
+                                        addPropertyPopup.open()
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -439,6 +599,107 @@ Rectangle {
             }
 
             Item { Layout.preferredHeight: 10 }
+        }
+    }
+
+    Popup {
+        id: addPropertyPopup
+
+        property string componentType: ""
+        property var existingNames: []
+
+        readonly property var kinds: [
+            { label: qsTr("Parameter"), prefix: "param", propertyType: "float", defaultValue: 0.0 },
+            { label: qsTr("Color"), prefix: "color", propertyType: "vec4", defaultValue: [1, 1, 1, 1] },
+            { label: qsTr("Texture"), prefix: "texture", propertyType: "resourceRef", defaultValue: "" }
+        ]
+
+        function fullName(kindIndex, name) {
+            return addPropertyPopup.kinds[kindIndex].prefix + ":" + name;
+        }
+
+        function nameTaken(kindIndex, name) {
+            const candidate = addPropertyPopup.fullName(kindIndex, name);
+            return addPropertyPopup.existingNames.indexOf(candidate) !== -1;
+        }
+
+        modal: true
+        anchors.centerIn: Overlay.overlay
+        width: 260
+
+        onOpened: {
+            kindCombo.currentIndex = 0
+            nameInput.text = ""
+            nameInput.forceActiveFocus()
+        }
+
+        background: Rectangle {
+            color: Theme.bgTertiary
+            border.color: Theme.borderColor
+            border.width: 1
+            radius: 8
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 10
+
+            Text {
+                text: qsTr("Add Property")
+                font.pixelSize: 12
+                font.weight: Font.DemiBold
+                color: Theme.white
+            }
+
+            ComboBox {
+                id: kindCombo
+                Layout.fillWidth: true
+                model: addPropertyPopup.kinds.map(k => k.label)
+            }
+
+            TextField {
+                id: nameInput
+                Layout.fillWidth: true
+                placeholderText: qsTr("name")
+                selectByMouse: true
+                color: Theme.white
+            }
+
+            Text {
+                readonly property bool empty: nameInput.text.trim() === ""
+                readonly property bool taken: !empty && addPropertyPopup.nameTaken(kindCombo.currentIndex, nameInput.text.trim())
+                visible: taken
+                text: qsTr("A property with that name already exists.")
+                color: Theme.error
+                font.pixelSize: 10
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
+
+                Item { Layout.fillWidth: true }
+
+                AppButton {
+                    text: qsTr("Cancel")
+                    onClicked: addPropertyPopup.close()
+                }
+
+                AppButton {
+                    text: qsTr("Add")
+                    enabled: nameInput.text.trim() !== ""
+                        && !addPropertyPopup.nameTaken(kindCombo.currentIndex, nameInput.text.trim())
+                    onClicked: {
+                        const kind = addPropertyPopup.kinds[kindCombo.currentIndex]
+                        const name = nameInput.text.trim()
+                        root.propertyEdited(addPropertyPopup.componentType, addPropertyPopup.fullName(kindCombo.currentIndex, name),
+                            kind.propertyType, kind.defaultValue)
+                        addPropertyPopup.close()
+                    }
+                }
+            }
         }
     }
 }
