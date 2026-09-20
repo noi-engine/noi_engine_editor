@@ -608,10 +608,19 @@ Rectangle {
         property string componentType: ""
         property var existingNames: []
 
+        // Textures have no default/builtin fallback the way meshes and materials do (there is
+        // no "always exists" texture) - a new texture *property* is only useful once it points
+        // at a real, already-loaded texture resource, so unlike Parameter/Color it can't ship
+        // with a safe placeholder default. Populated fresh each time the popup opens.
+        readonly property var availableTextures: root.resourceLabelsFor("texture").filter(l => l !== "")
+        readonly property bool isTextureKind: addPropertyPopup.kinds[kindCombo.currentIndex]
+            ? addPropertyPopup.kinds[kindCombo.currentIndex].prefix === "texture"
+            : false
+
         readonly property var kinds: [
             { label: qsTr("Parameter"), prefix: "param", propertyType: "float", defaultValue: 0.0 },
             { label: qsTr("Color"), prefix: "color", propertyType: "vec4", defaultValue: [1, 1, 1, 1] },
-            { label: qsTr("Texture"), prefix: "texture", propertyType: "resourceRef", defaultValue: "" }
+            { label: qsTr("Texture"), prefix: "texture", propertyType: "resourceRef" }
         ]
 
         function fullName(kindIndex, name) {
@@ -665,6 +674,34 @@ Rectangle {
                 color: Theme.white
             }
 
+            // A texture property is only meaningful pointing at a real, already-loaded texture -
+            // there's no safe placeholder to fall back to (unlike Parameter's 0.0 or Color's
+            // white), so require picking one instead of silently defaulting to an empty/unknown
+            // reference (that used to crash the renderer on an invalid handle - see
+            // resource_manager::get() and material::apply() in noi_engine).
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: addPropertyPopup.isTextureKind
+                spacing: 6
+
+                ComboBox {
+                    id: textureCombo
+                    Layout.fillWidth: true
+                    visible: addPropertyPopup.availableTextures.length > 0
+                    model: addPropertyPopup.availableTextures
+                }
+
+                Text {
+                    visible: addPropertyPopup.availableTextures.length === 0
+                    text: qsTr("No textures loaded yet - import an image via the Resource panel and declare it as a texture resource first.")
+                    color: Theme.grey
+                    font.pixelSize: 10
+                    font.italic: true
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+            }
+
             Text {
                 readonly property bool empty: nameInput.text.trim() === ""
                 readonly property bool taken: !empty && addPropertyPopup.nameTaken(kindCombo.currentIndex, nameInput.text.trim())
@@ -691,11 +728,13 @@ Rectangle {
                     text: qsTr("Add")
                     enabled: nameInput.text.trim() !== ""
                         && !addPropertyPopup.nameTaken(kindCombo.currentIndex, nameInput.text.trim())
+                        && (!addPropertyPopup.isTextureKind || addPropertyPopup.availableTextures.length > 0)
                     onClicked: {
                         const kind = addPropertyPopup.kinds[kindCombo.currentIndex]
                         const name = nameInput.text.trim()
+                        const value = addPropertyPopup.isTextureKind ? textureCombo.currentText : kind.defaultValue
                         root.propertyEdited(addPropertyPopup.componentType, addPropertyPopup.fullName(kindCombo.currentIndex, name),
-                            kind.propertyType, kind.defaultValue)
+                            kind.propertyType, value)
                         addPropertyPopup.close()
                     }
                 }
