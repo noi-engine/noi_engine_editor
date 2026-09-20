@@ -50,6 +50,13 @@ namespace noi_engine_editor
         bool pressed{};
     };
 
+    // Same rationale as PendingPropertyEdit: queued until synchronize() applies it (the bridge
+    // handle may only be touched from the render thread).
+    struct PendingSceneSave
+    {
+        QString targetPath;
+    };
+
     class OpenGLView : public QQuickFramebufferObject
     {
         Q_OBJECT
@@ -200,6 +207,18 @@ namespace noi_engine_editor
         // emits playingChanged() - only from here, never from setPlaying(false) directly.
         void confirmStopped();
 
+        // Called from QML (Save button / Ctrl+S). Queues a save of the CURRENT scenePath -
+        // applied from synchronize() the same way as every other bridge-touching call.
+        Q_INVOKABLE void saveScene();
+
+        // Renderer-only: returns and clears all save requests queued since the last call. Same
+        // no-mutex rendezvous-point rule as takePendingPropertyEdits().
+        QVector<PendingSceneSave> takePendingSceneSaves();
+
+        // Renderer-only: called from synchronize() once a queued save has actually been applied
+        // through the bridge. Emits sceneSaved(success) for QML to show a toast/error.
+        void confirmSceneSaved(bool success);
+
         [[nodiscard]] Renderer* createRenderer() const override;
 
     protected:
@@ -224,6 +243,7 @@ namespace noi_engine_editor
         void inspectedMaterialChanged();
         void inspectedMaterialPropertiesChanged();
         void playingChanged();
+        void sceneSaved(bool success);
 
     private:
         void queueKeyEvent(int keyCode, bool pressed);
@@ -254,5 +274,6 @@ namespace noi_engine_editor
         bool m_stopRequested = false;
         QSet<int> m_pressedQtKeys;
         QVector<PendingKeyEvent> m_pendingKeyEvents;
+        QVector<PendingSceneSave> m_pendingSceneSaves;
     };
 }

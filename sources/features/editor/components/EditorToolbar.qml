@@ -9,9 +9,11 @@ Rectangle {
     signal backRequested()
     signal playRequested()
     signal stopRequested()
+    signal saveRequested()
 
     property string currentScenePath: ""
     property bool isPlaying: false
+    property bool sceneDirty: false
 
     readonly property string currentSceneName: {
         if (!currentScenePath) return qsTr("(No scene opened)")
@@ -82,7 +84,7 @@ Rectangle {
             }
 
             Text {
-                text: root.currentSceneName
+                text: root.currentSceneName + (root.sceneDirty ? " •" : "")
                 font.pixelSize: 13
                 font.bold: root.currentScenePath !== ""
                 color: root.currentScenePath !== "" ? Theme.white : Theme.darkGrey
@@ -90,6 +92,13 @@ Rectangle {
         }
 
         Item { Layout.fillWidth: true }
+
+        AppButton {
+            icon: "save"
+            text: qsTr("Save")
+            enabled: root.currentScenePath !== "" && !root.isPlaying
+            onClicked: root.saveRequested()
+        }
 
         AppButton {
             icon: "build"

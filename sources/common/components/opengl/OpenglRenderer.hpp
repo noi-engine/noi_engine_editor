@@ -38,6 +38,7 @@ namespace noi_engine_editor
         auto applyPendingComponentAdds(OpenGLView* view) -> void;
         auto applyPendingMaterialPropertyEdits(OpenGLView* view) -> void;
         auto applyPendingKeyEvents(OpenGLView* view) -> void;
+        auto applyPendingSceneSaves(OpenGLView* view) -> void;
         auto updatePlayState(OpenGLView* view) -> void;
         auto buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities) -> QVariantList;
         auto buildInspectedMaterialProperties(OpenGLView* view) -> QVariantList;

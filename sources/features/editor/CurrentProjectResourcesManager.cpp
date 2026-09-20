@@ -1,5 +1,7 @@
 #include "CurrentProjectResourcesManager.hpp"
 #include <QDirIterator>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 namespace noi_engine_editor
 {
@@ -133,6 +135,98 @@ namespace noi_engine_editor
             }
         }
         return allSuccess;
+    }
+
+    auto CurrentProjectResourcesManager::createFile(const QString& parentFolderPath, const QString& fileName,
+                                                     const QString& content) -> bool
+    {
+        QDir dir(parentFolderPath);
+        if (!dir.exists())
+        {
+            return false;
+        }
+
+        const auto targetPath = dir.filePath(fileName);
+        if (QFile::exists(targetPath))
+        {
+            return false;
+        }
+
+        QFile file(targetPath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            return false;
+        }
+
+        file.write(content.toUtf8());
+        return true;
+    }
+
+    auto CurrentProjectResourcesManager::duplicateItem(const QString& itemPath, const QString& newName) -> bool
+    {
+        QFileInfo fileInfo(itemPath);
+        if (!fileInfo.exists())
+        {
+            return false;
+        }
+
+        const auto targetPath = fileInfo.absoluteDir().filePath(newName);
+        if (QFileInfo::exists(targetPath))
+        {
+            return false;
+        }
+
+        return copyRecursively(itemPath, targetPath);
+    }
+
+    auto CurrentProjectResourcesManager::renameScene(const QString& itemPath, const QString& newName) -> bool
+    {
+        QFileInfo fileInfo(itemPath);
+        if (!fileInfo.exists())
+        {
+            return false;
+        }
+
+        const auto stem = newName.endsWith(QStringLiteral(".scene"))
+            ? newName.chopped(6)
+            : newName;
+        const auto fileName = stem + QStringLiteral(".scene");
+        const auto newPath = fileInfo.absoluteDir().filePath(fileName);
+
+        if (QFileInfo::exists(newPath) && QDir::cleanPath(newPath) != QDir::cleanPath(itemPath))
+        {
+            return false;
+        }
+
+        if (!QDir().rename(itemPath, newPath))
+        {
+            return false;
+        }
+
+        QFile file(newPath);
+        if (!file.open(QIODevice::ReadOnly))
+        {
+            return true; // rename itself succeeded - just couldn't patch the name field
+        }
+        const auto contents = file.readAll();
+        file.close();
+
+        auto doc = QJsonDocument::fromJson(contents);
+        if (!doc.isObject())
+        {
+            return true;
+        }
+
+        auto root = doc.object();
+        root[QStringLiteral("name")] = stem;
+        doc.setObject(root);
+
+        if (file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+        {
+            file.write(doc.toJson(QJsonDocument::Indented));
+        }
+
+        return true;
     }
 
     QStringList CurrentProjectResourcesManager::getAllScenesRecursively(const QString& rootPath)

@@ -15,6 +15,7 @@ CustomPage {
     property string currentScenePath: ""
     property string pendingScenePath: ""
     property bool compileFailureDismissed: false
+    property bool sceneDirty: false
 
     function openScene(filePath) {
         if (viewportPanel.playing) {
@@ -24,7 +25,20 @@ CustomPage {
             root.pendingScenePath = filePath;
         } else {
             root.currentScenePath = filePath;
+            root.sceneDirty = false;
         }
+    }
+
+    function saveCurrentScene() {
+        if (root.currentScenePath === "" || viewportPanel.playing) {
+            return;
+        }
+        viewportPanel.saveScene();
+    }
+
+    Shortcut {
+        sequence: StandardKey.Save
+        onActivated: root.saveCurrentScene()
     }
 
     Component.onCompleted: ProjectBuilder.compile(CurrentProjectManager.path)
@@ -67,6 +81,7 @@ CustomPage {
             Layout.preferredHeight: 56
             currentScenePath: root.currentScenePath
             isPlaying: viewportPanel.playing
+            sceneDirty: root.sceneDirty
 
             onSettingsRequested: settingsDialog.open()
             onBackRequested: {
@@ -75,6 +90,7 @@ CustomPage {
             }
             onPlayRequested: viewportPanel.setPlaying(true)
             onStopRequested: viewportPanel.setPlaying(false)
+            onSaveRequested: root.saveCurrentScene()
         }
 
         SplitView {
@@ -113,6 +129,15 @@ CustomPage {
                     hasInspectedMaterial: root.selectedMaterial !== null
                     inspectedMaterialId: root.selectedMaterial ? root.selectedMaterial.id : 0
                     inspectedMaterialGeneration: root.selectedMaterial ? root.selectedMaterial.generation : 0
+
+                    onSceneSaved: (success) => {
+                        if (success) {
+                            root.sceneDirty = false;
+                            console.log("Scene saved: " + root.currentScenePath);
+                        } else {
+                            console.warn("Failed to save scene: " + root.currentScenePath);
+                        }
+                    }
                 }
 
                 InspectorPanel {
@@ -133,10 +158,12 @@ CustomPage {
                             viewportPanel.setComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
                                 componentType, propertyName, propertyType, value)
                         }
+                        root.sceneDirty = true;
                     }
 
                     onComponentAddRequested: (componentType) => {
                         viewportPanel.addComponent(root.selectedEntity.id, root.selectedEntity.generation, componentType)
+                        root.sceneDirty = true;
                     }
                 }
             }
@@ -159,8 +186,15 @@ CustomPage {
 
                     SceneBrowserPanel {
                         id: scenePanel
+                        sceneDirty: root.sceneDirty
+                        currentScenePath: root.currentScenePath
                         onSceneOpenRequested: function(filePath) {
                             root.openScene(filePath);
+                        }
+                        onSceneRenamed: function(oldPath, newPath) {
+                            if (root.currentScenePath === oldPath) {
+                                root.currentScenePath = newPath;
+                            }
                         }
                     }
 

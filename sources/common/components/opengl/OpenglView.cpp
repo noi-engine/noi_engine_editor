@@ -533,6 +533,29 @@ namespace noi_engine_editor
         Q_EMIT playingChanged();
     }
 
+    void OpenGLView::saveScene()
+    {
+        if (m_scenePath.isEmpty())
+        {
+            return;
+        }
+
+        m_pendingSceneSaves.append(PendingSceneSave{m_scenePath});
+        update();
+    }
+
+    QVector<PendingSceneSave> OpenGLView::takePendingSceneSaves()
+    {
+        auto saves = std::move(m_pendingSceneSaves);
+        m_pendingSceneSaves.clear();
+        return saves;
+    }
+
+    void OpenGLView::confirmSceneSaved(const bool success)
+    {
+        Q_EMIT sceneSaved(success);
+    }
+
     void OpenGLView::queueKeyEvent(const int keyCode, const bool pressed)
     {
         if (keyCode < 0)

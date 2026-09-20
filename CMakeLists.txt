@@ -162,6 +162,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/resources/ResourcePanel.qml
         sources/features/editor/components/resources/ResourceToolbar.qml
         sources/features/editor/components/scenes/SceneBrowserPanel.qml
+        sources/features/editor/components/scenes/NewSceneDialog.qml
         sources/features/editor/components/viewport/ActionGroupPopup.qml
         sources/features/editor/components/viewport/ToolButtonCustom.qml
         sources/features/editor/components/viewport/ViewportPanel.qml

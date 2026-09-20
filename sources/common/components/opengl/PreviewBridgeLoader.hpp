@@ -56,6 +56,11 @@ namespace noi_engine_editor
         // entry points" check, so those bridges still load fine; this call just becomes a no-op.
         auto setGridVisible(noi_engine_editor_bridge_game_handle handle, bool visible) const -> void;
 
+        // Optional, same rationale as setGridVisible(): older bridges won't have this resolved
+        // and the call becomes a no-op (returns false) instead of failing to load.
+        [[nodiscard]] auto saveScene(noi_engine_editor_bridge_game_handle handle,
+                                      const QString& targetPath) const -> bool;
+
     private:
         using init_gl_fn = void (*)(noi_engine_editor_bridge_gl_proc_loader);
         using create_fn = noi_engine_editor_bridge_game_handle (*)(int, int, const char*);
@@ -85,6 +90,7 @@ namespace noi_engine_editor
         using release_all_keys_fn = void (*)(noi_engine_editor_bridge_game_handle);
         using reset_timer_fn = void (*)(noi_engine_editor_bridge_game_handle);
         using set_grid_visible_fn = void (*)(noi_engine_editor_bridge_game_handle, int);
+        using save_scene_fn = int (*)(noi_engine_editor_bridge_game_handle, const char*);
 
         QLibrary m_library;
         init_gl_fn m_initGl{nullptr};
@@ -107,5 +113,6 @@ namespace noi_engine_editor
         release_all_keys_fn m_releaseAllKeys{nullptr};
         reset_timer_fn m_resetTimer{nullptr};
         set_grid_visible_fn m_setGridVisible{nullptr};
+        save_scene_fn m_saveScene{nullptr};
     };
 }

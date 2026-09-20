@@ -55,6 +55,8 @@ namespace noi_engine_editor
         // simply won't have it) keep loading; setGridVisible() below is a silent no-op for them.
         m_setGridVisible = reinterpret_cast<set_grid_visible_fn>(
             m_library.resolve("noi_engine_editor_bridge_set_grid_visible"));
+        m_saveScene = reinterpret_cast<save_scene_fn>(
+            m_library.resolve("noi_engine_editor_bridge_save_scene"));
 
         if (!m_initGl || !m_create || !m_destroy || !m_run || !m_onResize || !m_setScene2d || !m_loadScripts ||
             !m_engineVersion || !m_enumerateResources || !m_enumerateEntities || !m_enumerateComponentProperties ||
@@ -200,5 +202,16 @@ namespace noi_engine_editor
         {
             m_setGridVisible(handle, visible ? 1 : 0);
         }
+    }
+
+    auto PreviewBridgeLoader::saveScene(const noi_engine_editor_bridge_game_handle handle,
+                                         const QString& targetPath) const -> bool
+    {
+        if (!m_saveScene)
+        {
+            return false;
+        }
+
+        return m_saveScene(handle, targetPath.toUtf8().constData()) != 0;
     }
 }

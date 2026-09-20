@@ -374,6 +374,21 @@ namespace noi_engine_editor
         }
     }
 
+    void OpenGLRenderer::applyPendingSceneSaves(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        const auto saves = view->takePendingSceneSaves();
+        for (const auto& save : saves)
+        {
+            const auto success = m_bridge.saveScene(this->m_gameHandle, save.targetPath);
+            view->confirmSceneSaved(success);
+        }
+    }
+
     void OpenGLRenderer::updatePlayState(OpenGLView* view)
     {
         if (!this->m_gameHandle)
@@ -524,6 +539,7 @@ namespace noi_engine_editor
         this->applyPendingComponentAdds(view);
         this->applyPendingPropertyEdits(view);
         this->applyPendingMaterialPropertyEdits(view);
+        this->applyPendingSceneSaves(view);
 
         QVariantList loadedResources;
         QVariantList loadedEntities;

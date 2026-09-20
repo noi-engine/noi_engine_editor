@@ -23,8 +23,19 @@ Item {
 
     readonly property alias playing: openGLView.playing
 
+    signal sceneSaved(bool success)
+
+    Connections {
+        target: openGLView
+        function onSceneSaved(success) { root.sceneSaved(success) }
+    }
+
     function setPlaying(playing) {
         openGLView.setPlaying(playing)
+    }
+
+    function saveScene() {
+        openGLView.saveScene()
     }
 
     function setComponentProperty(entityId, entityGeneration, componentType, propertyName, propertyType, value) {
