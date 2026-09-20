@@ -51,6 +51,11 @@ namespace noi_engine_editor
         auto releaseAllKeys(noi_engine_editor_bridge_game_handle handle) const -> void;
         auto resetTimer(noi_engine_editor_bridge_game_handle handle) const -> void;
 
+        // Optional: older bridges built before this symbol existed simply won't have it resolved
+        // (see m_setGridVisible's resolve() call in the .cpp) - not part of the "missing required
+        // entry points" check, so those bridges still load fine; this call just becomes a no-op.
+        auto setGridVisible(noi_engine_editor_bridge_game_handle handle, bool visible) const -> void;
+
     private:
         using init_gl_fn = void (*)(noi_engine_editor_bridge_gl_proc_loader);
         using create_fn = noi_engine_editor_bridge_game_handle (*)(int, int, const char*);
@@ -79,6 +84,7 @@ namespace noi_engine_editor
         using set_key_released_fn = void (*)(noi_engine_editor_bridge_game_handle, int);
         using release_all_keys_fn = void (*)(noi_engine_editor_bridge_game_handle);
         using reset_timer_fn = void (*)(noi_engine_editor_bridge_game_handle);
+        using set_grid_visible_fn = void (*)(noi_engine_editor_bridge_game_handle, int);
 
         QLibrary m_library;
         init_gl_fn m_initGl{nullptr};
@@ -100,5 +106,6 @@ namespace noi_engine_editor
         set_key_released_fn m_setKeyReleased{nullptr};
         release_all_keys_fn m_releaseAllKeys{nullptr};
         reset_timer_fn m_resetTimer{nullptr};
+        set_grid_visible_fn m_setGridVisible{nullptr};
     };
 }

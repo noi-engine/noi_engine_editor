@@ -9,6 +9,7 @@ Rectangle {
     property string activeTool: "move"
     property bool isCollapsed: false
     property real zoomValue: 1.0
+    property bool gridVisible: false
 
     signal toolChanged(string tool)
     signal zoomInRequested()
@@ -17,6 +18,7 @@ Rectangle {
     signal setZoomRequested(real zoom)
     signal modifyWorldSizeRequested(real factor)
     signal resetAllRequested()
+    signal gridVisibleToggled(bool visible)
 
     width: isCollapsed ? 68 : toolRow.implicitWidth + 20
     height: 40
@@ -120,6 +122,28 @@ Rectangle {
                 iconName: "filter_center_focus"
                 tooltipText: "Reset All (Zoom & Position)"
                 onClicked: toolbar.resetAllRequested()
+            }
+
+            ActionGroupPopup {
+                iconName: "grid_4x4"
+                tooltipText: "View Options"
+                actions: [
+                    {
+                        type: "custom",
+                        items: [
+                            {
+                                iconName: toolbar.gridVisible ? "grid_on" : "grid_off",
+                                tooltipText: toolbar.gridVisible ? "Hide Reference Grid" : "Show Reference Grid",
+                                isActive: toolbar.gridVisible,
+                                closeOnClick: false,
+                                triggered: function() {
+                                    toolbar.gridVisible = !toolbar.gridVisible
+                                    toolbar.gridVisibleToggled(toolbar.gridVisible)
+                                }
+                            }
+                        ]
+                    }
+                ]
             }
 
             Rectangle {

@@ -50,6 +50,11 @@ namespace noi_engine_editor
             m_library.resolve("noi_engine_editor_bridge_release_all_keys"));
         m_resetTimer = reinterpret_cast<reset_timer_fn>(
             m_library.resolve("noi_engine_editor_bridge_reset_timer"));
+        // Optional - added after the first bridges shipped. Intentionally left out of the
+        // "missing required entry points" check below so older, already-built bridges (which
+        // simply won't have it) keep loading; setGridVisible() below is a silent no-op for them.
+        m_setGridVisible = reinterpret_cast<set_grid_visible_fn>(
+            m_library.resolve("noi_engine_editor_bridge_set_grid_visible"));
 
         if (!m_initGl || !m_create || !m_destroy || !m_run || !m_onResize || !m_setScene2d || !m_loadScripts ||
             !m_engineVersion || !m_enumerateResources || !m_enumerateEntities || !m_enumerateComponentProperties ||
@@ -186,5 +191,14 @@ namespace noi_engine_editor
     auto PreviewBridgeLoader::resetTimer(const noi_engine_editor_bridge_game_handle handle) const -> void
     {
         m_resetTimer(handle);
+    }
+
+    auto PreviewBridgeLoader::setGridVisible(const noi_engine_editor_bridge_game_handle handle,
+                                              const bool visible) const -> void
+    {
+        if (m_setGridVisible)
+        {
+            m_setGridVisible(handle, visible ? 1 : 0);
+        }
     }
 }

@@ -41,6 +41,7 @@ Item {
 
     property string activeTool: "move"
     property real cameraZoom: 1.0
+    property alias gridVisible: openGLView.gridVisible
 
     property real worldWidth: CurrentProjectManager.windowWidth
     property real worldHeight: CurrentProjectManager.windowHeight
@@ -86,6 +87,11 @@ Item {
                 OpenGLView {
                     id: openGLView
                     anchors.fill: parent
+                    // OpenGL renders into the FBO bottom-up; QQuickFramebufferObject does not
+                    // correct for that by default, so the preview is displayed upside down.
+                    // Invisible on symmetric content (grid, border), but it inverts the
+                    // perceived direction of any vertical movement - see mirrorVertically's docs.
+                    mirrorVertically: true
                     scenePath: root.scenePath
                     resourcesPath: CurrentProjectManager.resourcesPath()
                     scriptsLibraryPath: CurrentProjectManager.scriptsLibraryPath()
@@ -120,8 +126,10 @@ Item {
             visible: root.scenePath !== ""
             activeTool: root.activeTool
             zoomValue: root.cameraZoom
+            gridVisible: root.gridVisible
 
             onToolChanged: (tool) => root.activeTool = tool
+            onGridVisibleToggled: (visible) => root.gridVisible = visible
             onZoomInRequested: root.cameraZoom += 0.25
             onZoomOutRequested: root.cameraZoom = Math.max(0.1, root.cameraZoom - 0.25)
             onZoomResetRequested: root.cameraZoom = 1.0

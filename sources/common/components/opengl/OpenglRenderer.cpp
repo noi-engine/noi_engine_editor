@@ -514,6 +514,12 @@ namespace noi_engine_editor
             }
         }
 
+        if (this->m_gameHandle && view->gridVisible() != m_lastPushedGridVisible)
+        {
+            m_lastPushedGridVisible = view->gridVisible();
+            m_bridge.setGridVisible(this->m_gameHandle, m_lastPushedGridVisible);
+        }
+
         this->updatePlayState(view);
         this->applyPendingComponentAdds(view);
         this->applyPendingPropertyEdits(view);

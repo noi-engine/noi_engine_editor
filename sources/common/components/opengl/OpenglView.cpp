@@ -230,6 +230,24 @@ namespace noi_engine_editor
         update();
     }
 
+    bool OpenGLView::gridVisible() const
+    {
+        return this->m_gridVisible;
+    }
+
+    void OpenGLView::setGridVisible(const bool visible)
+    {
+        if (m_gridVisible == visible)
+        {
+            return;
+        }
+
+        m_gridVisible = visible;
+        Q_EMIT gridVisibleChanged();
+
+        update();
+    }
+
     QVariantList OpenGLView::loadedResources() const
     {
         return this->m_loadedResources;

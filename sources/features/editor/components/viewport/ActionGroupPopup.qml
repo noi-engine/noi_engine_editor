@@ -62,6 +62,7 @@ ToolButtonCustom {
                                     required property var modelData
                                     iconName: modelData.iconName || ""
                                     tooltipText: modelData.tooltipText || ""
+                                    isActive: modelData.isActive || false
                                     onClicked: {
                                         if (modelData.triggered) modelData.triggered()
                                         var closeOnClick = modelData.closeOnClick !== undefined ? modelData.closeOnClick : true

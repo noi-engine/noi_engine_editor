@@ -58,6 +58,7 @@ namespace noi_engine_editor
         // Render-thread-owned confirmed ticking state - distinct from OpenGLView::isPlaying(),
         // which is the GUI-thread-requested state; see updatePlayState().
         bool m_wasPlaying{false};
+        bool m_lastPushedGridVisible{false}; // matches bridge_game's own default
         PreviewBridgeLoader m_bridge{};
         noi_engine_editor_bridge_game_handle m_gameHandle{nullptr};
     };
