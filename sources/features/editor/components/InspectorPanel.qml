@@ -15,6 +15,8 @@ Rectangle {
 
     signal propertyEdited(string componentType, string propertyName, string propertyType, var value)
     signal componentAddRequested(string componentType)
+    signal componentRemoved(string componentType)
+    signal propertyRemoved(string componentType, string propertyName)
 
     readonly property var allComponentTypes: [
         "transform", "camera_2d", "camera_3d", "orbit_camera", "render_layer",
@@ -77,6 +79,16 @@ Rectangle {
             return fullName.substring(idx + 1);
         }
         return fullName;
+    }
+
+    // Same prefix check as displayName() - true for the dynamic param:/color:/texture: entries
+    // that "Add Property" can create (and that can therefore also be removed), false for a
+    // component's own fixed fields (e.g. transform.position).
+    function isDynamicProperty(fullName) {
+        const idx = fullName.indexOf(":");
+        if (idx === -1) return false;
+        const prefix = fullName.substring(0, idx);
+        return prefix === "color" || prefix === "param" || prefix === "texture";
     }
 
     // Known value constraints for built-in engine components, applied via PropertyField's
@@ -223,6 +235,21 @@ Rectangle {
                                 font.italic: true
                                 color: Theme.grey
                             }
+
+                            MuiIcon {
+                                name: "delete"
+                                font.pixelSize: 14
+                                color: Theme.grey
+                                visible: root.entity !== null && componentSection.componentType !== "name_component"
+                                    && !componentSection.forcedReadOnly
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    anchors.margins: -4
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.componentRemoved(componentSection.componentType)
+                                }
+                            }
                         }
 
                         Repeater {
@@ -242,11 +269,33 @@ Rectangle {
                                     width: parent.width
                                     spacing: 6
 
-                                    Text {
+                                    RowLayout {
                                         visible: propRow.modelData.type !== "bool" && propRow.modelData.type !== "vec4"
-                                        text: root.displayName(propRow.modelData.name)
-                                        font.pixelSize: 10
-                                        color: Theme.darkGrey
+                                        Layout.fillWidth: true
+                                        spacing: 6
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: root.displayName(propRow.modelData.name)
+                                            font.pixelSize: 10
+                                            color: Theme.darkGrey
+                                        }
+
+                                        MuiIcon {
+                                            name: "delete"
+                                            font.pixelSize: 12
+                                            color: Theme.grey
+                                            visible: root.supportsAddProperty(componentSection.componentType)
+                                                && root.isDynamicProperty(propRow.modelData.name)
+                                                && !propRow.effectiveReadOnly
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                anchors.margins: -4
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: root.propertyRemoved(componentSection.componentType, propRow.modelData.name)
+                                            }
+                                        }
                                     }
 
                                     RowLayout {
@@ -316,6 +365,22 @@ Rectangle {
                                                 font.pixelSize: 11
                                                 color: Theme.darkGrey
                                                 elide: Text.ElideRight
+                                            }
+
+                                            MuiIcon {
+                                                name: "delete"
+                                                font.pixelSize: 12
+                                                color: Theme.grey
+                                                visible: root.supportsAddProperty(componentSection.componentType)
+                                                    && root.isDynamicProperty(propRow.modelData.name)
+                                                    && !propRow.effectiveReadOnly
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    anchors.margins: -4
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: root.propertyRemoved(componentSection.componentType, propRow.modelData.name)
+                                                }
                                             }
                                         }
 

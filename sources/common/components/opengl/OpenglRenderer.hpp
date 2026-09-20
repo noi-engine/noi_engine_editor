@@ -36,7 +36,13 @@ namespace noi_engine_editor
                                            noi_engine_editor_bridge_property_value value, int readOnly) -> void;
         auto applyPendingPropertyEdits(OpenGLView* view) -> void;
         auto applyPendingComponentAdds(OpenGLView* view) -> void;
+        auto applyPendingComponentRemoves(OpenGLView* view) -> void;
+        auto applyPendingComponentPropertyRemoves(OpenGLView* view) -> void;
         auto applyPendingMaterialPropertyEdits(OpenGLView* view) -> void;
+        auto applyPendingMaterialPropertyRemoves(OpenGLView* view) -> void;
+        auto applyPendingEntityCreates(OpenGLView* view) -> void;
+        auto applyPendingEntityDestroys(OpenGLView* view) -> void;
+        auto applyPendingEntityDuplicates(OpenGLView* view) -> void;
         auto applyPendingKeyEvents(OpenGLView* view) -> void;
         auto applyPendingSceneSaves(OpenGLView* view) -> void;
         auto updatePlayState(OpenGLView* view) -> void;

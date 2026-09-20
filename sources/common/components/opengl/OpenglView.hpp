@@ -57,6 +57,47 @@ namespace noi_engine_editor
         QString targetPath;
     };
 
+    // Entity/component CRUD - same queue-until-synchronize() rationale as every struct above.
+    struct PendingEntityCreate
+    {
+        QString name;
+    };
+
+    struct PendingEntityDestroy
+    {
+        quint32 entityId{};
+        quint32 entityGeneration{};
+    };
+
+    struct PendingEntityDuplicate
+    {
+        quint32 entityId{};
+        quint32 entityGeneration{};
+        QString newName;
+    };
+
+    struct PendingComponentRemove
+    {
+        quint32 entityId{};
+        quint32 entityGeneration{};
+        QString componentType;
+    };
+
+    struct PendingComponentPropertyRemove
+    {
+        quint32 entityId{};
+        quint32 entityGeneration{};
+        QString componentType;
+        QString propertyName;
+    };
+
+    struct PendingMaterialPropertyRemove
+    {
+        quint32 materialId{};
+        quint32 materialGeneration{};
+        QString propertyName;
+    };
+
     class OpenGLView : public QQuickFramebufferObject
     {
         Q_OBJECT
@@ -160,6 +201,36 @@ namespace noi_engine_editor
         Q_INVOKABLE void addComponent(quint32 entityId, quint32 entityGeneration, const QString& componentType);
         QVector<PendingComponentAdd> takePendingComponentAdds();
 
+        // Called from QML to remove a component from an entity. Queued/drained like addComponent.
+        Q_INVOKABLE void removeComponent(quint32 entityId, quint32 entityGeneration, const QString& componentType);
+        QVector<PendingComponentRemove> takePendingComponentRemoves();
+
+        // Called from QML to erase one dynamic "param:"/"color:"/"texture:" entry from
+        // mesh_renderer_properties. Queued/drained like setComponentProperty.
+        Q_INVOKABLE void removeComponentProperty(quint32 entityId, quint32 entityGeneration,
+                                                  const QString& componentType, const QString& propertyName);
+        QVector<PendingComponentPropertyRemove> takePendingComponentPropertyRemoves();
+
+        // Called from QML's "+" button in the Hierarchy panel. Queued/drained like addComponent;
+        // the new entity's id/generation are surfaced via entityCreated() once synchronize() has
+        // actually created it, so QML can auto-select it the same frame it appears in
+        // loadedEntities.
+        Q_INVOKABLE void createEntity(const QString& name);
+        QVector<PendingEntityCreate> takePendingEntityCreates();
+
+        // Called from the Hierarchy panel's context menu. Queued/drained like addComponent.
+        Q_INVOKABLE void destroyEntity(quint32 entityId, quint32 entityGeneration);
+        QVector<PendingEntityDestroy> takePendingEntityDestroys();
+
+        // Called from the Hierarchy panel's context menu. Same entityCreated() rationale as
+        // createEntity().
+        Q_INVOKABLE void duplicateEntity(quint32 entityId, quint32 entityGeneration, const QString& newName);
+        QVector<PendingEntityDuplicate> takePendingEntityDuplicates();
+
+        // Renderer-only: called from synchronize() right after a queued create/duplicate has
+        // actually been applied through the bridge, so QML can auto-select the new entity.
+        void notifyEntityCreated(quint32 entityId, quint32 entityGeneration);
+
         // Same primitives-only rationale as the inspectedEntity* properties above.
         bool hasInspectedMaterial() const;
         void setHasInspectedMaterial(bool hasMaterial);
@@ -177,6 +248,12 @@ namespace noi_engine_editor
                                               const QString& propertyName, const QString& propertyType,
                                               const QVariant& value);
         QVector<PendingMaterialPropertyEdit> takePendingMaterialPropertyEdits();
+
+        // Called from QML to erase one dynamic "param:"/"color:"/"texture:" entry from a
+        // material resource. Queued/drained like setMaterialProperty.
+        Q_INVOKABLE void removeMaterialProperty(quint32 materialId, quint32 materialGeneration,
+                                                 const QString& propertyName);
+        QVector<PendingMaterialPropertyRemove> takePendingMaterialPropertyRemoves();
 
         [[nodiscard]] bool isPlaying() const;
 
@@ -244,6 +321,9 @@ namespace noi_engine_editor
         void inspectedMaterialPropertiesChanged();
         void playingChanged();
         void sceneSaved(bool success);
+        // Emitted once a queued createEntity()/duplicateEntity() has actually been applied
+        // through the bridge, so QML can auto-select the new entity in the Hierarchy.
+        void entityCreated(quint32 entityId, quint32 entityGeneration);
 
     private:
         void queueKeyEvent(int keyCode, bool pressed);
@@ -275,5 +355,11 @@ namespace noi_engine_editor
         QSet<int> m_pressedQtKeys;
         QVector<PendingKeyEvent> m_pendingKeyEvents;
         QVector<PendingSceneSave> m_pendingSceneSaves;
+        QVector<PendingComponentRemove> m_pendingComponentRemoves;
+        QVector<PendingComponentPropertyRemove> m_pendingComponentPropertyRemoves;
+        QVector<PendingMaterialPropertyRemove> m_pendingMaterialPropertyRemoves;
+        QVector<PendingEntityCreate> m_pendingEntityCreates;
+        QVector<PendingEntityDestroy> m_pendingEntityDestroys;
+        QVector<PendingEntityDuplicate> m_pendingEntityDuplicates;
     };
 }

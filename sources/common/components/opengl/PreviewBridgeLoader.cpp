@@ -57,6 +57,19 @@ namespace noi_engine_editor
             m_library.resolve("noi_engine_editor_bridge_set_grid_visible"));
         m_saveScene = reinterpret_cast<save_scene_fn>(
             m_library.resolve("noi_engine_editor_bridge_save_scene"));
+        // Optional, same rationale as setGridVisible/saveScene above.
+        m_createEntity = reinterpret_cast<create_entity_fn>(
+            m_library.resolve("noi_engine_editor_bridge_create_entity"));
+        m_destroyEntity = reinterpret_cast<destroy_entity_fn>(
+            m_library.resolve("noi_engine_editor_bridge_destroy_entity"));
+        m_duplicateEntity = reinterpret_cast<duplicate_entity_fn>(
+            m_library.resolve("noi_engine_editor_bridge_duplicate_entity"));
+        m_removeComponent = reinterpret_cast<remove_component_fn>(
+            m_library.resolve("noi_engine_editor_bridge_remove_component"));
+        m_removeComponentProperty = reinterpret_cast<remove_component_property_fn>(
+            m_library.resolve("noi_engine_editor_bridge_remove_component_property"));
+        m_removeMaterialProperty = reinterpret_cast<remove_material_property_fn>(
+            m_library.resolve("noi_engine_editor_bridge_remove_material_property"));
 
         if (!m_initGl || !m_create || !m_destroy || !m_run || !m_onResize || !m_setScene2d || !m_loadScripts ||
             !m_engineVersion || !m_enumerateResources || !m_enumerateEntities || !m_enumerateComponentProperties ||
@@ -213,5 +226,76 @@ namespace noi_engine_editor
         }
 
         return m_saveScene(handle, targetPath.toUtf8().constData()) != 0;
+    }
+
+    auto PreviewBridgeLoader::createEntity(const noi_engine_editor_bridge_game_handle handle,
+                                            const QString& name) const -> noi_engine_editor_bridge_entity_ref
+    {
+        if (!m_createEntity)
+        {
+            return {0, 0};
+        }
+
+        return m_createEntity(handle, name.toUtf8().constData());
+    }
+
+    auto PreviewBridgeLoader::destroyEntity(const noi_engine_editor_bridge_game_handle handle,
+                                             const uint32_t entityId, const uint32_t entityGeneration) const -> bool
+    {
+        if (!m_destroyEntity)
+        {
+            return false;
+        }
+
+        return m_destroyEntity(handle, entityId, entityGeneration) != 0;
+    }
+
+    auto PreviewBridgeLoader::duplicateEntity(const noi_engine_editor_bridge_game_handle handle,
+                                               const uint32_t entityId, const uint32_t entityGeneration,
+                                               const QString& newName) const -> noi_engine_editor_bridge_entity_ref
+    {
+        if (!m_duplicateEntity)
+        {
+            return {0, 0};
+        }
+
+        return m_duplicateEntity(handle, entityId, entityGeneration, newName.toUtf8().constData());
+    }
+
+    auto PreviewBridgeLoader::removeComponent(const noi_engine_editor_bridge_game_handle handle,
+                                               const uint32_t entityId, const uint32_t entityGeneration,
+                                               const char* const componentType) const -> bool
+    {
+        if (!m_removeComponent)
+        {
+            return false;
+        }
+
+        return m_removeComponent(handle, entityId, entityGeneration, componentType) != 0;
+    }
+
+    auto PreviewBridgeLoader::removeComponentProperty(const noi_engine_editor_bridge_game_handle handle,
+                                                        const uint32_t entityId, const uint32_t entityGeneration,
+                                                        const char* const componentType,
+                                                        const char* const propertyName) const -> bool
+    {
+        if (!m_removeComponentProperty)
+        {
+            return false;
+        }
+
+        return m_removeComponentProperty(handle, entityId, entityGeneration, componentType, propertyName) != 0;
+    }
+
+    auto PreviewBridgeLoader::removeMaterialProperty(const noi_engine_editor_bridge_game_handle handle,
+                                                       const uint32_t materialId, const uint32_t materialGeneration,
+                                                       const char* const propertyName) const -> bool
+    {
+        if (!m_removeMaterialProperty)
+        {
+            return false;
+        }
+
+        return m_removeMaterialProperty(handle, materialId, materialGeneration, propertyName) != 0;
     }
 }

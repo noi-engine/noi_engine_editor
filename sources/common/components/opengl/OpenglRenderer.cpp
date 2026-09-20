@@ -302,6 +302,95 @@ namespace noi_engine_editor
         }
     }
 
+    void OpenGLRenderer::applyPendingComponentRemoves(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        const auto removes = view->takePendingComponentRemoves();
+        for (const auto& remove : removes)
+        {
+            if (!m_bridge.removeComponent(this->m_gameHandle, remove.entityId, remove.entityGeneration,
+                                           remove.componentType.toUtf8().constData()))
+            {
+                qWarning() << "[OpenGLRenderer] Failed to remove component" << remove.componentType;
+            }
+        }
+    }
+
+    void OpenGLRenderer::applyPendingComponentPropertyRemoves(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        const auto removes = view->takePendingComponentPropertyRemoves();
+        for (const auto& remove : removes)
+        {
+            if (!m_bridge.removeComponentProperty(this->m_gameHandle, remove.entityId, remove.entityGeneration,
+                                                   remove.componentType.toUtf8().constData(),
+                                                   remove.propertyName.toUtf8().constData()))
+            {
+                qWarning() << "[OpenGLRenderer] Failed to remove property" << remove.propertyName;
+            }
+        }
+    }
+
+    void OpenGLRenderer::applyPendingEntityCreates(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        const auto creates = view->takePendingEntityCreates();
+        for (const auto& create : creates)
+        {
+            const auto ref = m_bridge.createEntity(this->m_gameHandle, create.name);
+            view->notifyEntityCreated(ref.id, ref.generation);
+        }
+    }
+
+    void OpenGLRenderer::applyPendingEntityDestroys(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        // Clearing a stale Inspector selection when its entity gets destroyed is the QML layer's
+        // job (ProjectEditorPage.qml sets selectedEntity = null before queuing this) - hasInspectedEntity
+        // is a two-way alias bound to `selectedEntity !== null` there, and writing it directly
+        // from here would sever that binding for good, not just for this one frame.
+        const auto destroys = view->takePendingEntityDestroys();
+        for (const auto& destroy : destroys)
+        {
+            if (!m_bridge.destroyEntity(this->m_gameHandle, destroy.entityId, destroy.entityGeneration))
+            {
+                qWarning() << "[OpenGLRenderer] Failed to destroy entity" << destroy.entityId;
+            }
+        }
+    }
+
+    void OpenGLRenderer::applyPendingEntityDuplicates(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        const auto duplicates = view->takePendingEntityDuplicates();
+        for (const auto& duplicate : duplicates)
+        {
+            const auto ref = m_bridge.duplicateEntity(this->m_gameHandle, duplicate.entityId,
+                                                       duplicate.entityGeneration, duplicate.newName);
+            view->notifyEntityCreated(ref.id, ref.generation);
+        }
+    }
+
     void OpenGLRenderer::applyPendingMaterialPropertyEdits(OpenGLView* view)
     {
         if (!this->m_gameHandle)
@@ -349,6 +438,24 @@ namespace noi_engine_editor
                                                edit.propertyName.toUtf8().constData(), value))
             {
                 qWarning() << "[OpenGLRenderer] Failed to set material property" << edit.propertyName;
+            }
+        }
+    }
+
+    void OpenGLRenderer::applyPendingMaterialPropertyRemoves(OpenGLView* view)
+    {
+        if (!this->m_gameHandle)
+        {
+            return;
+        }
+
+        const auto removes = view->takePendingMaterialPropertyRemoves();
+        for (const auto& remove : removes)
+        {
+            if (!m_bridge.removeMaterialProperty(this->m_gameHandle, remove.materialId, remove.materialGeneration,
+                                                  remove.propertyName.toUtf8().constData()))
+            {
+                qWarning() << "[OpenGLRenderer] Failed to remove material property" << remove.propertyName;
             }
         }
     }
@@ -536,9 +643,15 @@ namespace noi_engine_editor
         }
 
         this->updatePlayState(view);
+        this->applyPendingEntityCreates(view);
+        this->applyPendingEntityDuplicates(view);
+        this->applyPendingEntityDestroys(view);
         this->applyPendingComponentAdds(view);
+        this->applyPendingComponentRemoves(view);
+        this->applyPendingComponentPropertyRemoves(view);
         this->applyPendingPropertyEdits(view);
         this->applyPendingMaterialPropertyEdits(view);
+        this->applyPendingMaterialPropertyRemoves(view);
         this->applyPendingSceneSaves(view);
 
         QVariantList loadedResources;

@@ -93,11 +93,28 @@ Rectangle {
 
         Item { Layout.fillWidth: true }
 
-        AppButton {
-            icon: "save"
-            text: qsTr("Save")
-            enabled: root.currentScenePath !== "" && !root.isPlaying
-            onClicked: root.saveRequested()
+        Item {
+            Layout.preferredWidth: saveButton.implicitWidth
+            Layout.preferredHeight: saveButton.implicitHeight
+
+            AppButton {
+                id: saveButton
+                icon: "save"
+                text: root.sceneDirty ? qsTr("Save •") : qsTr("Save")
+                enabled: root.currentScenePath !== "" && !root.isPlaying
+                onClicked: root.saveRequested()
+            }
+
+            Rectangle {
+                visible: root.sceneDirty
+                width: 8
+                height: 8
+                radius: 4
+                color: "#ff6b6b"
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: -2
+            }
         }
 
         AppButton {

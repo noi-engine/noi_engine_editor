@@ -382,6 +382,79 @@ namespace noi_engine_editor
         return adds;
     }
 
+    void OpenGLView::removeComponent(const quint32 entityId, const quint32 entityGeneration,
+                                      const QString& componentType)
+    {
+        m_pendingComponentRemoves.append(PendingComponentRemove{entityId, entityGeneration, componentType});
+        update();
+    }
+
+    QVector<PendingComponentRemove> OpenGLView::takePendingComponentRemoves()
+    {
+        auto removes = std::move(m_pendingComponentRemoves);
+        m_pendingComponentRemoves.clear();
+        return removes;
+    }
+
+    void OpenGLView::removeComponentProperty(const quint32 entityId, const quint32 entityGeneration,
+                                              const QString& componentType, const QString& propertyName)
+    {
+        m_pendingComponentPropertyRemoves.append(
+            PendingComponentPropertyRemove{entityId, entityGeneration, componentType, propertyName});
+        update();
+    }
+
+    QVector<PendingComponentPropertyRemove> OpenGLView::takePendingComponentPropertyRemoves()
+    {
+        auto removes = std::move(m_pendingComponentPropertyRemoves);
+        m_pendingComponentPropertyRemoves.clear();
+        return removes;
+    }
+
+    void OpenGLView::createEntity(const QString& name)
+    {
+        m_pendingEntityCreates.append(PendingEntityCreate{name});
+        update();
+    }
+
+    QVector<PendingEntityCreate> OpenGLView::takePendingEntityCreates()
+    {
+        auto creates = std::move(m_pendingEntityCreates);
+        m_pendingEntityCreates.clear();
+        return creates;
+    }
+
+    void OpenGLView::destroyEntity(const quint32 entityId, const quint32 entityGeneration)
+    {
+        m_pendingEntityDestroys.append(PendingEntityDestroy{entityId, entityGeneration});
+        update();
+    }
+
+    QVector<PendingEntityDestroy> OpenGLView::takePendingEntityDestroys()
+    {
+        auto destroys = std::move(m_pendingEntityDestroys);
+        m_pendingEntityDestroys.clear();
+        return destroys;
+    }
+
+    void OpenGLView::duplicateEntity(const quint32 entityId, const quint32 entityGeneration, const QString& newName)
+    {
+        m_pendingEntityDuplicates.append(PendingEntityDuplicate{entityId, entityGeneration, newName});
+        update();
+    }
+
+    QVector<PendingEntityDuplicate> OpenGLView::takePendingEntityDuplicates()
+    {
+        auto duplicates = std::move(m_pendingEntityDuplicates);
+        m_pendingEntityDuplicates.clear();
+        return duplicates;
+    }
+
+    void OpenGLView::notifyEntityCreated(const quint32 entityId, const quint32 entityGeneration)
+    {
+        Q_EMIT entityCreated(entityId, entityGeneration);
+    }
+
     bool OpenGLView::hasInspectedMaterial() const
     {
         return this->m_hasInspectedMaterial;
@@ -467,6 +540,20 @@ namespace noi_engine_editor
         auto edits = std::move(m_pendingMaterialPropertyEdits);
         m_pendingMaterialPropertyEdits.clear();
         return edits;
+    }
+
+    void OpenGLView::removeMaterialProperty(const quint32 materialId, const quint32 materialGeneration,
+                                             const QString& propertyName)
+    {
+        m_pendingMaterialPropertyRemoves.append(PendingMaterialPropertyRemove{materialId, materialGeneration, propertyName});
+        update();
+    }
+
+    QVector<PendingMaterialPropertyRemove> OpenGLView::takePendingMaterialPropertyRemoves()
+    {
+        auto removes = std::move(m_pendingMaterialPropertyRemoves);
+        m_pendingMaterialPropertyRemoves.clear();
+        return removes;
     }
 
     bool OpenGLView::isPlaying() const

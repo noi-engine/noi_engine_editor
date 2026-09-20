@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 
 import noi_engine_editor
@@ -7,10 +8,13 @@ Rectangle {
     id: root
 
     required property string entityName
-
     property bool selected: false
+    property bool isLocked: false // camera entity - not renameable/deletable, but still duplicable
 
     signal clicked()
+    signal renameRequested()
+    signal duplicateRequested()
+    signal deleteRequested()
 
     Layout.fillWidth: true
     height: 32
@@ -45,6 +49,32 @@ Rectangle {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
-        onClicked: root.clicked()
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+
+        onClicked: mouse => {
+            root.clicked()
+            if (mouse.button === Qt.RightButton) {
+                hierarchyMenu.popup()
+            }
+        }
+    }
+
+    Menu {
+        id: hierarchyMenu
+
+        MenuItem {
+            text: qsTr("Rename")
+            enabled: !root.isLocked
+            onTriggered: root.renameRequested()
+        }
+        MenuItem {
+            text: qsTr("Duplicate")
+            onTriggered: root.duplicateRequested()
+        }
+        MenuItem {
+            text: qsTr("Delete")
+            enabled: !root.isLocked
+            onTriggered: root.deleteRequested()
+        }
     }
 }

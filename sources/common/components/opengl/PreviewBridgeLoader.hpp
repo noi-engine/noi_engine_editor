@@ -61,6 +61,26 @@ namespace noi_engine_editor
         [[nodiscard]] auto saveScene(noi_engine_editor_bridge_game_handle handle,
                                       const QString& targetPath) const -> bool;
 
+        // Optional (same rationale as saveScene/setGridVisible) - entity/component CRUD.
+        // A zeroed {0, 0} ref or false/0-returning call means either failure or an unresolved
+        // (older) bridge; callers can't tell those apart, same as every other optional entry
+        // point here.
+        [[nodiscard]] auto createEntity(noi_engine_editor_bridge_game_handle handle,
+                                         const QString& name) const -> noi_engine_editor_bridge_entity_ref;
+        [[nodiscard]] auto destroyEntity(noi_engine_editor_bridge_game_handle handle, uint32_t entityId,
+                                          uint32_t entityGeneration) const -> bool;
+        [[nodiscard]] auto duplicateEntity(noi_engine_editor_bridge_game_handle handle, uint32_t entityId,
+                                            uint32_t entityGeneration,
+                                            const QString& newName) const -> noi_engine_editor_bridge_entity_ref;
+        [[nodiscard]] auto removeComponent(noi_engine_editor_bridge_game_handle handle, uint32_t entityId,
+                                            uint32_t entityGeneration, const char* componentType) const -> bool;
+        [[nodiscard]] auto removeComponentProperty(noi_engine_editor_bridge_game_handle handle, uint32_t entityId,
+                                                     uint32_t entityGeneration, const char* componentType,
+                                                     const char* propertyName) const -> bool;
+        [[nodiscard]] auto removeMaterialProperty(noi_engine_editor_bridge_game_handle handle, uint32_t materialId,
+                                                    uint32_t materialGeneration,
+                                                    const char* propertyName) const -> bool;
+
     private:
         using init_gl_fn = void (*)(noi_engine_editor_bridge_gl_proc_loader);
         using create_fn = noi_engine_editor_bridge_game_handle (*)(int, int, const char*);
@@ -91,6 +111,16 @@ namespace noi_engine_editor
         using reset_timer_fn = void (*)(noi_engine_editor_bridge_game_handle);
         using set_grid_visible_fn = void (*)(noi_engine_editor_bridge_game_handle, int);
         using save_scene_fn = int (*)(noi_engine_editor_bridge_game_handle, const char*);
+        using create_entity_fn = noi_engine_editor_bridge_entity_ref (*)(noi_engine_editor_bridge_game_handle,
+                                                                          const char*);
+        using destroy_entity_fn = int (*)(noi_engine_editor_bridge_game_handle, uint32_t, uint32_t);
+        using duplicate_entity_fn = noi_engine_editor_bridge_entity_ref (*)(noi_engine_editor_bridge_game_handle,
+                                                                             uint32_t, uint32_t, const char*);
+        using remove_component_fn = int (*)(noi_engine_editor_bridge_game_handle, uint32_t, uint32_t, const char*);
+        using remove_component_property_fn = int (*)(noi_engine_editor_bridge_game_handle, uint32_t, uint32_t,
+                                                        const char*, const char*);
+        using remove_material_property_fn = int (*)(noi_engine_editor_bridge_game_handle, uint32_t, uint32_t,
+                                                       const char*);
 
         QLibrary m_library;
         init_gl_fn m_initGl{nullptr};
@@ -114,5 +144,11 @@ namespace noi_engine_editor
         reset_timer_fn m_resetTimer{nullptr};
         set_grid_visible_fn m_setGridVisible{nullptr};
         save_scene_fn m_saveScene{nullptr};
+        create_entity_fn m_createEntity{nullptr};
+        destroy_entity_fn m_destroyEntity{nullptr};
+        duplicate_entity_fn m_duplicateEntity{nullptr};
+        remove_component_fn m_removeComponent{nullptr};
+        remove_component_property_fn m_removeComponentProperty{nullptr};
+        remove_material_property_fn m_removeMaterialProperty{nullptr};
     };
 }

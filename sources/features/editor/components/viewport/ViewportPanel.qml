@@ -24,10 +24,12 @@ Item {
     readonly property alias playing: openGLView.playing
 
     signal sceneSaved(bool success)
+    signal entityCreated(int entityId, int entityGeneration)
 
     Connections {
         target: openGLView
         function onSceneSaved(success) { root.sceneSaved(success) }
+        function onEntityCreated(entityId, entityGeneration) { root.entityCreated(entityId, entityGeneration) }
     }
 
     function setPlaying(playing) {
@@ -46,8 +48,32 @@ Item {
         openGLView.addComponent(entityId, entityGeneration, componentType)
     }
 
+    function removeComponent(entityId, entityGeneration, componentType) {
+        openGLView.removeComponent(entityId, entityGeneration, componentType)
+    }
+
+    function removeComponentProperty(entityId, entityGeneration, componentType, propertyName) {
+        openGLView.removeComponentProperty(entityId, entityGeneration, componentType, propertyName)
+    }
+
     function setMaterialProperty(materialId, materialGeneration, propertyName, propertyType, value) {
         openGLView.setMaterialProperty(materialId, materialGeneration, propertyName, propertyType, value)
+    }
+
+    function removeMaterialProperty(materialId, materialGeneration, propertyName) {
+        openGLView.removeMaterialProperty(materialId, materialGeneration, propertyName)
+    }
+
+    function createEntity(name) {
+        openGLView.createEntity(name)
+    }
+
+    function destroyEntity(entityId, entityGeneration) {
+        openGLView.destroyEntity(entityId, entityGeneration)
+    }
+
+    function duplicateEntity(entityId, entityGeneration, newName) {
+        openGLView.duplicateEntity(entityId, entityGeneration, newName)
     }
 
     property string activeTool: "move"

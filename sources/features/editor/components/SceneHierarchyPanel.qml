@@ -11,6 +11,10 @@ Rectangle {
     property var selectedEntity: null
 
     signal entitySelected(var entity)
+    signal entityCreateRequested(string name)
+    signal entityRenameRequested(var entity, string newName)
+    signal entityDuplicateRequested(var entity, string newName)
+    signal entityDeleteRequested(var entity)
 
     color: Theme.bgSecondary
 
@@ -23,9 +27,38 @@ Rectangle {
 
     ListModel { id: entitiesModel }
 
+    function findEntity(entityId, entityGeneration) {
+        const items = root.entities || [];
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].id === entityId && items[i].generation === entityGeneration) {
+                return items[i];
+            }
+        }
+        return null;
+    }
+
+    function nameTaken(name) {
+        const items = root.entities || [];
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].name === name) return true;
+        }
+        return false;
+    }
+
+    // Same " copy"/" copy N" suffixing idiom as SceneBrowserPanel.duplicateScene().
+    function uniqueName(baseName) {
+        if (!root.nameTaken(baseName)) return baseName;
+        let suffix = 2;
+        while (root.nameTaken(baseName + " " + suffix)) suffix++;
+        return baseName + " " + suffix;
+    }
+
     function refreshEntities() {
         entitiesModel.clear();
-        const items = root.entities || [];
+        // Insertion order from the bridge reorders on every destroy (swap-with-back in the
+        // engine's entity_manager) - sort by id so create/delete/duplicate cycles don't visibly
+        // shuffle unrelated rows.
+        const items = (root.entities || []).slice().sort((a, b) => a.id - b.id);
         for (let i = 0; i < items.length; i++) {
             const e = items[i];
             entitiesModel.append({
@@ -39,16 +72,46 @@ Rectangle {
     Component.onCompleted: refreshEntities()
     onEntitiesChanged: refreshEntities()
 
+    RenameDialog {
+        id: renameEntityDialog
+        property var targetEntity: null
+
+        onConfirmed: (newName) => {
+            if (renameEntityDialog.targetEntity) {
+                root.entityRenameRequested(renameEntityDialog.targetEntity, newName)
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 10
         spacing: 10
 
-        Text {
-            text: qsTr("HIERARCHY (%1)").arg(entitiesModel.count)
-            font.pixelSize: 13
-            font.weight: Font.DemiBold
-            color: Theme.white
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("HIERARCHY (%1)").arg(entitiesModel.count)
+                font.pixelSize: 13
+                font.weight: Font.DemiBold
+                color: Theme.white
+            }
+
+            MuiIcon {
+                name: "add"
+                font.pixelSize: 16
+                color: Theme.grey
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -6
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.entityCreateRequested(root.uniqueName("Entity"))
+                }
+            }
         }
 
         ListView {
@@ -74,12 +137,36 @@ Rectangle {
                 width: listView.width
 
                 entityName: rowName !== "" ? rowName : ("Entity #" + entityId)
+                isLocked: rowName === "main_camera"
 
                 selected: root.selectedEntity !== null
                     && root.selectedEntity.id === entityId
                     && root.selectedEntity.generation === entityGeneration
 
-                onClicked: root.entitySelected(root.entities[index])
+                onClicked: {
+                    const entity = root.findEntity(entityId, entityGeneration)
+                    if (entity) root.entitySelected(entity)
+                }
+
+                onRenameRequested: {
+                    const entity = root.findEntity(entityId, entityGeneration)
+                    if (entity) {
+                        renameEntityDialog.targetEntity = entity
+                        renameEntityDialog.openFor("", entity.name)
+                    }
+                }
+
+                onDuplicateRequested: {
+                    const entity = root.findEntity(entityId, entityGeneration)
+                    if (entity) {
+                        root.entityDuplicateRequested(entity, root.uniqueName(entity.name + " copy"))
+                    }
+                }
+
+                onDeleteRequested: {
+                    const entity = root.findEntity(entityId, entityGeneration)
+                    if (entity) root.entityDeleteRequested(entity)
+                }
             }
         }
     }

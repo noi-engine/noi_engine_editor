@@ -115,6 +115,31 @@ CustomPage {
                         root.selectedMaterial = null
                         root.selectedEntity = entity
                     }
+
+                    onEntityCreateRequested: (name) => {
+                        viewportPanel.createEntity(name)
+                        root.sceneDirty = true;
+                    }
+
+                    onEntityRenameRequested: (entity, newName) => {
+                        viewportPanel.setComponentProperty(entity.id, entity.generation,
+                            "name_component", "name", "string", newName)
+                        root.sceneDirty = true;
+                    }
+
+                    onEntityDuplicateRequested: (entity, newName) => {
+                        viewportPanel.duplicateEntity(entity.id, entity.generation, newName)
+                        root.sceneDirty = true;
+                    }
+
+                    onEntityDeleteRequested: (entity) => {
+                        if (root.selectedEntity && root.selectedEntity.id === entity.id
+                            && root.selectedEntity.generation === entity.generation) {
+                            root.selectedEntity = null;
+                        }
+                        viewportPanel.destroyEntity(entity.id, entity.generation)
+                        root.sceneDirty = true;
+                    }
                 }
 
                 ViewportPanel {
@@ -136,6 +161,17 @@ CustomPage {
                             console.log("Scene saved: " + root.currentScenePath);
                         } else {
                             console.warn("Failed to save scene: " + root.currentScenePath);
+                        }
+                    }
+
+                    onEntityCreated: (id, gen) => {
+                        const items = viewportPanel.loadedEntities || [];
+                        for (let i = 0; i < items.length; i++) {
+                            if (items[i].id === id && items[i].generation === gen) {
+                                root.selectedMaterial = null;
+                                root.selectedEntity = items[i];
+                                break;
+                            }
                         }
                     }
                 }
@@ -164,6 +200,24 @@ CustomPage {
                     onComponentAddRequested: (componentType) => {
                         viewportPanel.addComponent(root.selectedEntity.id, root.selectedEntity.generation, componentType)
                         root.sceneDirty = true;
+                    }
+
+                    onComponentRemoved: (componentType) => {
+                        if (root.selectedEntity) {
+                            viewportPanel.removeComponent(root.selectedEntity.id, root.selectedEntity.generation, componentType)
+                            root.sceneDirty = true;
+                        }
+                    }
+
+                    onPropertyRemoved: (componentType, propertyName) => {
+                        if (root.selectedMaterial) {
+                            viewportPanel.removeMaterialProperty(root.selectedMaterial.id, root.selectedMaterial.generation, propertyName)
+                            root.sceneDirty = true;
+                        } else if (root.selectedEntity) {
+                            viewportPanel.removeComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
+                                componentType, propertyName)
+                            root.sceneDirty = true;
+                        }
                     }
                 }
             }
