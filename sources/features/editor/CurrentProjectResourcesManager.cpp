@@ -229,6 +229,27 @@ namespace noi_engine_editor
         return true;
     }
 
+    auto CurrentProjectResourcesManager::readFile(const QString& path) -> QString
+    {
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        {
+            return QString();
+        }
+        return QString::fromUtf8(file.readAll());
+    }
+
+    auto CurrentProjectResourcesManager::writeFile(const QString& path, const QString& content) -> bool
+    {
+        QFile file(path);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+        {
+            return false;
+        }
+        file.write(content.toUtf8());
+        return true;
+    }
+
     QStringList CurrentProjectResourcesManager::getAllScenesRecursively(const QString& rootPath)
     {
         QStringList sceneFiles;

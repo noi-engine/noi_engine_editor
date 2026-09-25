@@ -142,11 +142,14 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
 
         # editor
         QML_FILES
+        sources/features/editor/components/AddScriptDialog.qml
+        sources/features/editor/components/AddSpriteDialog.qml
         sources/features/editor/components/BottomTabButton.qml
         sources/features/editor/components/CompilerOutputPanel.qml
         sources/features/editor/components/EditorLogsPanel.qml
         sources/features/editor/components/EditorToolbar.qml
         sources/features/editor/components/HierarchyItem.qml
+        sources/features/editor/components/ImportTextureDialog.qml
         sources/features/editor/components/InspectorPanel.qml
         sources/features/editor/components/LoadedResourceItem.qml
         sources/features/editor/components/LoadedResourcesPanel.qml

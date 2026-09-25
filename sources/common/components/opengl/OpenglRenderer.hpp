@@ -54,6 +54,7 @@ namespace noi_engine_editor
         int m_gameWidth{};
         int m_gameHeight{};
         QString m_currentPath{};
+        int m_sceneReloadToken{-1};
         QString m_resourcesPath{};
         QString m_scriptsLibraryPath{};
         QString m_bridgeLibraryPath{};

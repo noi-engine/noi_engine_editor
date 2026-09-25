@@ -137,6 +137,13 @@ namespace noi_engine_editor
         QString scenePath() const;
         void setScenePath(const QString& path);
 
+        // Forces OpenGLRenderer::synchronize() to reload scenePath() from disk even though the
+        // path string itself hasn't changed - e.g. after a texture was just declared in the
+        // scene's own resources.textures block by editor tooling (Inspector's texture import),
+        // which setScenePath()'s equality guard would otherwise ignore.
+        Q_INVOKABLE void reloadScene();
+        [[nodiscard]] int sceneReloadToken() const;
+
         QString resourcesPath() const;
         void setResourcesPath(const QString& path);
 
@@ -329,6 +336,7 @@ namespace noi_engine_editor
         void queueKeyEvent(int keyCode, bool pressed);
 
         QString m_scenePath;
+        int m_sceneReloadToken = 0;
         QString m_resourcesPath;
         QString m_scriptsLibraryPath;
         QString m_bridgeLibraryPath;

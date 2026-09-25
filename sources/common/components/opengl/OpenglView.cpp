@@ -104,6 +104,17 @@ namespace noi_engine_editor
         update();
     }
 
+    void OpenGLView::reloadScene()
+    {
+        ++m_sceneReloadToken;
+        update();
+    }
+
+    int OpenGLView::sceneReloadToken() const
+    {
+        return this->m_sceneReloadToken;
+    }
+
     QString OpenGLView::resourcesPath() const
     {
         return this->m_resourcesPath;

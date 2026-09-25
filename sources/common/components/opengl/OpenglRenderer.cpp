@@ -625,9 +625,12 @@ namespace noi_engine_editor
         // script by name and crash (std::out_of_range from an internal unordered_map::at). Wait
         // until loadScripts() has succeeded at least once; m_currentPath stays stale so this is
         // retried automatically on the next frame once scripts become available.
-        if (const auto newPath = view->scenePath(); m_scriptsLoaded && m_currentPath != newPath)
+        const auto newPath = view->scenePath();
+        const auto newReloadToken = view->sceneReloadToken();
+        if (m_scriptsLoaded && (m_currentPath != newPath || m_sceneReloadToken != newReloadToken))
         {
             m_currentPath = newPath;
+            m_sceneReloadToken = newReloadToken;
             if (!m_currentPath.isEmpty() && this->m_gameHandle)
             {
                 const auto relativeScenePath = getSceneResourceDotPath(this->m_resourcesPath, this->m_currentPath);

@@ -35,6 +35,14 @@ namespace noi_engine_editor
         // in that last case - only the name-field patch is skipped).
         Q_INVOKABLE [[nodiscard]] auto renameScene(const QString& itemPath, const QString& newName) -> bool;
 
+        // Generic file I/O for editor tooling that needs to read-modify-write an existing file
+        // (e.g. merging a new texture declaration into a scene's resources block) - unlike
+        // createFile(), writeFile() always overwrites. readFile() returns an empty string for a
+        // missing/unreadable file, which is indistinguishable from a genuinely empty file; callers
+        // that care should check existence separately.
+        Q_INVOKABLE [[nodiscard]] auto readFile(const QString& path) -> QString;
+        Q_INVOKABLE [[nodiscard]] auto writeFile(const QString& path, const QString& content) -> bool;
+
     private:
         [[nodiscard]] auto copyRecursively(const QString& srcFilePath, const QString& tgtFilePath) -> bool;
     };

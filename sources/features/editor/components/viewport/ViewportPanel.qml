@@ -40,6 +40,13 @@ Item {
         openGLView.saveScene()
     }
 
+    // Forces a reload of the currently-open scene from disk - used after editor tooling (the
+    // Inspector's texture import) edits the scene file directly, outside the normal
+    // propertyEdited/componentAddRequested bridge-call path.
+    function reloadScene() {
+        openGLView.reloadScene()
+    }
+
     function setComponentProperty(entityId, entityGeneration, componentType, propertyName, propertyType, value) {
         openGLView.setComponentProperty(entityId, entityGeneration, componentType, propertyName, propertyType, value)
     }

@@ -10,6 +10,10 @@ Rectangle {
     property var entity: null
     property var componentsData: []
     property var loadedResources: []
+    property string resourcesPath: ""
+    property string currentScenePath: ""
+
+    signal sceneReloadRequested()
     property var material: null
     property var materialProperties: []
 
@@ -18,10 +22,28 @@ Rectangle {
     signal componentRemoved(string componentType)
     signal propertyRemoved(string componentType, string propertyName)
 
+    // Ordered for how users actually reach for these: building blocks first, then the two
+    // camera variants together, then physics together. name_component (every entity already
+    // has one), mesh_renderer_properties (meaningless without a mesh_renderer - bundled
+    // alongside it instead, see addComponentMenuEntries) and script_component (superseded by
+    // the "Script" utility below - scripts are project-level .cpp/.hpp files, not a component
+    // you hand-configure in the Inspector) are intentionally not offered as raw entries.
     readonly property var allComponentTypes: [
-        "transform", "camera_2d", "camera_3d", "orbit_camera", "render_layer",
-        "name_component", "mesh_renderer", "mesh_renderer_properties", "script_component"
+        "transform", "render_layer", "mesh_renderer",
+        "camera_2d", "camera_3d", "orbit_camera",
+        "gravity", "box_collider"
     ]
+
+    readonly property var componentLabels: ({
+        "transform": qsTr("Transform"),
+        "render_layer": qsTr("Render Layer"),
+        "mesh_renderer": qsTr("Mesh Renderer"),
+        "camera_2d": qsTr("Camera 2D"),
+        "camera_3d": qsTr("Camera 3D"),
+        "orbit_camera": qsTr("Orbit Camera"),
+        "gravity": qsTr("Gravity"),
+        "box_collider": qsTr("Box Collider")
+    })
 
     readonly property bool hasSelection: root.entity !== null || root.material !== null
 
@@ -55,6 +77,25 @@ Rectangle {
     function missingComponentTypes() {
         const present = (root.componentsData || []).map(c => c.type);
         return root.allComponentTypes.filter(t => present.indexOf(t) === -1);
+    }
+
+    // "Sprite" and "Script" are not real bridge component types - they're utilities:
+    // - Sprite is a one-click convenience that adds transform + mesh_renderer +
+    //   mesh_renderer_properties together (optionally wired to a texture, see
+    //   AddSpriteDialog), so users don't have to assemble the raw pieces by hand. Offered
+    //   whenever mesh_renderer isn't already present.
+    // - Script scaffolds a new project-level script file pair and is always offered - it
+    //   isn't "added" to this entity at all (see AddScriptDialog).
+    function addComponentMenuEntries() {
+        const present = (root.componentsData || []).map(c => c.type);
+        const utilities = present.indexOf("mesh_renderer") === -1 ? ["sprite", "script"] : ["script"];
+        return utilities.concat(missingComponentTypes());
+    }
+
+    function addComponentMenuLabel(type) {
+        if (type === "sprite") return qsTr("Sprite");
+        if (type === "script") return qsTr("Script");
+        return root.componentLabels[type] || type;
     }
 
     // mesh_renderer/mesh_renderer_properties on the camera entity is the red border gizmo
@@ -597,15 +638,15 @@ Rectangle {
                                     font.pixelSize: 11
                                     color: Theme.grey
                                 }
+                            }
 
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        addPropertyPopup.componentType = componentSection.componentType
-                                        addPropertyPopup.existingNames = componentSection.componentProperties.map(p => p.name)
-                                        addPropertyPopup.open()
-                                    }
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    addPropertyPopup.componentType = componentSection.componentType
+                                    addPropertyPopup.existingNames = componentSection.componentProperties.map(p => p.name)
+                                    addPropertyPopup.open()
                                 }
                             }
                         }
@@ -616,7 +657,7 @@ Rectangle {
             AppButton {
                 Layout.fillWidth: true
                 Layout.topMargin: 6
-                visible: root.entity !== null && root.missingComponentTypes().length > 0
+                visible: root.entity !== null && root.addComponentMenuEntries().length > 0
 
                 icon: "add_circle"
                 text: qsTr("Add Component")
@@ -636,17 +677,17 @@ Rectangle {
                     }
 
                     Repeater {
-                        model: root.missingComponentTypes()
+                        model: root.addComponentMenuEntries()
 
                         delegate: MenuItem {
                             id: addComponentMenuItem
                             required property string modelData
 
-                            text: addComponentMenuItem.modelData
+                            text: root.addComponentMenuLabel(addComponentMenuItem.modelData)
                             width: addComponentMenu.width
 
                             contentItem: Text {
-                                text: addComponentMenuItem.modelData
+                                text: root.addComponentMenuLabel(addComponentMenuItem.modelData)
                                 font.pixelSize: 12
                                 color: Theme.white
                                 leftPadding: 8
@@ -657,7 +698,20 @@ Rectangle {
                                 color: addComponentMenuItem.highlighted ? Theme.primaryLightC : "transparent"
                             }
 
-                            onTriggered: root.componentAddRequested(addComponentMenuItem.modelData)
+                            onTriggered: {
+                                if (addComponentMenuItem.modelData === "sprite") {
+                                    addSpriteDialog.open();
+                                } else if (addComponentMenuItem.modelData === "script") {
+                                    addScriptDialog.open();
+                                } else if (addComponentMenuItem.modelData === "mesh_renderer") {
+                                    // mesh_renderer_properties is meaningless on its own - always
+                                    // bundled with mesh_renderer instead of offered separately.
+                                    root.componentAddRequested("mesh_renderer");
+                                    root.componentAddRequested("mesh_renderer_properties");
+                                } else {
+                                    root.componentAddRequested(addComponentMenuItem.modelData);
+                                }
+                            }
                         }
                     }
                 }
@@ -682,6 +736,20 @@ Rectangle {
             ? addPropertyPopup.kinds[kindCombo.currentIndex].prefix === "texture"
             : false
 
+        // A freshly-imported texture only shows up in availableTextures once the scene reload
+        // triggered by ImportTextureDialog actually completes (a few render frames later, not
+        // synchronously with its imported() signal) - remember which label to select and apply
+        // it once the list catches up.
+        property string pendingTextureSelect: ""
+        onAvailableTexturesChanged: {
+            if (addPropertyPopup.pendingTextureSelect === "") return;
+            const idx = addPropertyPopup.availableTextures.indexOf(addPropertyPopup.pendingTextureSelect);
+            if (idx !== -1) {
+                textureCombo.currentIndex = idx;
+                addPropertyPopup.pendingTextureSelect = "";
+            }
+        }
+
         readonly property var kinds: [
             { label: qsTr("Parameter"), prefix: "param", propertyType: "float", defaultValue: 0.0 },
             { label: qsTr("Color"), prefix: "color", propertyType: "vec4", defaultValue: [1, 1, 1, 1] },
@@ -699,12 +767,14 @@ Rectangle {
 
         modal: true
         anchors.centerIn: Overlay.overlay
-        width: 260
+        width: 300
 
         onOpened: {
             kindCombo.currentIndex = 0
             nameInput.text = ""
             nameInput.forceActiveFocus()
+            addPropertyPopup.pendingTextureSelect = ""
+            popupImportTexture.errorText = ""
         }
 
         background: Rectangle {
@@ -749,21 +819,56 @@ Rectangle {
                 visible: addPropertyPopup.isTextureKind
                 spacing: 6
 
-                ComboBox {
-                    id: textureCombo
+                RowLayout {
                     Layout.fillWidth: true
-                    visible: addPropertyPopup.availableTextures.length > 0
-                    model: addPropertyPopup.availableTextures
+                    spacing: 8
+
+                    ComboBox {
+                        id: textureCombo
+                        Layout.fillWidth: true
+                        visible: addPropertyPopup.availableTextures.length > 0
+                        model: addPropertyPopup.availableTextures
+                    }
+
+                    AppButton {
+                        text: qsTr("Import...")
+                        enabled: !popupImportTexture.busy
+                        onClicked: popupImportTexture.pick()
+                    }
                 }
 
                 Text {
-                    visible: addPropertyPopup.availableTextures.length === 0
-                    text: qsTr("No textures loaded yet - import an image via the Resource panel and declare it as a texture resource first.")
+                    visible: addPropertyPopup.availableTextures.length === 0 && popupImportTexture.errorText === ""
+                    text: qsTr("No textures loaded yet - import an image to make one available.")
                     color: Theme.grey
                     font.pixelSize: 10
                     font.italic: true
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
+                }
+
+                Text {
+                    visible: popupImportTexture.errorText !== ""
+                    text: popupImportTexture.errorText
+                    color: Theme.error
+                    font.pixelSize: 10
+                    wrapMode: Text.WordWrap
+                    Layout.fillWidth: true
+                }
+            }
+
+            ImportTextureDialog {
+                id: popupImportTexture
+                resourcesPath: root.resourcesPath
+                scenePath: root.currentScenePath
+                onReloadRequested: root.sceneReloadRequested()
+                onImported: (label) => {
+                    const idx = addPropertyPopup.availableTextures.indexOf(label);
+                    if (idx !== -1) {
+                        textureCombo.currentIndex = idx;
+                    } else {
+                        addPropertyPopup.pendingTextureSelect = label;
+                    }
                 }
             }
 
@@ -805,5 +910,28 @@ Rectangle {
                 }
             }
         }
+    }
+
+    AddSpriteDialog {
+        id: addSpriteDialog
+
+        textureLabels: root.resourceLabelsFor("texture").filter(l => l !== "")
+        resourcesPath: root.resourcesPath
+        scenePath: root.currentScenePath
+        onReloadRequested: root.sceneReloadRequested()
+
+        onConfirmed: (textureLabel) => {
+            root.componentAddRequested("transform");
+            root.componentAddRequested("mesh_renderer");
+            root.componentAddRequested("mesh_renderer_properties");
+            if (textureLabel !== "") {
+                root.propertyEdited("mesh_renderer", "material", "resourceRef", "materials:texture");
+                root.propertyEdited("mesh_renderer_properties", "texture:u_texture", "resourceRef", textureLabel);
+            }
+        }
+    }
+
+    AddScriptDialog {
+        id: addScriptDialog
     }
 }

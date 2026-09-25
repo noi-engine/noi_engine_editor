@@ -18,6 +18,13 @@ Item {
             rootItem.currentFolder = rootItem.rootFolder;
     }
 
+    function enterFolder(targetFolder) {
+        if (targetFolder.startsWith(rootItem.rootFolder)) {
+            rootItem.currentFolder = targetFolder;
+            rootItem.selectedFilePath = "";
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         color: Theme.bgSecondary
@@ -113,13 +120,8 @@ Item {
 
                     onSelected: rootItem.selectedFilePath = filePath
                     onDoubleClicked: {
-                        if (isDir) {
-                            let targetFolder = model.filePath;
-                            if (targetFolder.startsWith(rootItem.rootFolder)) {
-                                rootItem.currentFolder = targetFolder;
-                                rootItem.selectedFilePath = "";
-                            }
-                        }
+                        if (isDir)
+                            rootItem.enterFolder(model.filePath);
                     }
                     onRenameRequested: renameDialog.openFor(filePath, fileName)
                     onDeleteRequested: deleteDialog.openFor(filePath, fileName)

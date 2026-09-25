@@ -185,6 +185,10 @@ CustomPage {
                     loadedResources: viewportPanel.loadedResources
                     material: root.selectedMaterial
                     materialProperties: viewportPanel.inspectedMaterialProperties
+                    resourcesPath: CurrentProjectManager.resourcesPath()
+                    currentScenePath: root.currentScenePath
+
+                    onSceneReloadRequested: viewportPanel.reloadScene()
 
                     onPropertyEdited: (componentType, propertyName, propertyType, value) => {
                         if (root.selectedMaterial) {
