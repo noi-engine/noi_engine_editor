@@ -61,6 +61,7 @@ namespace noi_engine_editor
         QString m_resourcesPath{};
         QString m_scriptsLibraryPath{};
         QString m_bridgeLibraryPath{};
+        QString m_playSnapshotPath{}; // scene saved when Play started, restored on Stop
         QString m_engineLibraryPath{};
         QString m_engineVersion{};
         int m_scriptsGeneration{-1};

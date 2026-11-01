@@ -161,6 +161,11 @@ Rectangle {
     }
 
     function missingComponentTypes() {
+        return root.availableComponentTypes()
+            .filter(t => root.showAdvancedComponents || !root.isAdvancedComponent(t));
+    }
+
+    function availableComponentTypes() {
         const present = (root.componentsData || []).map(c => c.type);
         return root.allComponentTypes.filter(t => present.indexOf(t) === -1)
             // The scene camera is 2D: a 3D camera component would replace its view.
@@ -168,6 +173,19 @@ Rectangle {
             // Culling follows the scene camera's view; the camera itself is always active.
             .filter(t => t !== "culling" || root.isCameraEntity)
             .filter(t => t !== "always_active" || !root.isCameraEntity);
+    }
+
+    // Components rarely useful in a 2D scene (3D cameras, a second 2D camera on a regular
+    // entity): hidden from Add Component unless "Show advanced components" is on.
+    property bool showAdvancedComponents: false
+
+    function isAdvancedComponent(type) {
+        if (type === "camera_3d" || type === "orbit_camera") return true;
+        return type === "camera_2d" && !root.isCameraEntity;
+    }
+
+    function hiddenAdvancedCount() {
+        return root.showAdvancedComponents ? 0 : root.availableComponentTypes().filter(t => root.isAdvancedComponent(t)).length;
     }
 
     function hasComponent(type) {
@@ -550,6 +568,30 @@ Rectangle {
                                         root.componentAddRequested(addComponentMenuItem.modelData);
                                     }
                                 }
+                            }
+                        }
+
+                        MenuSeparator {
+                            visible: root.hiddenAdvancedCount() > 0 || root.showAdvancedComponents
+                        }
+
+                        MenuItem {
+                            visible: root.hiddenAdvancedCount() > 0 || root.showAdvancedComponents
+                            height: visible ? implicitHeight : 0
+                            text: root.showAdvancedComponents
+                                ? qsTr("Hide advanced components")
+                                : qsTr("Show advanced components (%1 hidden)").arg(root.hiddenAdvancedCount())
+                            contentItem: Text {
+                                text: parent.text
+                                font.pixelSize: 11
+                                font.italic: true
+                                color: Theme.grey
+                                leftPadding: 8
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onTriggered: {
+                                root.showAdvancedComponents = !root.showAdvancedComponents;
+                                addComponentMenu.open();
                             }
                         }
                     }

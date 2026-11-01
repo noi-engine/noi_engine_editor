@@ -53,7 +53,7 @@ Rectangle {
 
         ToolButtonCustom {
             iconName: "zoom_in"
-            tooltipText: qsTr("Zoom in (Ctrl+=, wheel)")
+            tooltipText: qsTr("Zoom in (Ctrl+=, wheel, Shift + drag up)")
             onClicked: root.viewport.zoomBy(1.25)
         }
 

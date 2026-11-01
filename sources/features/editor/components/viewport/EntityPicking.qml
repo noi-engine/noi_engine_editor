@@ -63,9 +63,9 @@ Item {
         preventStealing: true
 
         onPressed: mouse => {
-            const entry = root.entityAt(mouse.x, mouse.y);
+            const entry = (mouse.modifiers & Qt.ShiftModifier) ? null : root.entityAt(mouse.x, mouse.y);
             if (!entry) {
-                mouse.accepted = false; // empty space: ViewportNavigation pans
+                mouse.accepted = false; // empty space / Shift (zoom): ViewportNavigation handles it
                 return;
             }
             dragged = entry;

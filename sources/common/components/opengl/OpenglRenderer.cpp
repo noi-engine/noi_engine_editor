@@ -1,5 +1,7 @@
 #include "OpenglView.hpp"
 #include "OpenglRenderer.hpp"
+
+#include <QFile>
 #include <QOpenGLFramebufferObject>
 #include <QOpenGLFunctions>
 #include <QDir>
@@ -509,10 +511,19 @@ namespace noi_engine_editor
             m_bridge.setPlaying(this->m_gameHandle, false);
             if (!m_currentPath.isEmpty())
             {
-                const auto relativeScenePath = getSceneResourceDotPath(this->m_resourcesPath, this->m_currentPath);
+                // Back to the scene as it was when Play started - including unsaved edits, from the
+                // snapshot taken then - not to the file on disk.
+                const bool hasSnapshot = !m_playSnapshotPath.isEmpty() && QFile::exists(m_playSnapshotPath);
+                const auto relativeScenePath = getSceneResourceDotPath(
+                    this->m_resourcesPath, hasSnapshot ? m_playSnapshotPath : this->m_currentPath);
                 m_bridge.setScene2d(this->m_gameHandle, relativeScenePath);
                 m_bridge.onResize(this->m_gameHandle, m_width, m_height);
+                if (hasSnapshot)
+                {
+                    QFile::remove(m_playSnapshotPath);
+                }
             }
+            m_playSnapshotPath.clear();
             m_wasPlaying = false;
             view->confirmStopped();
             return;
@@ -522,6 +533,20 @@ namespace noi_engine_editor
         {
             // Fresh play-start transition: re-sync the bridge's dt timer so the first continuous
             // tick doesn't report however long the scene sat idle in edit mode.
+            // Snapshot the scene as it is (unsaved edits included) so Stop can restore it: a copy of
+            // the scene file (keeps its resources block), overwritten by the live world.
+            if (!m_currentPath.isEmpty())
+            {
+                m_playSnapshotPath = m_currentPath + QStringLiteral(".play");
+                QFile::remove(m_playSnapshotPath);
+                if (!QFile::copy(m_currentPath, m_playSnapshotPath) ||
+                    !m_bridge.saveScene(this->m_gameHandle, m_playSnapshotPath))
+                {
+                    qWarning() << "[OpenGLRenderer] Couldn't snapshot the scene before Play: Stop will reload it from disk";
+                    QFile::remove(m_playSnapshotPath);
+                    m_playSnapshotPath.clear();
+                }
+            }
             m_bridge.resetTimer(this->m_gameHandle);
             m_bridge.setPlaying(this->m_gameHandle, true);
             m_wasPlaying = true;
