@@ -36,7 +36,7 @@ auto noi_engine_editor::ToolUrlResolver::noiEngineDownloadUrl(const QString& ver
 {
     return directDownloadUrl(
         "noi-engine",
-        "noi_engine_release",
+        "noi_engine",
         version,
         currentPlatformNoiEngineAssetName()
     );
