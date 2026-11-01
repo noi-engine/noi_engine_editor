@@ -77,9 +77,9 @@ namespace noi_engine_editor
             m_library.resolve("noi_engine_editor_bridge_reset_timer"));
         // Optional - added after the first bridges shipped. Intentionally left out of the
         // "missing required entry points" check below so older, already-built bridges (which
-        // simply won't have it) keep loading; setGridVisible() below is a silent no-op for them.
-        m_setGridVisible = reinterpret_cast<set_grid_visible_fn>(
-            m_library.resolve("noi_engine_editor_bridge_set_grid_visible"));
+        // simply won't have it) keep loading; setEditorView() below is a silent no-op for them.
+        m_setEditorView = reinterpret_cast<set_editor_view_fn>(
+            m_library.resolve("noi_engine_editor_bridge_set_editor_view"));
         m_saveScene = reinterpret_cast<save_scene_fn>(
             m_library.resolve("noi_engine_editor_bridge_save_scene"));
         // Optional, same rationale as setGridVisible/saveScene above.
@@ -242,12 +242,12 @@ namespace noi_engine_editor
         m_resetTimer(handle);
     }
 
-    auto PreviewBridgeLoader::setGridVisible(const noi_engine_editor_bridge_game_handle handle,
-                                              const bool visible) const -> void
+    auto PreviewBridgeLoader::setEditorView(const noi_engine_editor_bridge_game_handle handle, const float x,
+                                             const float y, const float zoom) const -> void
     {
-        if (m_setGridVisible)
+        if (m_setEditorView)
         {
-            m_setGridVisible(handle, visible ? 1 : 0);
+            m_setEditorView(handle, x, y, zoom);
         }
     }
 

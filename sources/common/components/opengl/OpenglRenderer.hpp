@@ -48,6 +48,7 @@ namespace noi_engine_editor
         auto updatePlayState(OpenGLView* view) -> void;
         auto buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities) -> QVariantList;
         auto annotateEntities(QVariantList& loadedEntities, QVariantList& layout) -> QVariantMap;
+        auto materialPropertyNames(const QVariantList& meshRendererProperties) -> QStringList;
         auto componentProperties(uint32_t entityId, uint32_t entityGeneration, const char* componentType) -> QVariantMap;
         auto buildInspectedMaterialProperties(OpenGLView* view) -> QVariantList;
 
@@ -69,7 +70,7 @@ namespace noi_engine_editor
         // Render-thread-owned confirmed ticking state - distinct from OpenGLView::isPlaying(),
         // which is the GUI-thread-requested state; see updatePlayState().
         bool m_wasPlaying{false};
-        bool m_lastPushedGridVisible{false}; // matches bridge_game's own default
+        QVariantList m_lastPushedEditorView{};
         PreviewBridgeLoader m_bridge{};
         noi_engine_editor_bridge_game_handle m_gameHandle{nullptr};
     };

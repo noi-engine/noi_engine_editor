@@ -17,6 +17,16 @@ Item {
     signal doubleClicked()
     signal renameRequested()
     signal deleteRequested()
+    // Image files: put the image in the open scene, as a sprite or as the background.
+    signal spriteRequested(bool background)
+
+    readonly property bool isImage: !root.isDir && /\.(png|jpe?g|bmp|tga|gif)$/i.test(root.fileName)
+
+    // Images can be dragged into the viewport to create a sprite there.
+    Drag.active: mouseArea.drag.active && root.isImage
+    Drag.dragType: Drag.Automatic
+    Drag.supportedActions: Qt.CopyAction
+    Drag.mimeData: ({"text/uri-list": "file://" + root.filePath})
 
     width: 90 * root.iconScale
     height: 90 * root.iconScale
@@ -65,6 +75,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
+        drag.target: root.isImage ? dragProxy : null
 
         onClicked: mouse => {
             root.selected()
@@ -80,8 +91,23 @@ Item {
         }
     }
 
+    // Drag target (Drag.Automatic doesn't move it, it just starts the drag).
+    Item { id: dragProxy }
+
     Menu {
         id: resourceMenu
+        MenuItem {
+            visible: root.isImage
+            height: visible ? implicitHeight : 0
+            text: qsTr("Create Sprite in Scene")
+            onTriggered: root.spriteRequested(false)
+        }
+        MenuItem {
+            visible: root.isImage
+            height: visible ? implicitHeight : 0
+            text: qsTr("Use as Background")
+            onTriggered: root.spriteRequested(true)
+        }
         MenuItem {
             text: qsTr("Rename")
             onTriggered: root.renameRequested()

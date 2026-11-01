@@ -46,6 +46,11 @@ set(NOI_ENGINE_EDITOR_QML_SINGLETONS
 
 set_source_files_properties(${NOI_ENGINE_EDITOR_QML_SINGLETONS} PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
+# qmlcachegen (Qt 6.10) crashes in QQmlJSLookupSignaturesRecorder::cantDesync on this file:
+# load it as plain QML instead of ahead-of-time compiling it.
+set_source_files_properties(sources/features/editor/components/viewport/ViewportPanel.qml
+        PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)
+
 qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         URI noi_engine_editor
         VERSION 0.0.1
@@ -161,9 +166,12 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/hierarchy/EntityPresetMenu.qml
         sources/features/editor/components/ImportTextureDialog.qml
         sources/features/editor/components/InspectorPanel.qml
+        sources/features/editor/components/UnsavedChangesDialog.qml
         sources/features/editor/components/inspector/ComponentSection.qml
         sources/features/editor/components/inspector/PropertyRow.qml
         sources/features/editor/components/inspector/AddPropertyPopup.qml
+        sources/features/editor/components/inspector/SpriteSection.qml
+        sources/features/editor/components/inspector/MaterialChangeDialog.qml
         sources/features/editor/components/search/GlobalSearchPopup.qml
         sources/features/editor/components/LogPanel.qml
         sources/features/editor/components/LoadedResourceItem.qml
@@ -181,13 +189,13 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/resources/ResourceToolbar.qml
         sources/features/editor/components/scenes/SceneBrowserPanel.qml
         sources/features/editor/components/scenes/NewSceneDialog.qml
-        sources/features/editor/components/viewport/ActionGroupPopup.qml
         sources/features/editor/components/viewport/ToolButtonCustom.qml
         sources/features/editor/components/viewport/ViewportPanel.qml
         sources/features/editor/components/viewport/ViewportToolbar.qml
         sources/features/editor/components/viewport/CameraFrameHandles.qml
         sources/features/editor/components/viewport/EntityPicking.qml
         sources/features/editor/components/viewport/ViewportViewState.qml
+        sources/features/editor/components/viewport/ViewportNavigation.qml
         SOURCES
         sources/features/editor/CurrentProjectResourcesManager.hpp
         sources/features/editor/CurrentProjectResourcesManager.cpp

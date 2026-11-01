@@ -21,6 +21,72 @@ Rectangle {
     signal componentAddRequested(string componentType)
     signal componentRemoved(string componentType)
     signal propertyRemoved(string componentType, string propertyName)
+    // The entity's editor groups changed (e.g. ["sprite"]).
+    signal groupsChanged(var groups)
+
+    // ---- Editor groups: components added together (a sprite) are shown as one section.
+    readonly property var entityGroups: root.entity && root.entity.groups ? root.entity.groups : []
+    readonly property bool isSprite: root.entityGroups.indexOf("sprite") !== -1
+    // Shows the raw components behind a group instead of its section.
+    property bool showGroupComponents: false
+    // Image imported from the Sprite section: applied once the scene reload makes it available.
+    property string pendingSpriteTexture: ""
+
+    onEntityChanged: root.showGroupComponents = false
+
+    onLoadedResourcesChanged: {
+        if (root.pendingSpriteTexture === "" || root.resourceLabelsFor("texture").indexOf(root.pendingSpriteTexture) === -1) return;
+        const label = root.pendingSpriteTexture;
+        root.pendingSpriteTexture = "";
+        root.propertyEdited("mesh_renderer", "material", "resourceRef", "materials:texture");
+        root.propertyRemoved("mesh_renderer_properties", "color:u_color");
+        root.propertyEdited("mesh_renderer_properties", "texture:u_texture", "resourceRef", label);
+    }
+
+    function sectionData(type) {
+        for (const section of root.componentsData || []) {
+            if (section.type === type) return section;
+        }
+        return null;
+    }
+
+    function removeSprite() {
+        root.componentRemoved("mesh_renderer"); // the bridge removes mesh_renderer_properties with it
+        root.groupsChanged(root.entityGroups.filter(g => g !== "sprite"));
+    }
+
+    // ---- Material guard
+    function entityMaterial() {
+        const mr = root.sectionData("mesh_renderer");
+        if (!mr) return "";
+        const property = (mr.properties || []).find(p => p.name === "material");
+        return property ? property.value : "";
+    }
+
+    function overrideNames() {
+        const mrp = root.sectionData("mesh_renderer_properties");
+        return mrp ? (mrp.properties || []).map(p => p.name) : [];
+    }
+
+    // Overrides the entity's current material doesn't define.
+    function unusedOverrides() {
+        const mr = root.sectionData("mesh_renderer");
+        if (!mr || !mr.materialProperties) return [];
+        return root.overrideNames().filter(n => mr.materialProperties.indexOf(n) === -1);
+    }
+
+    // A resource picked in a property's list. Changing a Mesh Renderer's material while it has
+    // Material Overrides asks what to do with them first.
+    function resourceRefChosen(componentType, propertyName, label, revert) {
+        const overrides = root.overrideNames();
+        if (componentType === "mesh_renderer" && propertyName === "material" && root.entity !== null
+            && overrides.length > 0 && label !== root.entityMaterial()) {
+            materialChangeDialog.pendingLabel = label;
+            materialChangeDialog.ask(root.entityMaterial(), label, overrides, revert);
+            return;
+        }
+        root.propertyEdited(componentType, propertyName, "resourceRef", label);
+    }
 
     // Ordered for how users actually reach for these: building blocks first, then the two
     // camera variants together, then physics together. name_component (every entity already
@@ -31,11 +97,13 @@ Rectangle {
     readonly property var allComponentTypes: [
         "transform", "render_layer", "mesh_renderer",
         "camera_2d", "camera_3d", "orbit_camera",
-        "gravity", "box_collider"
+        "gravity", "box_collider",
+        "culling", "always_active"
     ]
 
     readonly property var componentLabels: ({
         "material": qsTr("Material"),
+        "sprite": qsTr("Sprite"),
         "name_component": qsTr("Name"),
         "mesh_renderer_properties": qsTr("Material Overrides"),
         "script_component": qsTr("Scripts"),
@@ -47,16 +115,27 @@ Rectangle {
         "camera_3d": qsTr("Camera 3D"),
         "orbit_camera": qsTr("Orbit Camera"),
         "gravity": qsTr("Gravity"),
-        "box_collider": qsTr("Box Collider")
+        "box_collider": qsTr("Box Collider"),
+        "culling": qsTr("Culling (performance)"),
+        "always_active": qsTr("Always Active (ignore culling)")
     })
 
     readonly property bool hasSelection: root.entity !== null || root.material !== null
 
     // Material mode reuses the exact same "sections of properties" rendering as entity mode
     // by wrapping its flat property list as a single synthetic "material" section.
-    readonly property var effectiveComponentsData: root.material
-        ? [{"type": "material", "properties": root.materialProperties}]
-        : root.componentsData
+    readonly property var effectiveComponentsData: {
+        if (root.material) return [{"type": "material", "properties": root.materialProperties}];
+        if (!root.isSprite || root.showGroupComponents || !root.sectionData("mesh_renderer")) return root.componentsData;
+        const sprite = {
+            "type": "sprite",
+            "meshRenderer": root.sectionData("mesh_renderer").properties,
+            "overrides": (root.sectionData("mesh_renderer_properties") || {properties: []}).properties,
+            "transform": (root.sectionData("transform") || {properties: []}).properties
+        };
+        return [sprite].concat((root.componentsData || [])
+            .filter(c => c.type !== "mesh_renderer" && c.type !== "mesh_renderer_properties"));
+    }
 
     readonly property string headerTitle: root.material
         ? (root.material.label !== "" ? root.material.label : ("Material #" + root.material.id))
@@ -73,7 +152,8 @@ Rectangle {
         const items = root.loadedResources || [];
         const labels = [];
         for (let i = 0; i < items.length; i++) {
-            if (items[i].type === resourceType) {
+            // Unnamed resources (e.g. the editor's camera border material) can't be referenced.
+            if (items[i].type === resourceType && items[i].label !== "") {
                 labels.push(items[i].label);
             }
         }
@@ -84,7 +164,10 @@ Rectangle {
         const present = (root.componentsData || []).map(c => c.type);
         return root.allComponentTypes.filter(t => present.indexOf(t) === -1)
             // The scene camera is 2D: a 3D camera component would replace its view.
-            .filter(t => !(root.isCameraEntity && (t === "camera_3d" || t === "orbit_camera")));
+            .filter(t => !(root.isCameraEntity && (t === "camera_3d" || t === "orbit_camera")))
+            // Culling follows the scene camera's view; the camera itself is always active.
+            .filter(t => t !== "culling" || root.isCameraEntity)
+            .filter(t => t !== "always_active" || !root.isCameraEntity);
     }
 
     function hasComponent(type) {
@@ -341,7 +424,8 @@ Rectangle {
                 readonly property int visibleSections: {
                     let count = 0;
                     for (let i = 0; i < column.children.length; i++) {
-                        if (column.children[i].componentType !== undefined && column.children[i].visible) count++;
+                        const child = column.children[i];
+                        if (child.item && child.item.visible) count++;
                     }
                     return count;
                 }
@@ -349,12 +433,46 @@ Rectangle {
                 width: parent.width
                 spacing: 8
 
+                Text {
+                    visible: root.isSprite && root.showGroupComponents
+                    Layout.fillWidth: true
+                    text: qsTr("Showing the components behind the sprite. <a href=\"back\">Back to the Sprite section</a>")
+                    textFormat: Text.RichText
+                    font.pixelSize: 10
+                    color: Theme.grey
+                    linkColor: Theme.primaryColor
+                    wrapMode: Text.WordWrap
+                    onLinkActivated: root.showGroupComponents = false
+                }
+
                 Repeater {
                     model: root.effectiveComponentsData
 
-                    delegate: ComponentSection {
-                        inspector: root
-                        query: searchField.text.trim().toLowerCase()
+                    delegate: Loader {
+                        id: sectionLoader
+
+                        required property var modelData
+
+                        Layout.fillWidth: true
+                        visible: item ? item.visible : true
+                        sourceComponent: modelData.type === "sprite" ? spriteSection : componentSection
+
+                        Component {
+                            id: componentSection
+                            ComponentSection {
+                                modelData: sectionLoader.modelData
+                                inspector: root
+                                query: searchField.text.trim().toLowerCase()
+                            }
+                        }
+
+                        Component {
+                            id: spriteSection
+                            SpriteSection {
+                                modelData: sectionLoader.modelData
+                                inspector: root
+                            }
+                        }
                     }
                 }
 
@@ -447,6 +565,17 @@ Rectangle {
         inspector: root
     }
 
+    MaterialChangeDialog {
+        id: materialChangeDialog
+        property string pendingLabel: ""
+
+        onKeepAndChange: root.propertyEdited("mesh_renderer", "material", "resourceRef", pendingLabel)
+        onRemoveAndChange: {
+            for (const name of overrides) root.propertyRemoved("mesh_renderer_properties", name);
+            root.propertyEdited("mesh_renderer", "material", "resourceRef", pendingLabel);
+        }
+    }
+
     AddSpriteDialog {
         id: addSpriteDialog
 
@@ -459,6 +588,7 @@ Rectangle {
             root.componentAddRequested("transform");
             root.componentAddRequested("mesh_renderer");
             root.componentAddRequested("mesh_renderer_properties");
+            root.groupsChanged(root.entityGroups.concat(["sprite"]));
             if (textureLabel !== "") {
                 root.propertyEdited("mesh_renderer", "material", "resourceRef", "materials:texture");
                 root.propertyEdited("mesh_renderer_properties", "texture:u_texture", "resourceRef", textureLabel);

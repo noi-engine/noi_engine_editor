@@ -580,6 +580,15 @@ namespace noi_engine_editor
                 folder = componentProperties(id, generation, "folder").value(QStringLiteral("path")).toString();
             }
             entity.insert(QStringLiteral("folder"), folder);
+
+            // Same for the editor groups ("sprite", ...): components shown as one section.
+            QStringList groups;
+            if (componentTypes.removeAll(QStringLiteral("groups")) > 0)
+            {
+                const auto names = componentProperties(id, generation, "groups").value(QStringLiteral("names")).toString();
+                groups = names.split(QLatin1Char(','), Qt::SkipEmptyParts);
+            }
+            entity.insert(QStringLiteral("groups"), groups);
             entity.insert(QStringLiteral("componentTypes"), componentTypes);
 
             // Where the entity is, for picking and dragging it in the viewport (kept out of the
@@ -621,7 +630,15 @@ namespace noi_engine_editor
                         {QStringLiteral("zoom"), camera.value(QStringLiteral("zoom"))},
                         {QStringLiteral("x"), position.value(0, 0.0)},
                         {QStringLiteral("y"), position.value(1, 0.0)},
+                        {QStringLiteral("cullingEnabled"), false},
+                        {QStringLiteral("cullingMargin"), 0.0},
                     };
+                    if (componentTypes.contains(QStringLiteral("culling")))
+                    {
+                        const auto culling = componentProperties(id, generation, "culling");
+                        sceneCamera.insert(QStringLiteral("cullingEnabled"), culling.value(QStringLiteral("enabled")));
+                        sceneCamera.insert(QStringLiteral("cullingMargin"), culling.value(QStringLiteral("margin")));
+                    }
                 }
             }
 
@@ -629,6 +646,44 @@ namespace noi_engine_editor
         }
 
         return sceneCamera;
+    }
+
+    // Names of the properties the mesh_renderer's material itself defines (param:/color:/texture:
+    // entries), so the Inspector can point out Material Overrides that material doesn't use.
+    auto OpenGLRenderer::materialPropertyNames(const QVariantList& meshRendererProperties) -> QStringList
+    {
+        QString materialLabel;
+        for (const auto& property : meshRendererProperties)
+        {
+            const auto map = property.toMap();
+            if (map.value(QStringLiteral("name")).toString() == QStringLiteral("material"))
+            {
+                materialLabel = map.value(QStringLiteral("value")).toString();
+            }
+        }
+
+        QVariantList resources;
+        m_bridge.enumerateResources(this->m_gameHandle, &OpenGLRenderer::resourceEntryCallback, &resources);
+        QStringList names;
+        for (const auto& resource : resources)
+        {
+            const auto map = resource.toMap();
+            if (map.value(QStringLiteral("type")).toString() != QStringLiteral("material") ||
+                map.value(QStringLiteral("label")).toString() != materialLabel)
+            {
+                continue;
+            }
+            QVariantList materialProperties;
+            m_bridge.enumerateMaterialProperties(this->m_gameHandle, map.value(QStringLiteral("id")).toUInt(),
+                                                  map.value(QStringLiteral("generation")).toUInt(),
+                                                  &OpenGLRenderer::propertyEntryCallback, &materialProperties);
+            for (const auto& materialProperty : materialProperties)
+            {
+                names.append(materialProperty.toMap().value(QStringLiteral("name")).toString());
+            }
+            break;
+        }
+        return names;
     }
 
     QVariantList OpenGLRenderer::buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities)
@@ -659,10 +714,15 @@ namespace noi_engine_editor
                 m_bridge.enumerateComponentProperties(this->m_gameHandle, targetId, targetGeneration,
                                                        componentType.toUtf8().constData(),
                                                        &OpenGLRenderer::propertyEntryCallback, &properties);
-                inspectedComponents.append(QVariantMap{
+                QVariantMap component{
                     {QStringLiteral("type"), componentType},
                     {QStringLiteral("properties"), properties},
-                });
+                };
+                if (componentType == QStringLiteral("mesh_renderer"))
+                {
+                    component.insert(QStringLiteral("materialProperties"), this->materialPropertyNames(properties));
+                }
+                inspectedComponents.append(component);
             }
             break;
         }
@@ -720,10 +780,11 @@ namespace noi_engine_editor
             }
         }
 
-        if (this->m_gameHandle && view->gridVisible() != m_lastPushedGridVisible)
+        if (this->m_gameHandle && view->editorView() != m_lastPushedEditorView)
         {
-            m_lastPushedGridVisible = view->gridVisible();
-            m_bridge.setGridVisible(this->m_gameHandle, m_lastPushedGridVisible);
+            m_lastPushedEditorView = view->editorView();
+            m_bridge.setEditorView(this->m_gameHandle, m_lastPushedEditorView[0].toFloat(),
+                                   m_lastPushedEditorView[1].toFloat(), m_lastPushedEditorView[2].toFloat());
         }
 
         this->updatePlayState(view);

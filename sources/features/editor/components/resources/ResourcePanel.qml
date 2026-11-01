@@ -8,6 +8,9 @@ import "../../../../common/utils/LocalPathAndUrlConverter.js" as UrlConverter
 Item {
     id: rootItem
 
+    // An image to put in the open scene (see ProjectEditorPage.createImageSprite()).
+    signal imageSpriteRequested(string filePath, bool background)
+
     readonly property string rootFolder: CurrentProjectManager.resourcesPath()
     property string currentFolder: rootFolder
     property string selectedFilePath: ""
@@ -139,6 +142,7 @@ Item {
                             rootItem.enterFolder(model.filePath);
                     }
                     onRenameRequested: renameDialog.openFor(filePath, fileName)
+                    onSpriteRequested: background => rootItem.imageSpriteRequested(filePath, background)
                     onDeleteRequested: deleteDialog.openFor(filePath, fileName)
                 }
 

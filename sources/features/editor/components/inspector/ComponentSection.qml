@@ -10,7 +10,7 @@ import noi_engine_editor
 Rectangle {
     id: section
 
-    required property var modelData
+    property var modelData
     property var inspector
     property string query: "" // lower-case search text
 
@@ -116,6 +116,43 @@ Rectangle {
             font.pixelSize: 10
             font.italic: true
             color: Theme.grey
+        }
+
+        // Material Overrides the current material doesn't define: leftovers from another material.
+        Rectangle {
+            readonly property var unused: section.componentType === "mesh_renderer_properties"
+                ? inspector.unusedOverrides() : []
+
+            visible: section.expanded && unused.length > 0
+            Layout.fillWidth: true
+            Layout.preferredHeight: unusedColumn.implicitHeight + 12
+            radius: 6
+            color: "#3A2E1A"
+            border.color: "#E0B85B"
+
+            ColumnLayout {
+                id: unusedColumn
+                anchors.fill: parent
+                anchors.margins: 6
+                spacing: 6
+
+                Text {
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: 10
+                    color: "#E0B85B"
+                    text: qsTr("Not used by %1: %2").arg(inspector.entityMaterial())
+                        .arg(parent.parent.unused.map(n => n.substring(n.indexOf(":") + 1)).join(", "))
+                }
+
+                AppButton {
+                    text: qsTr("Remove unused")
+                    icon: "cleaning_services"
+                    onClicked: {
+                        for (const name of parent.parent.unused) inspector.propertyRemoved("mesh_renderer_properties", name);
+                    }
+                }
+            }
         }
 
         Rectangle {

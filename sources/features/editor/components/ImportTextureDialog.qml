@@ -5,9 +5,9 @@ import QtQuick.Dialogs
 import noi_engine_editor
 import "../../../common/utils/LocalPathAndUrlConverter.js" as UrlConverter
 
-// Makes a new image available as a loaded texture resource: copies it into the project's
-// resources/textures/ folder, declares it in the currently-open scene's own
-// resources.textures block, and asks the viewport to reload that scene from disk so the
+// Makes an image available as a loaded texture resource: copies it into the project's
+// resources/textures/ folder if needed (importImage), declares it in the currently-open scene's
+// own resources.textures block (declareImage), and asks the viewport to reload that scene from disk so the
 // bridge actually picks it up (see OpenGLView::reloadScene()). There is deliberately no
 // generic "add_resource" bridge call - a texture only exists to the engine by being declared
 // in a scene's resources, so that's the only place it can be added from.
@@ -35,60 +35,65 @@ Item {
         return desired + "_" + suffix;
     }
 
+    // Copies an image from anywhere into resources/textures/, then declares it.
     function importImage(localFilePath) {
         if (root.scenePath === "" || root.resourcesPath === "") {
             root.errorText = qsTr("Open a scene before importing a texture.");
             return;
         }
 
-        root.errorText = "";
-        root.busy = true;
-
         const fileName = localFilePath.substring(Math.max(localFilePath.lastIndexOf("/"), localFilePath.lastIndexOf("\\")) + 1);
-        const relativePath = "textures/" + fileName;
-
         if (!CurrentProjectResourcesManager.importPaths([localFilePath], root.resourcesPath + "/textures")) {
             root.errorText = qsTr("Could not copy %1 into resources/textures.").arg(fileName);
-            root.busy = false;
             return;
         }
+        const label = root.declareImage(root.resourcesPath + "/textures/" + fileName);
+        if (label !== "") root.imported(label);
+    }
 
-        const raw = CurrentProjectResourcesManager.readFile(root.scenePath);
+    // Declares an image that is already inside the project's resources folder in the open
+    // scene's resources.textures block (asking for a reload when it's new). Returns its
+    // texture label, or "" on error.
+    function declareImage(absolutePath) {
+        root.errorText = "";
+        if (root.scenePath === "" || root.resourcesPath === "") {
+            root.errorText = qsTr("Open a scene first.");
+            return "";
+        }
+        const prefix = root.resourcesPath + "/";
+        if (!absolutePath.startsWith(prefix)) {
+            root.errorText = qsTr("The image must be inside the project's resources folder.");
+            return "";
+        }
+        const relativePath = absolutePath.substring(prefix.length);
+        const fileName = relativePath.substring(relativePath.lastIndexOf("/") + 1);
+
         let scene;
         try {
-            scene = JSON.parse(raw);
+            scene = JSON.parse(CurrentProjectResourcesManager.readFile(root.scenePath));
         } catch (e) {
             root.errorText = qsTr("Scene file is not valid JSON - can't declare the texture.");
-            root.busy = false;
-            return;
+            return "";
         }
 
         if (!scene.resources) scene.resources = {};
         if (!scene.resources.textures) scene.resources.textures = [];
 
-        // Re-importing the same file should point at the same texture rather than piling up
-        // duplicate resource entries for it.
-        for (let i = 0; i < scene.resources.textures.length; i++) {
-            if (scene.resources.textures[i].path === relativePath) {
-                root.busy = false;
-                root.imported(scene.resources.textures[i].name);
-                return;
-            }
+        // Already declared: reuse it rather than piling up duplicate entries.
+        for (const texture of scene.resources.textures) {
+            if (texture.path === relativePath) return texture.name;
         }
 
-        const existingNames = scene.resources.textures.map(t => t.name);
-        const label = root.uniqueLabel(root.baseName(fileName), existingNames);
+        const label = root.uniqueLabel(root.baseName(fileName), scene.resources.textures.map(t => t.name));
         scene.resources.textures.push({ "name": label, "path": relativePath });
 
         if (!CurrentProjectResourcesManager.writeFile(root.scenePath, JSON.stringify(scene, null, 2))) {
             root.errorText = qsTr("Could not update the scene file with the new texture.");
-            root.busy = false;
-            return;
+            return "";
         }
 
-        root.busy = false;
         root.reloadRequested();
-        root.imported(label);
+        return label;
     }
 
     // Loaded on demand rather than declared inline - instantiating a FileDialog eagerly pulls in

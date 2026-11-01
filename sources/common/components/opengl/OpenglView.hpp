@@ -126,7 +126,9 @@ namespace noi_engine_editor
         Q_PROPERTY(QString engineVersion READ engineVersion WRITE setEngineVersion NOTIFY engineVersionChanged)
         Q_PROPERTY(int gameWidth READ gameWidth WRITE setGameWidth NOTIFY gameWidthChanged)
         Q_PROPERTY(int gameHeight READ gameHeight WRITE setGameHeight NOTIFY gameHeightChanged)
-        Q_PROPERTY(bool gridVisible READ gridVisible WRITE setGridVisible NOTIFY gridVisibleChanged)
+        // The editor's view: where it looks (world units) and its zoom. Outside Play mode the
+        // viewport shows this instead of the scene camera (bridge set_editor_view).
+        Q_PROPERTY(QVariantList editorView READ editorView WRITE setEditorView NOTIFY editorViewChanged)
         // Read-only from QML on purpose: reflects the *confirmed* play state, only ever flipped
         // to false by confirmStopped() from the render thread (see OpenGLRenderer::synchronize()),
         // never synchronously from setPlaying(false) - see setPlaying() for why.
@@ -175,8 +177,8 @@ namespace noi_engine_editor
         int gameHeight() const;
         void setGameHeight(int height);
 
-        [[nodiscard]] bool gridVisible() const;
-        void setGridVisible(bool visible);
+        [[nodiscard]] QVariantList editorView() const;
+        void setEditorView(const QVariantList& view);
 
         QVariantList loadedResources() const;
         // Called only by OpenGLRenderer::synchronize(), the one safe rendezvous point
@@ -336,7 +338,7 @@ namespace noi_engine_editor
         void engineVersionChanged();
         void gameWidthChanged();
         void gameHeightChanged();
-        void gridVisibleChanged();
+        void editorViewChanged();
         void loadedResourcesChanged();
         void loadedEntitiesChanged();
         void sceneCameraChanged();
@@ -364,7 +366,7 @@ namespace noi_engine_editor
         int m_scriptsGeneration = 0;
         int m_gameWidth = 0;
         int m_gameHeight = 0;
-        bool m_gridVisible = false;
+        QVariantList m_editorView{0.0, 0.0, 1.0};
         QVariantList m_loadedResources;
         QVariantList m_loadedEntities;
         QVariantMap m_sceneCamera;

@@ -11,8 +11,6 @@ Item {
 
     readonly property string rawRootFolder: CurrentProjectManager.resourcesPath()
     readonly property bool scenesAvailable: !ProjectBuilder.isCompiling && !ProjectBuilder.lastCompileFailed
-    property string pendingScenePath: ""
-    property string pendingSceneName: ""
     property real itemScale: 1.0
     property bool sceneDirty: false
     property string currentScenePath: ""
@@ -78,55 +76,6 @@ Item {
                 rootItem.refreshScenes();
             }
         }
-    }
-
-    Dialog {
-        id: confirmDialog
-        title: rootItem.sceneDirty ? qsTr("Unsaved Changes") : qsTr("Open Scene")
-        modal: true
-        anchors.centerIn: parent
-        width: 320
-        standardButtons: Dialog.NoButton
-
-        background: Rectangle {
-            color: Theme.bgTertiary
-            border.color: Theme.borderColor
-            radius: 6
-        }
-
-        ColumnLayout {
-            anchors.fill: parent
-            spacing: 14
-
-            Text {
-                Layout.fillWidth: true
-                text: rootItem.sceneDirty
-                    ? qsTr("Unsaved changes will be lost. Open '%1'?").arg(rootItem.pendingSceneName)
-                    : qsTr("Open '%1'?").arg(rootItem.pendingSceneName)
-                color: Theme.darkGrey
-                font.pixelSize: 12
-                wrapMode: Text.WordWrap
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-
-                Item { Layout.fillWidth: true }
-
-                AppButton {
-                    text: qsTr("No")
-                    onClicked: confirmDialog.reject()
-                }
-
-                AppButton {
-                    text: qsTr("Yes")
-                    onClicked: confirmDialog.accept()
-                }
-            }
-        }
-
-        onAccepted: if (rootItem.pendingScenePath) rootItem.sceneOpenRequested(rootItem.pendingScenePath)
     }
 
     NewSceneDialog {
@@ -358,9 +307,8 @@ Item {
                                 if (model.filePath === rootItem.currentScenePath) {
                                     return; // already the open scene, nothing to confirm
                                 }
-                                rootItem.pendingScenePath = model.filePath;
-                                rootItem.pendingSceneName = model.fileName;
-                                confirmDialog.open();
+                                // ProjectEditorPage asks about unsaved changes (save / don't save / cancel).
+                                rootItem.sceneOpenRequested(model.filePath);
                             }
 
                             Menu {

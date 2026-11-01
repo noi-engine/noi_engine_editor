@@ -58,7 +58,7 @@ namespace noi_engine_editor
         // Optional: older bridges built before this symbol existed simply won't have it resolved
         // (see m_setGridVisible's resolve() call in the .cpp) - not part of the "missing required
         // entry points" check, so those bridges still load fine; this call just becomes a no-op.
-        auto setGridVisible(noi_engine_editor_bridge_game_handle handle, bool visible) const -> void;
+        auto setEditorView(noi_engine_editor_bridge_game_handle handle, float x, float y, float zoom) const -> void;
 
         // Optional, same rationale as setGridVisible(): older bridges won't have this resolved
         // and the call becomes a no-op (returns false) instead of failing to load.
@@ -115,7 +115,7 @@ namespace noi_engine_editor
         using release_all_keys_fn = void (*)(noi_engine_editor_bridge_game_handle);
         using reset_timer_fn = void (*)(noi_engine_editor_bridge_game_handle);
         using set_playing_fn = void (*)(noi_engine_editor_bridge_game_handle, int);
-        using set_grid_visible_fn = void (*)(noi_engine_editor_bridge_game_handle, int);
+        using set_editor_view_fn = void (*)(noi_engine_editor_bridge_game_handle, float, float, float);
         using save_scene_fn = int (*)(noi_engine_editor_bridge_game_handle, const char*);
         using create_entity_fn = noi_engine_editor_bridge_entity_ref (*)(noi_engine_editor_bridge_game_handle,
                                                                           const char*);
@@ -150,7 +150,7 @@ namespace noi_engine_editor
         set_key_released_fn m_setKeyReleased{nullptr};
         release_all_keys_fn m_releaseAllKeys{nullptr};
         reset_timer_fn m_resetTimer{nullptr};
-        set_grid_visible_fn m_setGridVisible{nullptr};
+        set_editor_view_fn m_setEditorView{nullptr};
         save_scene_fn m_saveScene{nullptr};
         create_entity_fn m_createEntity{nullptr};
         destroy_entity_fn m_destroyEntity{nullptr};

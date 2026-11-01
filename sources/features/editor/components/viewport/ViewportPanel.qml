@@ -26,11 +26,13 @@ Item {
 
     signal sceneSaved(bool success)
     signal entityCreated(int entityId, int entityGeneration)
-    // The scene camera was resized with the handles on its red border.
+    // The scene camera was moved / resized with its red border.
     signal cameraEdited()
     // Clicked / dragged in the viewport.
     signal entityPicked(int entityId, int entityGeneration)
     signal entityMoved()
+    // An image file dropped on the viewport, at a world position.
+    signal imageDropped(string filePath, real x, real y)
 
     readonly property var sceneCamera: openGLView.sceneCamera
 
@@ -91,18 +93,100 @@ Item {
         openGLView.duplicateEntity(entityId, entityGeneration, newName)
     }
 
+    // "select": click to select, drag to move / resize; "pan": drag to move the view.
     property string activeTool: "select"
-    property real cameraZoom: 1.0
-    property alias gridVisible: openGLView.gridVisible
 
-    property real worldWidth: CurrentProjectManager.windowWidth
-    property real worldHeight: CurrentProjectManager.windowHeight
+    // ---- The editor's view: where it looks (world units) and its zoom. The scene camera keeps
+    // its own position, shown by the red border.
+    property real viewX: 0
+    property real viewY: 0
+    property real viewZoom: 1
+    readonly property real minZoom: 0.05
+    readonly property real maxZoom: 20
+    // Logical pixels per world unit at zoom 1 (the bridge maps 100 device pixels to one unit).
+    readonly property real pixelsPerUnit: 100 / Screen.devicePixelRatio
+    readonly property real unit: pixelsPerUnit * viewZoom
 
-    // Zoom, world size and scroll are saved with the project and restored.
+    function toScreen(wx, wy) {
+        return Qt.point(width / 2 + (wx - viewX) * unit, height / 2 - (wy - viewY) * unit);
+    }
+
+    function toWorld(sx, sy) {
+        return Qt.point(viewX + (sx - width / 2) / unit, viewY - (sy - height / 2) / unit);
+    }
+
+    // Zooms keeping the world point under (sx, sy) where it is.
+    function zoomAt(factor, sx, sy) {
+        const before = toWorld(sx, sy);
+        viewZoom = Math.min(maxZoom, Math.max(minZoom, viewZoom * factor));
+        const after = toWorld(sx, sy);
+        viewX += before.x - after.x;
+        viewY += before.y - after.y;
+    }
+
+    function zoomBy(factor) {
+        zoomAt(factor, width / 2, height / 2);
+    }
+
+    function panBy(dx, dy) {
+        viewX -= dx / unit;
+        viewY += dy / unit;
+    }
+
+    // Fits a world rectangle (centre + size) in the view, with a margin.
+    function frameRect(cx, cy, w, h) {
+        if (!(w > 0 && h > 0) || width <= 0 || height <= 0) return;
+        viewX = cx;
+        viewY = cy;
+        viewZoom = Math.min(maxZoom, Math.max(minZoom,
+            Math.min(width * 0.85 / (w * pixelsPerUnit), height * 0.85 / (h * pixelsPerUnit))));
+    }
+
+    function frameCamera() {
+        const cam = openGLView.sceneCamera;
+        if (!cam || !cam.valid) return;
+        const h = 2 * cam.orthographicSize / cam.zoom;
+        frameRect(cam.x, cam.y, h * cam.aspectRatio, h);
+    }
+
+    function frameSelection() {
+        if (!root.selectedEntity) return frameCamera();
+        for (const entry of openGLView.entityLayout || []) {
+            if (entry.id === root.selectedEntity.id && entry.generation === root.selectedEntity.generation) {
+                return frameRect(entry.position[0], entry.position[1],
+                    Math.max(1, Math.abs(entry.size[0]) * 3), Math.max(1, Math.abs(entry.size[1]) * 3));
+            }
+        }
+        frameCamera();
+    }
+
+    readonly property bool sceneShown: root.scenePath !== "" && !!openGLView.sceneCamera.valid
+
+    // The view is saved with the project and restored (or fitted to the camera the first time).
     ViewportViewState {
         viewport: root
-        flickable: viewportFlickable
-        sceneShown: !!openGLView.sceneCamera.valid
+        sceneShown: root.sceneShown
+    }
+
+    Shortcut {
+        sequences: ["Ctrl+=", "Ctrl++"]
+        enabled: root.sceneShown
+        onActivated: root.zoomBy(1.25)
+    }
+    Shortcut {
+        sequence: "Ctrl+-"
+        enabled: root.sceneShown
+        onActivated: root.zoomBy(0.8)
+    }
+    Shortcut {
+        sequence: "Ctrl+0"
+        enabled: root.sceneShown
+        onActivated: root.frameCamera()
+    }
+    Shortcut {
+        sequence: "F"
+        enabled: root.sceneShown
+        onActivated: root.frameSelection()
     }
 
     Rectangle {
@@ -110,147 +194,92 @@ Item {
         color: Theme.bgPrimary
         clip: true
 
-        Flickable {
-            id: viewportFlickable
+        OpenGLView {
+            id: openGLView
             anchors.fill: parent
             visible: root.scenePath !== ""
-            clip: true
+            // OpenGL renders into the FBO bottom-up; QQuickFramebufferObject does not
+            // correct for that by default, so the preview is displayed upside down.
+            mirrorVertically: true
+            scenePath: root.scenePath
+            resourcesPath: CurrentProjectManager.resourcesPath()
+            scriptsLibraryPath: CurrentProjectManager.scriptsLibraryPath()
+            bridgeLibraryPath: CurrentProjectManager.bridgeLibraryPath()
+            engineLibraryPath: CurrentProjectManager.engineLibraryPath()
+            scriptsGeneration: ProjectBuilder.compileGeneration
+            engineVersion: CurrentProjectManager.engineVersion
+            gameWidth: CurrentProjectManager.windowWidth
+            gameHeight: CurrentProjectManager.windowHeight
+            editorView: [root.viewX, root.viewY, root.viewZoom]
+        }
 
-            boundsBehavior: Flickable.StopAtBounds
-            // In the select tool, a press on an entity is taken by EntityPicking; anywhere else pans.
-            interactive: true
+        // Pan (middle button anywhere, left button with the pan tool or on empty space) and
+        // wheel zoom. Below the picking / handles, which take the presses they need.
+        ViewportNavigation {
+            anchors.fill: parent
+            visible: root.scenePath !== ""
+            viewport: root
+        }
 
-            contentWidth: Math.max(viewportFlickable.width, container.width * root.cameraZoom)
-            contentHeight: Math.max(viewportFlickable.height, container.height * root.cameraZoom)
+        EntityPicking {
+            anchors.fill: parent
+            visible: root.scenePath !== "" && !root.playing
+            enabled: root.activeTool === "select" && !root.playing
+            viewport: root
+            layout: openGLView.entityLayout
+            camera: openGLView.sceneCamera
+            selectedEntity: root.selectedEntity
 
-            ScrollBar.vertical: ScrollBar {
-                policy: ScrollBar.AsNeeded
-                active: viewportFlickable.moving || viewportFlickable.flicking || viewportFlickable.activeFocus
+            onEntityPicked: (entityId, entityGeneration) => root.entityPicked(entityId, entityGeneration)
+            onEntityTransformed: (entityId, entityGeneration, position, scale) => {
+                openGLView.setComponentProperty(entityId, entityGeneration, "transform", "position", "vec3", position);
+                if (scale) openGLView.setComponentProperty(entityId, entityGeneration, "transform", "scale", "vec3", scale);
+                root.entityMoved();
             }
-            ScrollBar.horizontal: ScrollBar {
-                policy: ScrollBar.AsNeeded
-                active: viewportFlickable.moving || viewportFlickable.flicking || viewportFlickable.activeFocus
+        }
+
+        CameraFrameHandles {
+            anchors.fill: parent
+            visible: root.scenePath !== "" && !root.playing
+            enabled: root.activeTool === "select" && !root.playing
+            viewport: root
+            camera: openGLView.sceneCamera
+            layout: openGLView.entityLayout
+
+            onResized: (orthographicSize, aspectRatio) => {
+                const cam = openGLView.sceneCamera;
+                openGLView.setComponentProperty(cam.id, cam.generation, "camera_2d", "orthographic_size", "float", orthographicSize);
+                openGLView.setComponentProperty(cam.id, cam.generation, "camera_2d", "aspect_ratio", "float", aspectRatio);
+                root.cameraEdited();
             }
+            onMoved: (x, y) => {
+                const cam = openGLView.sceneCamera;
+                openGLView.setComponentProperty(cam.id, cam.generation, "transform", "position", "vec3", [x, y, 0]);
+                root.cameraEdited();
+            }
+        }
 
-            Item {
-                id: container
-                // Large enough to show the whole camera border and its handles. Only grows, so
-                // the view doesn't jump when the camera is made smaller.
-                property real fitWidth: 0
-                property real fitHeight: 0
-                readonly property real cameraFitWidth: cameraHandles.cameraWidth + 160
-                readonly property real cameraFitHeight: cameraHandles.cameraHeight + 160
-                onCameraFitWidthChanged: fitWidth = Math.max(fitWidth, cameraFitWidth)
-                onCameraFitHeightChanged: fitHeight = Math.max(fitHeight, cameraFitHeight)
+        // Images dragged from the Folder Resources panel become sprites where they're dropped.
+        DropArea {
+            anchors.fill: parent
+            enabled: root.scenePath !== "" && !root.playing
+            keys: ["text/uri-list"]
 
-                width: Math.max(root.worldWidth, fitWidth)
-                height: Math.max(root.worldHeight, fitHeight)
-
-                transform: Scale {
-                    xScale: root.cameraZoom
-                    yScale: root.cameraZoom
-                    origin.x: 0
-                    origin.y: 0
-                }
-
-                OpenGLView {
-                    id: openGLView
-                    anchors.fill: parent
-                    // OpenGL renders into the FBO bottom-up; QQuickFramebufferObject does not
-                    // correct for that by default, so the preview is displayed upside down.
-                    // Invisible on symmetric content (grid, border), but it inverts the
-                    // perceived direction of any vertical movement - see mirrorVertically's docs.
-                    mirrorVertically: true
-                    scenePath: root.scenePath
-                    resourcesPath: CurrentProjectManager.resourcesPath()
-                    scriptsLibraryPath: CurrentProjectManager.scriptsLibraryPath()
-                    bridgeLibraryPath: CurrentProjectManager.bridgeLibraryPath()
-                    engineLibraryPath: CurrentProjectManager.engineLibraryPath()
-                    scriptsGeneration: ProjectBuilder.compileGeneration
-                    engineVersion: CurrentProjectManager.engineVersion
-                    gameWidth: CurrentProjectManager.windowWidth
-                    gameHeight: CurrentProjectManager.windowHeight
-                }
-
-                // Cursor only: presses go to EntityPicking / the Flickable.
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    acceptedButtons: Qt.NoButton
-                    cursorShape: {
-                        if (root.activeTool === "move") {
-                            return pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-                        }
-                        return Qt.ArrowCursor
-                    }
-
-                }
-
-                EntityPicking {
-                    anchors.fill: parent
-                    visible: !root.playing
-                    enabled: root.activeTool === "select" && !root.playing
-                    layout: openGLView.entityLayout
-                    camera: openGLView.sceneCamera
-                    pixelsPerUnit: 100 / Screen.devicePixelRatio
-                    zoom: root.cameraZoom
-                    selectedEntity: root.selectedEntity
-
-                    onEntityPicked: (entityId, entityGeneration) => root.entityPicked(entityId, entityGeneration)
-                    onEntityMoved: (entityId, entityGeneration, position) => {
-                        openGLView.setComponentProperty(entityId, entityGeneration, "transform", "position", "vec3", position);
-                        root.entityMoved();
-                    }
-                }
-
-                CameraFrameHandles {
-                    id: cameraHandles
-                    // The bridge maps PIXELS_PER_UNIT (100) device pixels to one world unit.
-                    camera: openGLView.sceneCamera
-                    pixelsPerUnit: 100 / Screen.devicePixelRatio
-                    zoom: root.cameraZoom
-                    enabled: !root.playing
-                    opacity: root.playing ? 0 : 1
-
-                    onResized: (orthographicSize, aspectRatio) => {
-                        const cam = openGLView.sceneCamera;
-                        openGLView.setComponentProperty(cam.id, cam.generation, "camera_2d", "orthographic_size", "float", orthographicSize);
-                        openGLView.setComponentProperty(cam.id, cam.generation, "camera_2d", "aspect_ratio", "float", aspectRatio);
-                        root.cameraEdited();
-                    }
-                }
+            onDropped: drop => {
+                if (!drop.hasUrls) return;
+                const path = decodeURIComponent(drop.urls[0].toString().replace(/^file:\/\//, ""));
+                if (!/\.(png|jpe?g|bmp|tga|gif)$/i.test(path)) return;
+                const world = root.toWorld(drop.x, drop.y);
+                root.imageDropped(path, world.x, world.y);
+                drop.accept(Qt.CopyAction);
             }
         }
 
         ViewportToolbar {
-            x: 20
-            y: 20
+            x: 16
+            y: 16
             visible: root.scenePath !== ""
-            activeTool: root.activeTool
-            zoomValue: root.cameraZoom
-            gridVisible: root.gridVisible
-
-            onToolChanged: (tool) => root.activeTool = tool
-            onGridVisibleToggled: (visible) => root.gridVisible = visible
-            onZoomInRequested: root.cameraZoom += 0.25
-            onZoomOutRequested: root.cameraZoom = Math.max(0.1, root.cameraZoom - 0.25)
-            onZoomResetRequested: root.cameraZoom = 1.0
-            onSetZoomRequested: (zoom) => root.cameraZoom = zoom
-            onResetAllRequested: {
-                root.cameraZoom = 1.0
-                viewportFlickable.contentX = 0
-                viewportFlickable.contentY = 0
-            }
-
-            onModifyWorldSizeRequested: (factor) => {
-                if (factor === 0.0) {
-                    root.worldWidth = CurrentProjectManager.windowWidth
-                    root.worldHeight = CurrentProjectManager.windowHeight
-                } else {
-                    root.worldWidth = Math.max(CurrentProjectManager.windowWidth, root.worldWidth * factor)
-                    root.worldHeight = Math.max(CurrentProjectManager.windowHeight, root.worldHeight * factor)
-                }
-            }
+            viewport: root
         }
 
         ColumnLayout {

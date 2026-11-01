@@ -259,20 +259,20 @@ namespace noi_engine_editor
         update();
     }
 
-    bool OpenGLView::gridVisible() const
+    QVariantList OpenGLView::editorView() const
     {
-        return this->m_gridVisible;
+        return this->m_editorView;
     }
 
-    void OpenGLView::setGridVisible(const bool visible)
+    void OpenGLView::setEditorView(const QVariantList& view)
     {
-        if (m_gridVisible == visible)
+        if (m_editorView == view || view.size() < 3)
         {
             return;
         }
 
-        m_gridVisible = visible;
-        Q_EMIT gridVisibleChanged();
+        m_editorView = view;
+        Q_EMIT editorViewChanged();
 
         update();
     }

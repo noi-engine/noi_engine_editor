@@ -20,16 +20,111 @@ CustomPage {
     // null = leave as is), applied when the bridge reports the new entity.
     property var pendingCreates: []
 
+    // ---- Images from the resources folder as sprites / backgrounds.
+    // Waiting for the image's texture to be loaded (after the scene reload that declares it).
+    property var pendingImageSprite: null
+
+    function imageName(path) {
+        const file = path.substring(path.lastIndexOf("/") + 1);
+        const dot = file.lastIndexOf(".");
+        return dot > 0 ? file.substring(0, dot) : file;
+    }
+
+    // Puts an image of the resources folder in the open scene: at its own size (100 pixels per
+    // world unit) at (x, y), or as a background covering the camera behind everything else.
+    function createImageSprite(path, background, x, y) {
+        if (root.currentScenePath === "" || viewportPanel.playing) return;
+        imageProbe.source = "file://" + path;
+        const width = imageProbe.sourceSize.width > 0 ? imageProbe.sourceSize.width : 100;
+        const height = imageProbe.sourceSize.height > 0 ? imageProbe.sourceSize.height : 100;
+
+        const label = textureDeclarer.declareImage(path);
+        if (label === "") {
+            console.warn("Can't use " + path + ": " + textureDeclarer.errorText);
+            return;
+        }
+
+        let w = width / 100, h = height / 100;
+        const cam = viewportPanel.sceneCamera;
+        if (background && cam && cam.valid) {
+            const camHeight = 2 * cam.orthographicSize / cam.zoom;
+            const factor = Math.max(camHeight * cam.aspectRatio / w, camHeight / h);
+            w *= factor;
+            h *= factor;
+            x = cam.x;
+            y = cam.y;
+        }
+        root.pendingImageSprite = {
+            label: label, background: background, position: [x, y, 0], scale: [w, h, 1],
+            name: background ? "background" : root.imageName(path)
+        };
+        root.createPendingImageSprite();
+    }
+
+    function createPendingImageSprite() {
+        const pending = root.pendingImageSprite;
+        if (!pending) return;
+        if (!(viewportPanel.loadedResources || []).some(r => r.type === "texture" && r.label === pending.label)) return;
+        root.pendingImageSprite = null;
+        root.pendingCreates = root.pendingCreates.concat([{folder: null, preset: "image", image: pending}]);
+        viewportPanel.createEntity(pending.name);
+        root.sceneDirty = true;
+    }
+
+    Image {
+        id: imageProbe
+        visible: false
+        asynchronous: false
+    }
+
+    ImportTextureDialog {
+        id: textureDeclarer
+        resourcesPath: CurrentProjectManager.resourcesPath()
+        scenePath: root.currentScenePath
+        onReloadRequested: root.reloadSceneKeepingEdits()
+    }
+
+    Connections {
+        target: viewportPanel
+        function onLoadedResourcesChanged() { root.createPendingImageSprite(); }
+        // Keep the selection's data (name, folder, groups, components) up to date.
+        function onLoadedEntitiesChanged() {
+            if (!root.selectedEntity) return;
+            for (const entity of viewportPanel.loadedEntities || []) {
+                if (entity.id === root.selectedEntity.id && entity.generation === root.selectedEntity.generation) {
+                    root.selectedEntity = entity;
+                    return;
+                }
+            }
+            root.selectedEntity = null; // it was deleted
+        }
+    }
+
     // Components of the Hierarchy's entity presets (see EntityPresetMenu). Adds are applied
     // before property edits, so everything lands in the same frame.
-    function applyEntityPreset(entity, preset) {
+    function applyEntityPreset(entity, preset, image) {
         if (preset === "" || preset === "empty") return;
+        if (preset === "image") {
+            const id = entity.id, gen = entity.generation;
+            viewportPanel.addComponent(id, gen, "transform");
+            viewportPanel.addComponent(id, gen, "render_layer");
+            viewportPanel.addComponent(id, gen, "mesh_renderer");
+            viewportPanel.addComponent(id, gen, "mesh_renderer_properties");
+            viewportPanel.setComponentProperty(id, gen, "transform", "position", "vec3", image.position);
+            viewportPanel.setComponentProperty(id, gen, "transform", "scale", "vec3", image.scale);
+            if (image.background) viewportPanel.setComponentProperty(id, gen, "render_layer", "order", "float", -100);
+            viewportPanel.setComponentProperty(id, gen, "mesh_renderer", "material", "resourceRef", "materials:texture");
+            viewportPanel.setComponentProperty(id, gen, "mesh_renderer_properties", "texture:u_texture", "resourceRef", image.label);
+            root.setEntityGroups(entity, ["sprite"]);
+            return;
+        }
         const id = entity.id, gen = entity.generation;
         viewportPanel.addComponent(id, gen, "transform");
         viewportPanel.addComponent(id, gen, "render_layer");
         viewportPanel.addComponent(id, gen, "mesh_renderer");
         viewportPanel.addComponent(id, gen, "mesh_renderer_properties");
         viewportPanel.setComponentProperty(id, gen, "mesh_renderer_properties", "color:u_color", "vec4", [0.85, 0.85, 0.85, 1]);
+        root.setEntityGroups(entity, ["sprite"]);
         if (preset === "static_platform" || preset === "physics_body") {
             viewportPanel.addComponent(id, gen, "box_collider");
         }
@@ -43,10 +138,18 @@ CustomPage {
 
     // The start scene's camera (red border) and the game window share one size, in pixels
     // (100 pixels per world unit at zoom 1).
-    function isStartSceneOpen() {
-        return CurrentProjectManager.startScene !== ""
-            && root.currentScenePath === CurrentProjectManager.resourcesPath() + "/" + CurrentProjectManager.startScene;
+    function normalizedPath(path) {
+        return (path || "").replace(/\\/g, "/").replace(/\/+/g, "/");
     }
+
+    function isStartSceneOpen() {
+        const start = root.normalizedPath(CurrentProjectManager.startScene).replace(/^\//, "");
+        return start !== "" && root.normalizedPath(root.currentScenePath).endsWith("/" + start);
+    }
+
+    // A resolution set in the Settings while the start scene wasn't open: applied to its
+    // camera as soon as it opens.
+    property var pendingCameraSize: null
 
     function syncWindowToCamera() {
         const cam = viewportPanel.sceneCamera;
@@ -58,10 +161,37 @@ CustomPage {
 
     function setCameraSize(width, height) {
         const cam = viewportPanel.sceneCamera;
-        if (!root.isStartSceneOpen() || !cam || !cam.valid) return;
+        if (!root.isStartSceneOpen() || !cam || !cam.valid) {
+            root.pendingCameraSize = {width: width, height: height};
+            return;
+        }
+        root.pendingCameraSize = null;
         viewportPanel.setComponentProperty(cam.id, cam.generation, "camera_2d", "orthographic_size", "float", height / 200);
         viewportPanel.setComponentProperty(cam.id, cam.generation, "camera_2d", "aspect_ratio", "float", width / height);
         root.sceneDirty = true;
+    }
+
+    function setEntityGroups(entity, groups) {
+        if (groups.length === 0) {
+            viewportPanel.removeComponent(entity.id, entity.generation, "groups")
+        } else {
+            viewportPanel.addComponent(entity.id, entity.generation, "groups")
+            viewportPanel.setComponentProperty(entity.id, entity.generation, "groups", "names", "string", groups.join(","))
+        }
+        root.sceneDirty = true;
+    }
+
+    // Reloading the scene from disk (after an image import wrote it into the scene's resources)
+    // would lose unsaved edits: save first, then reload once the save is done.
+    property bool reloadAfterSave: false
+
+    function reloadSceneKeepingEdits() {
+        if (root.sceneDirty) {
+            root.reloadAfterSave = true;
+            viewportPanel.saveScene();
+        } else {
+            viewportPanel.reloadScene();
+        }
     }
 
     function setEntityFolder(entity, folder) {
@@ -75,10 +205,33 @@ CustomPage {
         root.sceneDirty = true;
     }
 
-    function openScene(filePath) {
-        if (viewportPanel.playing) {
+    // ---- Leaving the open scene: unsaved changes are saved (and the save confirmed by the
+    // bridge) or explicitly dropped first.
+    property var afterSave: null // what to do once the pending save succeeded
+
+    function sceneName(path) {
+        return (path || "").substring((path || "").lastIndexOf("/") + 1);
+    }
+
+    function leaveScene(actionText, action) {
+        if (!root.sceneDirty || root.currentScenePath === "") {
+            action();
             return;
         }
+        unsavedDialog.pendingAction = action;
+        unsavedDialog.ask(root.sceneName(root.currentScenePath), actionText);
+    }
+
+    function openScene(filePath) {
+        if (viewportPanel.playing || filePath === root.currentScenePath) {
+            return;
+        }
+        root.leaveScene(qsTr("opening %1").arg(root.sceneName(filePath)), () => root.switchScene(filePath));
+    }
+
+    function switchScene(filePath) {
+        root.selectedEntity = null;
+        root.selectedMaterial = null;
         if (ProjectBuilder.isCompiling || ProjectBuilder.lastCompileFailed) {
             root.pendingScenePath = filePath;
         } else {
@@ -141,6 +294,20 @@ CustomPage {
         color: Theme.bgPrimary
     }
 
+    UnsavedChangesDialog {
+        id: unsavedDialog
+        property var pendingAction: null
+
+        onSaveRequested: {
+            root.afterSave = pendingAction;
+            viewportPanel.saveScene();
+        }
+        onDiscardRequested: {
+            root.sceneDirty = false;
+            if (pendingAction) pendingAction();
+        }
+    }
+
     ProjectSettingsDialog {
         id: settingsDialog
         onResolutionChanged: (width, height) => root.setCameraSize(width, height)
@@ -178,10 +345,10 @@ CustomPage {
             sceneDirty: root.sceneDirty
 
             onSettingsRequested: settingsDialog.open()
-            onBackRequested: {
+            onBackRequested: root.leaveScene(qsTr("closing the project"), () => {
                 CurrentProjectManager.closeProject()
                 Router.replace("/")
-            }
+            })
             onPlayRequested: viewportPanel.setPlaying(true)
             onStopRequested: viewportPanel.setPlaying(false)
             onSaveRequested: root.saveCurrentScene()
@@ -255,6 +422,12 @@ CustomPage {
                     inspectedMaterialGeneration: root.selectedMaterial ? root.selectedMaterial.generation : 0
 
                     onCameraEdited: root.sceneDirty = true
+                    onImageDropped: (filePath, x, y) => root.createImageSprite(filePath, false, x, y)
+                    onSceneCameraChanged: {
+                        if (root.pendingCameraSize && root.isStartSceneOpen() && sceneCamera.valid) {
+                            root.setCameraSize(root.pendingCameraSize.width, root.pendingCameraSize.height);
+                        }
+                    }
                     onEntityMoved: root.sceneDirty = true
                     onEntityPicked: (entityId, entityGeneration) => {
                         for (const entity of viewportPanel.loadedEntities || []) {
@@ -270,9 +443,19 @@ CustomPage {
                         if (success) {
                             root.sceneDirty = false;
                             root.syncWindowToCamera();
+                            if (root.reloadAfterSave) {
+                                root.reloadAfterSave = false;
+                                viewportPanel.reloadScene();
+                            }
+                            if (root.afterSave) {
+                                const action = root.afterSave;
+                                root.afterSave = null;
+                                action();
+                            }
                             console.log("Scene saved: " + root.currentScenePath);
                         } else {
                             console.warn("Failed to save scene: " + root.currentScenePath);
+                            root.afterSave = null; // stay on the scene: its changes aren't saved
                         }
                     }
 
@@ -282,7 +465,7 @@ CustomPage {
                         if (pending.folder !== null && pending.folder !== undefined) {
                             root.setEntityFolder({id: id, generation: gen}, pending.folder);
                         }
-                        root.applyEntityPreset({id: id, generation: gen}, pending.preset);
+                        root.applyEntityPreset({id: id, generation: gen}, pending.preset, pending.image);
                         const items = viewportPanel.loadedEntities || [];
                         for (let i = 0; i < items.length; i++) {
                             if (items[i].id === id && items[i].generation === gen) {
@@ -306,7 +489,11 @@ CustomPage {
                     resourcesPath: CurrentProjectManager.resourcesPath()
                     currentScenePath: root.currentScenePath
 
-                    onSceneReloadRequested: viewportPanel.reloadScene()
+                    onSceneReloadRequested: root.reloadSceneKeepingEdits()
+
+                    onGroupsChanged: (groups) => {
+                        if (root.selectedEntity) root.setEntityGroups(root.selectedEntity, groups)
+                    }
 
                     onPropertyEdited: (componentType, propertyName, propertyType, value) => {
                         if (root.selectedMaterial) {
@@ -376,6 +563,8 @@ CustomPage {
 
                     ResourcePanel {
                         id: resourcePanel
+                        onImageSpriteRequested: (filePath, background) =>
+                            root.createImageSprite(filePath, background, viewportPanel.viewX, viewportPanel.viewY)
                     }
 
                     CompilerOutputPanel {

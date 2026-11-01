@@ -205,8 +205,8 @@ Item {
 
             Component.onCompleted: currentIndex = find(propRow.modelData.value)
 
-            onActivated: (index) => propRow.inspector.propertyEdited(propRow.componentType,
-                propRow.modelData.name, "resourceRef", textAt(index))
+            onActivated: (index) => propRow.inspector.resourceRefChosen(propRow.componentType,
+                propRow.modelData.name, textAt(index), () => resourceCombo.currentIndex = resourceCombo.find(propRow.modelData.value))
 
             background: Rectangle {
                 radius: 6
