@@ -21,6 +21,7 @@ Rectangle {
 
     ColumnLayout {
         anchors.centerIn: parent
+        width: parent.width - 24
 
         spacing: 8
 
@@ -46,6 +47,11 @@ Rectangle {
 
         Text {
             Layout.alignment: Qt.AlignHCenter
+            Layout.fillWidth: true
+
+            // Wraps instead of running off narrow panels.
+            wrapMode: Text.WordWrap
+            horizontalAlignment: Text.AlignHCenter
 
             text: root.description
 
