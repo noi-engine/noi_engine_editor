@@ -171,6 +171,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/inspector/PropertyRow.qml
         sources/features/editor/components/inspector/AddPropertyPopup.qml
         sources/features/editor/components/inspector/SpriteSection.qml
+        sources/features/editor/components/inspector/ScriptsSection.qml
         sources/features/editor/components/inspector/MaterialChangeDialog.qml
         sources/features/editor/components/search/GlobalSearchPopup.qml
         sources/features/editor/components/LogPanel.qml

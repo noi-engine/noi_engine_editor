@@ -96,7 +96,9 @@ CustomPage {
                     return;
                 }
             }
-            root.selectedEntity = null; // it was deleted
+            // A scene reload (scripts recompiled, Play stopped) can renumber entities: same name.
+            const sameName = (viewportPanel.loadedEntities || []).filter(e => e.name !== "" && e.name === root.selectedEntity.name);
+            root.selectedEntity = sameName.length === 1 ? sameName[0] : null; // else it was deleted
         }
     }
 
@@ -112,7 +114,10 @@ CustomPage {
             viewportPanel.addComponent(id, gen, "mesh_renderer_properties");
             viewportPanel.setComponentProperty(id, gen, "transform", "position", "vec3", image.position);
             viewportPanel.setComponentProperty(id, gen, "transform", "scale", "vec3", image.scale);
-            if (image.background) viewportPanel.setComponentProperty(id, gen, "render_layer", "order", "float", -100);
+            if (image.background) {
+                viewportPanel.setComponentProperty(id, gen, "render_layer", "order", "float", -100);
+                viewportPanel.addComponent(id, gen, "fill_screen"); // always the size of the window
+            }
             viewportPanel.setComponentProperty(id, gen, "mesh_renderer", "material", "resourceRef", "materials:texture");
             viewportPanel.setComponentProperty(id, gen, "mesh_renderer_properties", "texture:u_texture", "resourceRef", image.label);
             root.setEntityGroups(entity, ["sprite"]);
@@ -123,6 +128,13 @@ CustomPage {
         viewportPanel.addComponent(id, gen, "render_layer");
         viewportPanel.addComponent(id, gen, "mesh_renderer");
         viewportPanel.addComponent(id, gen, "mesh_renderer_properties");
+        if (preset === "background") {
+            viewportPanel.addComponent(id, gen, "fill_screen");
+            viewportPanel.setComponentProperty(id, gen, "render_layer", "order", "float", -100);
+            viewportPanel.setComponentProperty(id, gen, "mesh_renderer_properties", "color:u_color", "vec4", [0.53, 0.81, 0.92, 1]);
+            root.setEntityGroups(entity, ["sprite"]);
+            return;
+        }
         viewportPanel.setComponentProperty(id, gen, "mesh_renderer_properties", "color:u_color", "vec4", [0.85, 0.85, 0.85, 1]);
         root.setEntityGroups(entity, ["sprite"]);
         if (preset === "static_platform" || preset === "physics_body") {

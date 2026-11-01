@@ -40,7 +40,7 @@
 - Qt 6 / QML desktop app with recent projects and a project creator
 - **Template marketplace**: install templates and older template versions
 - **Live scene viewport** that runs the real engine through the prebuilt [editor bridge](https://github.com/noi-engine/noi_engine_editor_bridge), with pan, zoom, grid and gizmos
-- **Hierarchy + Inspector**: create, edit and delete entities and components; add sprites, textures and scripts
+- **Hierarchy + Inspector**: create, edit and delete entities and components; add sprites, textures and backgrounds that fill the window; create scripts and attach / detach them (Compile reloads them live)
 - **Compile & Play** straight from the editor, with output, editor logs and loaded-resources panels
 - Downloads the engine, the resources compiler and the editor bridge each template asks for, from their releases
 

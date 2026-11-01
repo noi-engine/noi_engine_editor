@@ -3,16 +3,19 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import noi_engine_editor
 
-// Scaffolds a new project-level script (sources/scripts/<name>_script.hpp/.cpp) from the
-// same skeleton player_script/camera_script already follow. Not tied to any entity - there's
-// no in-app code editor yet, so this only creates the files and tells the user where they
-// are; wiring the new script into scripts_register.cpp/CMakeLists.txt and rebuilding is still
-// a manual step.
+// Creates a new script (sources/scripts/<name>_script.hpp/.cpp). The script registers itself
+// (NOI_ENGINE_SCRIPT) and the project's CMakeLists picks up every file in sources/scripts, so
+// there is nothing to wire by hand: scriptCreated() is emitted, the Inspector compiles the
+// project and attaches the script to the selected entity. Editing its code is done outside the
+// editor.
 Dialog {
     id: root
 
     readonly property string scriptsFolder: CurrentProjectManager.path + "/sources/scripts"
-    readonly property string trimmedName: nameInput.text.trim()
+    signal scriptCreated(string label)
+
+    // "enemy" and "enemy_script" both give enemy_script.
+    readonly property string trimmedName: nameInput.text.trim().replace(/_script$/, "")
     readonly property bool validName: /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(root.trimmedName)
     readonly property string className: root.trimmedName + "_script"
 
@@ -28,15 +31,25 @@ Dialog {
             "namespace noi_engine_game\n{\n" +
             "    class " + name + "_script : public noi_engine::script\n    {\n" +
             "    public:\n" +
+            "        // Once, when Play starts (or when the entity appears).\n" +
+            "        auto on_create(noi_engine::entity self,\n" +
+            "                       const noi_engine::script_context &context)\n" +
+            "            -> void override;\n\n" +
+            "        // Every frame; dt is in seconds.\n" +
             "        auto on_update(noi_engine::entity self,\n" +
             "                       const noi_engine::script_context &context, float dt)\n" +
             "            -> void override;\n\n" +
-            "        explicit " + name + "_script() = default;\n" +
+            "        explicit " + name + "_script() = default;\n\n" +
+            "        // Registers the script under the name \"" + name + "_script\" (the name scenes use).\n" +
+            "        NOI_ENGINE_SCRIPT(" + name + "_script);\n" +
             "    };\n}\n"
     }
 
     function cppContent(name) {
         return "#include \"" + name + "_script.hpp\"\n\n" +
+            "auto noi_engine_game::" + name + "_script::on_create(\n" +
+            "    [[maybe_unused]] const noi_engine::entity self,\n" +
+            "    [[maybe_unused]] const noi_engine::script_context& context) -> void\n{\n}\n\n" +
             "auto noi_engine_game::" + name + "_script::on_update(\n" +
             "    [[maybe_unused]] const noi_engine::entity self,\n" +
             "    [[maybe_unused]] const noi_engine::script_context& context,\n" +
@@ -62,6 +75,7 @@ Dialog {
         root.createdCppPath = "sources/scripts/" + cppFile;
         root.errorText = "";
         root.done = true;
+        root.scriptCreated(root.className);
     }
 
     title: qsTr("Add Script")
@@ -174,7 +188,7 @@ Dialog {
 
             Text {
                 Layout.fillWidth: true
-                text: qsTr("Register it in sources/scripts/scripts_register.cpp with NOI_ENGINE_REGISTER_SCRIPT(%1), add it to CMakeLists.txt, then rebuild before attaching it to an entity.").arg(root.className)
+                text: qsTr("The project is compiling: %1 is attached to the entity as soon as it's built. Write its code in these files, then Compile again.").arg(root.className)
                 font.pixelSize: 10
                 font.italic: true
                 color: Theme.grey

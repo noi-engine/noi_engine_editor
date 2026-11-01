@@ -34,7 +34,65 @@ Rectangle {
 
     onEntityChanged: root.showGroupComponents = false
 
+    // Script created with "New script...": attached to this entity once the compile that follows
+    // makes it available. {entityName, label}
+    property var pendingScriptAttach: null
+
+    function openNewScript() {
+        addScriptDialog.open();
+    }
+
+    function setExpanded(componentType, expanded) {
+        const next = Object.assign({}, root.expandedSections);
+        next[componentType] = expanded;
+        root.expandedSections = next;
+    }
+
+    function addScriptComponent() {
+        if (!root.hasComponent("script_component")) root.componentAddRequested("script_component");
+        root.setExpanded("script_component", true);
+    }
+
+    function scriptCreated(label) {
+        if (root.entity === null) return;
+        root.addScriptComponent();
+        // By name: the scene reload that follows the compile may renumber entities.
+        root.pendingScriptAttach = {entityName: root.entity.name, label: label};
+        // A compile already running started before the new files existed: compile again after it.
+        if (ProjectBuilder.isCompiling) root.compileAfterCurrent = true;
+        else ProjectBuilder.compile(CurrentProjectManager.path);
+    }
+
+    property bool compileAfterCurrent: false
+
+    function applyPendingScriptAttach() {
+        const pending = root.pendingScriptAttach;
+        if (!pending) return;
+        if (root.entity === null || root.entity.name !== pending.entityName) {
+            root.pendingScriptAttach = null; // another entity is selected now
+            return;
+        }
+        if (root.resourceLabelsFor("script").indexOf(pending.label) === -1) return;
+        root.pendingScriptAttach = null;
+        const section = root.sectionData("script_component");
+        const count = section ? (section.properties || []).filter(p => p.name.startsWith("scripts[")).length : 0;
+        root.propertyEdited("script_component", "scripts[" + count + "]", "resourceRef", pending.label);
+    }
+
+    Connections {
+        target: ProjectBuilder
+        function onCompileFinished(success) {
+            if (root.compileAfterCurrent) {
+                root.compileAfterCurrent = false;
+                Qt.callLater(() => ProjectBuilder.compile(CurrentProjectManager.path));
+                return;
+            }
+            if (!success) root.pendingScriptAttach = null;
+        }
+    }
+
     onLoadedResourcesChanged: {
+        root.applyPendingScriptAttach();
         if (root.pendingSpriteTexture === "" || root.resourceLabelsFor("texture").indexOf(root.pendingSpriteTexture) === -1) return;
         const label = root.pendingSpriteTexture;
         root.pendingSpriteTexture = "";
@@ -91,14 +149,14 @@ Rectangle {
     // Ordered for how users actually reach for these: building blocks first, then the two
     // camera variants together, then physics together. name_component (every entity already
     // has one), mesh_renderer_properties (meaningless without a mesh_renderer - bundled
-    // alongside it instead, see addComponentMenuEntries) and script_component (superseded by
-    // the "Script" utility below - scripts are project-level .cpp/.hpp files, not a component
-    // you hand-configure in the Inspector) are intentionally not offered as raw entries.
+    // alongside it instead, see addComponentMenuEntries) and script_component (offered as the
+    // "Script" utility below, shown as the Scripts section) are intentionally not offered as raw
+    // entries.
     readonly property var allComponentTypes: [
         "transform", "render_layer", "mesh_renderer",
         "camera_2d", "camera_3d", "orbit_camera",
         "gravity", "box_collider",
-        "culling", "always_active"
+        "fill_screen", "culling", "always_active"
     ]
 
     readonly property var componentLabels: ({
@@ -117,7 +175,8 @@ Rectangle {
         "gravity": qsTr("Gravity"),
         "box_collider": qsTr("Box Collider"),
         "culling": qsTr("Culling (performance)"),
-        "always_active": qsTr("Always Active (ignore culling)")
+        "always_active": qsTr("Always Active (ignore culling)"),
+        "fill_screen": qsTr("Fill Screen (always the size of the window)")
     })
 
     readonly property bool hasSelection: root.entity !== null || root.material !== null
@@ -170,6 +229,8 @@ Rectangle {
         return root.allComponentTypes.filter(t => present.indexOf(t) === -1)
             // The scene camera is 2D: a 3D camera component would replace its view.
             .filter(t => !(root.isCameraEntity && (t === "camera_3d" || t === "orbit_camera")))
+            // A background covering what the camera sees: not the camera itself.
+            .filter(t => t !== "fill_screen" || !root.isCameraEntity)
             // Culling follows the scene camera's view; the camera itself is always active.
             .filter(t => t !== "culling" || root.isCameraEntity)
             .filter(t => t !== "always_active" || !root.isCameraEntity);
@@ -212,15 +273,15 @@ Rectangle {
     //   mesh_renderer_properties together (optionally wired to a texture, see
     //   AddSpriteDialog), so users don't have to assemble the raw pieces by hand. Offered
     //   whenever mesh_renderer isn't already present.
-    // - Script scaffolds a new project-level script file pair and is always offered - it
-    //   isn't "added" to this entity at all (see AddScriptDialog).
+    // - Script adds the Scripts section (script_component), where scripts are attached /
+    //   detached / created (see ScriptsSection, AddScriptDialog).
     // Groups first (several components set up together), then single components.
     function addComponentMenuEntries() {
         const utilities = [];
         if (!root.hasComponent("mesh_renderer")) utilities.push("sprite");
         if (!root.hasComponent("box_collider")) utilities.push("static_collider");
         if (!root.hasComponent("box_collider") && !root.hasComponent("gravity")) utilities.push("physics_body");
-        utilities.push("script");
+        if (!root.hasComponent("script_component")) utilities.push("script");
         return utilities.concat(missingComponentTypes());
     }
 
@@ -473,7 +534,8 @@ Rectangle {
 
                         Layout.fillWidth: true
                         visible: item ? item.visible : true
-                        sourceComponent: modelData.type === "sprite" ? spriteSection : componentSection
+                        sourceComponent: modelData.type === "sprite" ? spriteSection
+                            : modelData.type === "script_component" ? scriptsSection : componentSection
 
                         Component {
                             id: componentSection
@@ -481,6 +543,14 @@ Rectangle {
                                 modelData: sectionLoader.modelData
                                 inspector: root
                                 query: searchField.text.trim().toLowerCase()
+                            }
+                        }
+
+                        Component {
+                            id: scriptsSection
+                            ScriptsSection {
+                                modelData: sectionLoader.modelData
+                                inspector: root
                             }
                         }
 
@@ -558,7 +628,10 @@ Rectangle {
                                         root.componentAddRequested("gravity");
                                         root.componentAddRequested("box_collider");
                                     } else if (addComponentMenuItem.modelData === "script") {
-                                        addScriptDialog.open();
+                                        root.addScriptComponent();
+                                    } else if (addComponentMenuItem.modelData === "fill_screen") {
+                                        root.componentAddRequested("transform");
+                                        root.componentAddRequested("fill_screen");
                                     } else if (addComponentMenuItem.modelData === "mesh_renderer") {
                                         // mesh_renderer_properties is meaningless on its own - always
                                         // bundled with mesh_renderer instead of offered separately.
@@ -640,5 +713,6 @@ Rectangle {
 
     AddScriptDialog {
         id: addScriptDialog
+        onScriptCreated: (label) => root.scriptCreated(label)
     }
 }

@@ -620,7 +620,9 @@ namespace noi_engine_editor
             // entity list itself, which would otherwise change every frame something moves): a
             // mesh_renderer draws the unit quad scaled by the transform.
             QVariantList position;
-            if (componentTypes.contains(QStringLiteral("transform")))
+            // A fill_screen background covers the whole view: not pickable / draggable in the
+            // viewport (select it in the Hierarchy), or every click would select it.
+            if (componentTypes.contains(QStringLiteral("transform")) && !componentTypes.contains(QStringLiteral("fill_screen")))
             {
                 const auto transform = componentProperties(id, generation, "transform");
                 position = transform.value(QStringLiteral("position")).toList();
@@ -771,18 +773,48 @@ namespace noi_engine_editor
                 m_bridge.onResize(this->m_gameHandle, m_width, m_height);
             }
 
-            if (const auto newGeneration = view->scriptsGeneration(); m_scriptsGeneration != newGeneration)
+            // A new successful compile: reload the rebuilt scripts library, then the open scene so
+            // its entities use the new scripts - from a snapshot of the live world, so unsaved
+            // edits survive. Waits for Play mode to stop.
+            if (const auto newGeneration = view->scriptsGeneration();
+                m_scriptsGeneration != newGeneration && !view->isPlaying() && !m_wasPlaying)
             {
+                const bool reloadScene = m_scriptsLoaded && !m_currentPath.isEmpty();
+                QString snapshotPath;
+                if (reloadScene)
+                {
+                    snapshotPath = m_currentPath + QStringLiteral(".reload");
+                    QFile::remove(snapshotPath);
+                    if (!QFile::copy(m_currentPath, snapshotPath) || !m_bridge.saveScene(this->m_gameHandle, snapshotPath))
+                    {
+                        qWarning() << "[OpenGLRenderer] Couldn't snapshot the scene before reloading scripts";
+                        QFile::remove(snapshotPath);
+                        snapshotPath.clear();
+                    }
+                }
+
                 if (m_bridge.loadScripts(this->m_gameHandle, m_scriptsLibraryPath))
                 {
                     m_scriptsGeneration = newGeneration;
                     m_scriptsLoaded = true;
+                    if (reloadScene)
+                    {
+                        const auto relativeScenePath = getSceneResourceDotPath(
+                            this->m_resourcesPath, snapshotPath.isEmpty() ? this->m_currentPath : snapshotPath);
+                        m_bridge.setScene2d(this->m_gameHandle, relativeScenePath);
+                        m_bridge.onResize(this->m_gameHandle, m_width, m_height);
+                        m_lastPushedEditorView = {}; // re-apply the editor view to the new scene
+                    }
                 }
                 else if (m_lastWarnedScriptsGeneration != newGeneration)
                 {
                     m_lastWarnedScriptsGeneration = newGeneration;
                     qWarning() << "[OpenGLRenderer] Failed to load scripts library:" << m_scriptsLibraryPath
                         << "- will keep retrying; scene preview is unavailable until this succeeds.";
+                }
+                if (!snapshotPath.isEmpty())
+                {
+                    QFile::remove(snapshotPath);
                 }
             }
         }
