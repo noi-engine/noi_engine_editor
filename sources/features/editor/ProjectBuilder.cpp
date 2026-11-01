@@ -1,5 +1,6 @@
 #include "ProjectBuilder.hpp"
 
+#include <QDir>
 #include <QProcess>
 
 noi_engine_editor::ProjectBuilder::ProjectBuilder(QObject* parent) : QObject(parent)
@@ -81,31 +82,55 @@ auto noi_engine_editor::ProjectBuilder::clearOutput() -> void
 
 auto noi_engine_editor::ProjectBuilder::compile(const QString& projectPath) -> void
 {
-    if (m_isCompiling)
+    build(projectPath, QStringLiteral("debug"), [this](const bool success)
     {
-        return;
-    }
+        if (success)
+        {
+            ++m_compileGeneration;
+            emit compileGenerationChanged();
+        }
+        setLastCompileFailed(!success);
+        emit compileFinished(success);
+    });
+}
 
-    if (projectPath.isEmpty())
+auto noi_engine_editor::ProjectBuilder::compileRelease(const QString& projectPath) -> void
+{
+    build(projectPath, QStringLiteral("release"), [this, projectPath](const bool success)
+    {
+        const auto outputPath = QDir(projectPath).filePath(QStringLiteral("build/release/bin"));
+        if (success)
+        {
+            appendOutput(QStringLiteral("Release build ready in %1\n").arg(outputPath));
+        }
+        emit releaseFinished(success, outputPath);
+    });
+}
+
+// cmake --preset <preset> then cmake --build --preset <preset>, output streamed to output().
+auto noi_engine_editor::ProjectBuilder::build(const QString& projectPath, const QString& preset,
+                                              const std::function<void(bool)>& onFinished) -> void
+{
+    if (m_isCompiling || projectPath.isEmpty())
     {
         return;
     }
 
     clearOutput();
     setCompiling(true);
-    appendOutput(QStringLiteral("$ cmake --preset debug\n"));
+    appendOutput(QStringLiteral("$ cmake --preset %1\n").arg(preset));
 
     auto* configure = new QProcess(this);
     configure->setWorkingDirectory(projectPath);
     configure->setProcessChannelMode(QProcess::MergedChannels);
     configure->setProgram("cmake");
-    configure->setArguments({ "--preset", "debug" });
+    configure->setArguments({"--preset", preset});
 
     connect(configure, &QProcess::readyReadStandardOutput, this,
             [this, configure]() { appendOutput(QString::fromUtf8(configure->readAllStandardOutput())); });
 
     connect(configure, &QProcess::finished, this,
-            [this, projectPath, configure](const int exitCode, const QProcess::ExitStatus status)
+            [this, projectPath, preset, onFinished, configure](const int exitCode, const QProcess::ExitStatus status)
             {
                 configure->deleteLater();
 
@@ -113,45 +138,33 @@ auto noi_engine_editor::ProjectBuilder::compile(const QString& projectPath) -> v
                 {
                     appendOutput(QStringLiteral("\nConfigure failed.\n"));
                     setCompiling(false);
-                    setLastCompileFailed(true);
-                    emit compileFinished(false);
+                    onFinished(false);
                     return;
                 }
 
-                appendOutput(QStringLiteral("\n$ cmake --build --preset debug\n"));
+                appendOutput(QStringLiteral("\n$ cmake --build --preset %1\n").arg(preset));
 
-                auto* build = new QProcess(this);
-                build->setWorkingDirectory(projectPath);
-                build->setProcessChannelMode(QProcess::MergedChannels);
-                build->setProgram("cmake");
-                build->setArguments({ "--build", "--preset", "debug" });
+                auto* buildProcess = new QProcess(this);
+                buildProcess->setWorkingDirectory(projectPath);
+                buildProcess->setProcessChannelMode(QProcess::MergedChannels);
+                buildProcess->setProgram("cmake");
+                buildProcess->setArguments({"--build", "--preset", preset});
 
-                connect(build, &QProcess::readyReadStandardOutput, this,
-                        [this, build]() { appendOutput(QString::fromUtf8(build->readAllStandardOutput())); });
+                connect(buildProcess, &QProcess::readyReadStandardOutput, this,
+                        [this, buildProcess]() { appendOutput(QString::fromUtf8(buildProcess->readAllStandardOutput())); });
 
-                connect(build, &QProcess::finished, this,
-                        [this, build](const int buildExitCode, const QProcess::ExitStatus buildStatus)
+                connect(buildProcess, &QProcess::finished, this,
+                        [this, onFinished, buildProcess](const int buildExitCode, const QProcess::ExitStatus buildStatus)
                         {
                             const auto success = buildExitCode == 0 && buildStatus == QProcess::NormalExit;
-
-                            appendOutput(success
-                                             ? QStringLiteral("\nBuild succeeded.\n")
-                                             : QStringLiteral("\nBuild failed.\n"));
-
-                            build->deleteLater();
-
-                            if (success)
-                            {
-                                ++m_compileGeneration;
-                                emit compileGenerationChanged();
-                            }
-
+                            appendOutput(success ? QStringLiteral("\nBuild succeeded.\n")
+                                                 : QStringLiteral("\nBuild failed.\n"));
+                            buildProcess->deleteLater();
                             setCompiling(false);
-                            setLastCompileFailed(!success);
-                            emit compileFinished(success);
+                            onFinished(success);
                         });
 
-                build->start();
+                buildProcess->start();
             });
 
     configure->start();

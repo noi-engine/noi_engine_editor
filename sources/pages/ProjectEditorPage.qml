@@ -16,9 +16,53 @@ CustomPage {
     property string pendingScenePath: ""
     property bool compileFailureDismissed: false
     property bool sceneDirty: false
-    // Folder for each queued entity create/duplicate, in order (null = leave as is), applied
-    // when the bridge reports the new entity.
-    property var pendingCreateFolders: []
+    // What to do with each queued entity create/duplicate, in order ({folder, preset}; folder
+    // null = leave as is), applied when the bridge reports the new entity.
+    property var pendingCreates: []
+
+    // Components of the Hierarchy's entity presets (see EntityPresetMenu). Adds are applied
+    // before property edits, so everything lands in the same frame.
+    function applyEntityPreset(entity, preset) {
+        if (preset === "" || preset === "empty") return;
+        const id = entity.id, gen = entity.generation;
+        viewportPanel.addComponent(id, gen, "transform");
+        viewportPanel.addComponent(id, gen, "render_layer");
+        viewportPanel.addComponent(id, gen, "mesh_renderer");
+        viewportPanel.addComponent(id, gen, "mesh_renderer_properties");
+        viewportPanel.setComponentProperty(id, gen, "mesh_renderer_properties", "color:u_color", "vec4", [0.85, 0.85, 0.85, 1]);
+        if (preset === "static_platform" || preset === "physics_body") {
+            viewportPanel.addComponent(id, gen, "box_collider");
+        }
+        if (preset === "static_platform") {
+            viewportPanel.setComponentProperty(id, gen, "box_collider", "is_static", "bool", true);
+        }
+        if (preset === "physics_body") {
+            viewportPanel.addComponent(id, gen, "gravity");
+        }
+    }
+
+    // The start scene's camera (red border) and the game window share one size, in pixels
+    // (100 pixels per world unit at zoom 1).
+    function isStartSceneOpen() {
+        return CurrentProjectManager.startScene !== ""
+            && root.currentScenePath === CurrentProjectManager.resourcesPath() + "/" + CurrentProjectManager.startScene;
+    }
+
+    function syncWindowToCamera() {
+        const cam = viewportPanel.sceneCamera;
+        if (!root.isStartSceneOpen() || !cam || !cam.valid) return;
+        CurrentProjectManager.windowWidth = Math.round(2 * cam.orthographicSize * cam.aspectRatio * 100);
+        CurrentProjectManager.windowHeight = Math.round(2 * cam.orthographicSize * 100);
+        CurrentProjectManager.saveProject();
+    }
+
+    function setCameraSize(width, height) {
+        const cam = viewportPanel.sceneCamera;
+        if (!root.isStartSceneOpen() || !cam || !cam.valid) return;
+        viewportPanel.setComponentProperty(cam.id, cam.generation, "camera_2d", "orthographic_size", "float", height / 200);
+        viewportPanel.setComponentProperty(cam.id, cam.generation, "camera_2d", "aspect_ratio", "float", width / height);
+        root.sceneDirty = true;
+    }
 
     function setEntityFolder(entity, folder) {
         if (folder === "") {
@@ -99,6 +143,7 @@ CustomPage {
 
     ProjectSettingsDialog {
         id: settingsDialog
+        onResolutionChanged: (width, height) => root.setCameraSize(width, height)
     }
 
     Connections {
@@ -166,8 +211,8 @@ CustomPage {
                         root.selectedEntity = entity
                     }
 
-                    onEntityCreateRequested: (name, folder) => {
-                        root.pendingCreateFolders = root.pendingCreateFolders.concat([folder === "" ? null : folder]);
+                    onEntityCreateRequested: (name, folder, preset) => {
+                        root.pendingCreates = root.pendingCreates.concat([{folder: folder === "" ? null : folder, preset: preset}]);
                         viewportPanel.createEntity(name)
                         root.sceneDirty = true;
                     }
@@ -179,7 +224,7 @@ CustomPage {
                     }
 
                     onEntityDuplicateRequested: (entity, newName, folder) => {
-                        root.pendingCreateFolders = root.pendingCreateFolders.concat([folder]);
+                        root.pendingCreates = root.pendingCreates.concat([{folder: folder, preset: ""}]);
                         viewportPanel.duplicateEntity(entity.id, entity.generation, newName)
                         root.sceneDirty = true;
                     }
@@ -210,10 +255,21 @@ CustomPage {
                     inspectedMaterialGeneration: root.selectedMaterial ? root.selectedMaterial.generation : 0
 
                     onCameraEdited: root.sceneDirty = true
+                    onEntityMoved: root.sceneDirty = true
+                    onEntityPicked: (entityId, entityGeneration) => {
+                        for (const entity of viewportPanel.loadedEntities || []) {
+                            if (entity.id === entityId && entity.generation === entityGeneration) {
+                                root.selectedMaterial = null;
+                                root.selectedEntity = entity;
+                                return;
+                            }
+                        }
+                    }
 
                     onSceneSaved: (success) => {
                         if (success) {
                             root.sceneDirty = false;
+                            root.syncWindowToCamera();
                             console.log("Scene saved: " + root.currentScenePath);
                         } else {
                             console.warn("Failed to save scene: " + root.currentScenePath);
@@ -221,11 +277,12 @@ CustomPage {
                     }
 
                     onEntityCreated: (id, gen) => {
-                        const folder = root.pendingCreateFolders.length > 0 ? root.pendingCreateFolders[0] : null;
-                        root.pendingCreateFolders = root.pendingCreateFolders.slice(1);
-                        if (folder !== null && folder !== undefined) {
-                            root.setEntityFolder({id: id, generation: gen}, folder);
+                        const pending = root.pendingCreates.length > 0 ? root.pendingCreates[0] : {folder: null, preset: ""};
+                        root.pendingCreates = root.pendingCreates.slice(1);
+                        if (pending.folder !== null && pending.folder !== undefined) {
+                            root.setEntityFolder({id: id, generation: gen}, pending.folder);
                         }
+                        root.applyEntityPreset({id: id, generation: gen}, pending.preset);
                         const items = viewportPanel.loadedEntities || [];
                         for (let i = 0; i < items.length; i++) {
                             if (items[i].id === id && items[i].generation === gen) {

@@ -47,7 +47,7 @@ namespace noi_engine_editor
         auto applyPendingSceneSaves(OpenGLView* view) -> void;
         auto updatePlayState(OpenGLView* view) -> void;
         auto buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities) -> QVariantList;
-        auto annotateEntities(QVariantList& loadedEntities) -> QVariantMap;
+        auto annotateEntities(QVariantList& loadedEntities, QVariantList& layout) -> QVariantMap;
         auto componentProperties(uint32_t entityId, uint32_t entityGeneration, const char* componentType) -> QVariantMap;
         auto buildInspectedMaterialProperties(OpenGLView* view) -> QVariantList;
 

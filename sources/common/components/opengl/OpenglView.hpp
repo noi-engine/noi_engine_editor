@@ -134,6 +134,9 @@ namespace noi_engine_editor
         // The scene's camera as authored: {valid, id, generation, orthographicSize, aspectRatio}.
         // Used to draw resize handles on its red border.
         Q_PROPERTY(QVariantMap sceneCamera READ sceneCamera NOTIFY sceneCameraChanged)
+        // Position / size / draw order of every entity with a transform:
+        // [{id, generation, position: [x, y, z], size: [w, h], drawn, renderOrder}].
+        Q_PROPERTY(QVariantList entityLayout READ entityLayout NOTIFY entityLayoutChanged)
 
     public:
         explicit OpenGLView(QQuickItem* parent = nullptr);
@@ -185,6 +188,9 @@ namespace noi_engine_editor
 
         QVariantMap sceneCamera() const;
         void setSceneCamera(const QVariantMap& camera); // renderer-only, same rendezvous-point rule
+
+        QVariantList entityLayout() const;
+        void setEntityLayout(const QVariantList& layout); // renderer-only, same rendezvous-point rule
 
         // These 3 are plain primitives on purpose - passing the selection as a single JS
         // object across the QML/C++ boundary risks silently landing as an unconvertible
@@ -334,6 +340,7 @@ namespace noi_engine_editor
         void loadedResourcesChanged();
         void loadedEntitiesChanged();
         void sceneCameraChanged();
+        void entityLayoutChanged();
         void inspectedEntityChanged();
         void inspectedComponentsChanged();
         void inspectedMaterialChanged();
@@ -361,6 +368,7 @@ namespace noi_engine_editor
         QVariantList m_loadedResources;
         QVariantList m_loadedEntities;
         QVariantMap m_sceneCamera;
+        QVariantList m_entityLayout;
         bool m_hasInspectedEntity = false;
         quint32 m_inspectedEntityId = 0;
         quint32 m_inspectedEntityGeneration = 0;

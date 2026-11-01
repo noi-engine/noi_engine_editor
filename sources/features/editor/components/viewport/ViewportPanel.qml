@@ -28,6 +28,11 @@ Item {
     signal entityCreated(int entityId, int entityGeneration)
     // The scene camera was resized with the handles on its red border.
     signal cameraEdited()
+    // Clicked / dragged in the viewport.
+    signal entityPicked(int entityId, int entityGeneration)
+    signal entityMoved()
+
+    readonly property var sceneCamera: openGLView.sceneCamera
 
     Connections {
         target: openGLView
@@ -86,12 +91,19 @@ Item {
         openGLView.duplicateEntity(entityId, entityGeneration, newName)
     }
 
-    property string activeTool: "move"
+    property string activeTool: "select"
     property real cameraZoom: 1.0
     property alias gridVisible: openGLView.gridVisible
 
     property real worldWidth: CurrentProjectManager.windowWidth
     property real worldHeight: CurrentProjectManager.windowHeight
+
+    // Zoom, world size and scroll are saved with the project and restored.
+    ViewportViewState {
+        viewport: root
+        flickable: viewportFlickable
+        sceneShown: !!openGLView.sceneCamera.valid
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -105,7 +117,8 @@ Item {
             clip: true
 
             boundsBehavior: Flickable.StopAtBounds
-            interactive: root.activeTool === "move"
+            // In the select tool, a press on an entity is taken by EntityPicking; anywhere else pans.
+            interactive: true
 
             contentWidth: Math.max(viewportFlickable.width, container.width * root.cameraZoom)
             contentHeight: Math.max(viewportFlickable.height, container.height * root.cameraZoom)
@@ -159,9 +172,11 @@ Item {
                     gameHeight: CurrentProjectManager.windowHeight
                 }
 
+                // Cursor only: presses go to EntityPicking / the Flickable.
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
+                    acceptedButtons: Qt.NoButton
                     cursorShape: {
                         if (root.activeTool === "move") {
                             return pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
@@ -169,9 +184,22 @@ Item {
                         return Qt.ArrowCursor
                     }
 
-                    onClicked: (mouse) => {
-                        if (root.activeTool === "select") {
-                        }
+                }
+
+                EntityPicking {
+                    anchors.fill: parent
+                    visible: !root.playing
+                    enabled: root.activeTool === "select" && !root.playing
+                    layout: openGLView.entityLayout
+                    camera: openGLView.sceneCamera
+                    pixelsPerUnit: 100 / Screen.devicePixelRatio
+                    zoom: root.cameraZoom
+                    selectedEntity: root.selectedEntity
+
+                    onEntityPicked: (entityId, entityGeneration) => root.entityPicked(entityId, entityGeneration)
+                    onEntityMoved: (entityId, entityGeneration, position) => {
+                        openGLView.setComponentProperty(entityId, entityGeneration, "transform", "position", "vec3", position);
+                        root.entityMoved();
                     }
                 }
 

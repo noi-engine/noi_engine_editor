@@ -171,6 +171,14 @@ Rectangle {
             onClicked: ProjectBuilder.compile(CurrentProjectManager.path)
         }
 
+        // Builds the shippable game (compiled resources) in build/release/bin.
+        AppButton {
+            icon: "rocket_launch"
+            text: qsTr("Build Release")
+            enabled: !ProjectBuilder.isCompiling && !root.isPlaying
+            onClicked: ProjectBuilder.compileRelease(CurrentProjectManager.path)
+        }
+
         AppButton {
             icon: root.isPlaying ? "stop" : "play_arrow"
             text: root.isPlaying ? qsTr("Stop") : qsTr("Play")

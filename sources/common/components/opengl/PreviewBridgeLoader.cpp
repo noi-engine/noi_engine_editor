@@ -45,6 +45,7 @@ namespace noi_engine_editor
         }
 
         m_initGl = reinterpret_cast<init_gl_fn>(m_library.resolve("noi_engine_editor_bridge_init_gl"));
+        m_setPlaying = reinterpret_cast<set_playing_fn>(m_library.resolve("noi_engine_editor_bridge_set_playing"));
         m_create = reinterpret_cast<create_fn>(m_library.resolve("noi_engine_editor_bridge_create"));
         m_destroy = reinterpret_cast<destroy_fn>(m_library.resolve("noi_engine_editor_bridge_destroy"));
         m_run = reinterpret_cast<run_fn>(m_library.resolve("noi_engine_editor_bridge_run"));
@@ -107,6 +108,15 @@ namespace noi_engine_editor
         }
 
         return true;
+    }
+
+    auto PreviewBridgeLoader::setPlaying(const noi_engine_editor_bridge_game_handle handle, const bool playing) const
+        -> void
+    {
+        if (m_setPlaying)
+        {
+            m_setPlaying(handle, playing ? 1 : 0);
+        }
     }
 
     auto PreviewBridgeLoader::isLoaded() const -> bool

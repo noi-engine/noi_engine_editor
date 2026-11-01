@@ -21,6 +21,7 @@ auto noi_engine_editor::ProjectInfo::serialize() const -> QJsonObject
     windowObj["width"] = windowWidth;
     windowObj["height"] = windowHeight;
     obj["window"] = windowObj;
+    obj["editor_view"] = editorView;
 
     return obj;
 }
@@ -40,6 +41,8 @@ auto noi_engine_editor::ProjectInfo::deserialize(const QJsonObject& object) -> P
         object.value("lastOpened").toString(),
         Qt::ISODate
     );
+
+    info.editorView = object.value("editor_view").toObject();
 
     if (object.contains("window") && object.value("window").isObject())
     {

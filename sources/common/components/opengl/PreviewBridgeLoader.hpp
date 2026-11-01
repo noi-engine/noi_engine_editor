@@ -52,6 +52,8 @@ namespace noi_engine_editor
         auto setKeyReleased(noi_engine_editor_bridge_game_handle handle, int keyCode) const -> void;
         auto releaseAllKeys(noi_engine_editor_bridge_game_handle handle) const -> void;
         auto resetTimer(noi_engine_editor_bridge_game_handle handle) const -> void;
+        // Optional (bridge 0.0.3+): no-op on older bridges, which keep running the game in edit mode.
+        auto setPlaying(noi_engine_editor_bridge_game_handle handle, bool playing) const -> void;
 
         // Optional: older bridges built before this symbol existed simply won't have it resolved
         // (see m_setGridVisible's resolve() call in the .cpp) - not part of the "missing required
@@ -112,6 +114,7 @@ namespace noi_engine_editor
         using set_key_released_fn = void (*)(noi_engine_editor_bridge_game_handle, int);
         using release_all_keys_fn = void (*)(noi_engine_editor_bridge_game_handle);
         using reset_timer_fn = void (*)(noi_engine_editor_bridge_game_handle);
+        using set_playing_fn = void (*)(noi_engine_editor_bridge_game_handle, int);
         using set_grid_visible_fn = void (*)(noi_engine_editor_bridge_game_handle, int);
         using save_scene_fn = int (*)(noi_engine_editor_bridge_game_handle, const char*);
         using create_entity_fn = noi_engine_editor_bridge_entity_ref (*)(noi_engine_editor_bridge_game_handle,
@@ -128,6 +131,7 @@ namespace noi_engine_editor
         QLibrary m_engineLibrary;
         QLibrary m_library;
         init_gl_fn m_initGl{nullptr};
+        set_playing_fn m_setPlaying{nullptr};
         create_fn m_create{nullptr};
         destroy_fn m_destroy{nullptr};
         run_fn m_run{nullptr};

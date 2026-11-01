@@ -13,13 +13,21 @@ Dialog {
     width: 460
     standardButtons: Dialog.Save | Dialog.Cancel
 
+    // The game window size is also the start scene camera's size (its red border).
+    signal resolutionChanged(int width, int height)
+
     onAccepted: {
+        const width = parseInt(widthInput.text) || 1280
+        const height = parseInt(heightInput.text) || 720
+        const resolutionEdited = width !== CurrentProjectManager.windowWidth || height !== CurrentProjectManager.windowHeight
+
         CurrentProjectManager.name = nameInput.text
         CurrentProjectManager.startScene = sceneInput.text
-        CurrentProjectManager.windowWidth = parseInt(widthInput.text) || 1280
-        CurrentProjectManager.windowHeight = parseInt(heightInput.text) || 720
+        CurrentProjectManager.windowWidth = width
+        CurrentProjectManager.windowHeight = height
 
         CurrentProjectManager.saveProject()
+        if (resolutionEdited) root.resolutionChanged(width, height)
     }
 
     ColumnLayout {
@@ -105,6 +113,14 @@ Dialog {
                     border.width: 1
                 }
             }
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: qsTr("Game window size, in pixels. It is also the start scene camera (the red border in the viewport): resizing one resizes the other.")
+            font.pixelSize: 11
+            color: Theme.grey
+            wrapMode: Text.WordWrap
         }
 
         RowLayout {

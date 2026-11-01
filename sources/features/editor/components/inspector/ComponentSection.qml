@@ -77,18 +77,25 @@ Rectangle {
             }
 
             MuiIcon {
+                readonly property string blockedReason: inspector.removeBlockedReason(section.componentType)
+
                 name: "delete"
                 font.pixelSize: 14
-                color: Theme.grey
-                // name_component (the entity's identity) and world_matrix (engine-managed) can't be removed.
-                visible: inspector.entity !== null && section.componentType !== "name_component"
-                    && section.componentType !== "world_matrix" && !section.forcedReadOnly
+                color: blockedReason === "" ? Theme.grey : Theme.borderColor
+                visible: inspector.entity !== null && !section.forcedReadOnly
+                    && section.componentType !== "name_component" && section.componentType !== "world_matrix"
+                ToolTip.visible: deleteArea.containsMouse && blockedReason !== ""
+                ToolTip.text: qsTr("Can't remove: %1").arg(blockedReason)
 
                 MouseArea {
+                    id: deleteArea
                     anchors.fill: parent
                     anchors.margins: -4
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: inspector.componentRemoved(section.componentType)
+                    hoverEnabled: true
+                    cursorShape: parent.blockedReason === "" ? Qt.PointingHandCursor : Qt.ForbiddenCursor
+                    onClicked: {
+                        if (parent.blockedReason === "") inspector.componentRemoved(section.componentType);
+                    }
                 }
             }
         }

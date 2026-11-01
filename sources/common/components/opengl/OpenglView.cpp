@@ -325,6 +325,22 @@ namespace noi_engine_editor
         Q_EMIT sceneCameraChanged();
     }
 
+    QVariantList OpenGLView::entityLayout() const
+    {
+        return m_entityLayout;
+    }
+
+    void OpenGLView::setEntityLayout(const QVariantList& layout)
+    {
+        if (m_entityLayout == layout)
+        {
+            return;
+        }
+
+        m_entityLayout = layout;
+        Q_EMIT entityLayoutChanged();
+    }
+
     bool OpenGLView::hasInspectedEntity() const
     {
         return this->m_hasInspectedEntity;

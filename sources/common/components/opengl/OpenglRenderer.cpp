@@ -506,6 +506,7 @@ namespace noi_engine_editor
             // "the system stops first".
             this->applyPendingKeyEvents(view);
             m_bridge.releaseAllKeys(this->m_gameHandle);
+            m_bridge.setPlaying(this->m_gameHandle, false);
             if (!m_currentPath.isEmpty())
             {
                 const auto relativeScenePath = getSceneResourceDotPath(this->m_resourcesPath, this->m_currentPath);
@@ -522,6 +523,7 @@ namespace noi_engine_editor
             // Fresh play-start transition: re-sync the bridge's dt timer so the first continuous
             // tick doesn't report however long the scene sat idle in edit mode.
             m_bridge.resetTimer(this->m_gameHandle);
+            m_bridge.setPlaying(this->m_gameHandle, true);
             m_wasPlaying = true;
         }
 
@@ -561,7 +563,7 @@ namespace noi_engine_editor
 
     // Turns the editor-only "folder" component into an entity "folder" field (so it never shows
     // up as a component in the Inspector) and returns the scene camera, if any.
-    auto OpenGLRenderer::annotateEntities(QVariantList& loadedEntities) -> QVariantMap
+    auto OpenGLRenderer::annotateEntities(QVariantList& loadedEntities, QVariantList& layout) -> QVariantMap
     {
         QVariantMap sceneCamera{{QStringLiteral("valid"), false}};
 
@@ -580,6 +582,31 @@ namespace noi_engine_editor
             entity.insert(QStringLiteral("folder"), folder);
             entity.insert(QStringLiteral("componentTypes"), componentTypes);
 
+            // Where the entity is, for picking and dragging it in the viewport (kept out of the
+            // entity list itself, which would otherwise change every frame something moves): a
+            // mesh_renderer draws the unit quad scaled by the transform.
+            QVariantList position;
+            if (componentTypes.contains(QStringLiteral("transform")))
+            {
+                const auto transform = componentProperties(id, generation, "transform");
+                position = transform.value(QStringLiteral("position")).toList();
+                const auto scale = transform.value(QStringLiteral("scale")).toList();
+                if (position.size() >= 3 && scale.size() >= 2)
+                {
+                    layout.append(QVariantMap{
+                        {QStringLiteral("id"), id},
+                        {QStringLiteral("generation"), generation},
+                        {QStringLiteral("position"), position},
+                        {QStringLiteral("size"), QVariantList{scale[0], scale[1]}},
+                        {QStringLiteral("drawn"), componentTypes.contains(QStringLiteral("mesh_renderer"))},
+                        {QStringLiteral("renderOrder"),
+                         componentTypes.contains(QStringLiteral("render_layer"))
+                             ? componentProperties(id, generation, "render_layer").value(QStringLiteral("order")).toInt()
+                             : 0},
+                    });
+                }
+            }
+
             if (componentTypes.contains(QStringLiteral("camera_2d")))
             {
                 const auto camera = componentProperties(id, generation, "camera_2d");
@@ -591,6 +618,9 @@ namespace noi_engine_editor
                         {QStringLiteral("generation"), generation},
                         {QStringLiteral("orthographicSize"), camera.value(QStringLiteral("orthographic_size"))},
                         {QStringLiteral("aspectRatio"), camera.value(QStringLiteral("aspect_ratio"))},
+                        {QStringLiteral("zoom"), camera.value(QStringLiteral("zoom"))},
+                        {QStringLiteral("x"), position.value(0, 0.0)},
+                        {QStringLiteral("y"), position.value(1, 0.0)},
                     };
                 }
             }
@@ -715,10 +745,12 @@ namespace noi_engine_editor
             m_bridge.enumerateResources(this->m_gameHandle, &OpenGLRenderer::resourceEntryCallback, &loadedResources);
             m_bridge.enumerateEntities(this->m_gameHandle, &OpenGLRenderer::entityEntryCallback, &loadedEntities);
         }
-        const auto sceneCamera = this->m_gameHandle ? this->annotateEntities(loadedEntities) : QVariantMap{};
+        QVariantList entityLayout;
+        const auto sceneCamera = this->m_gameHandle ? this->annotateEntities(loadedEntities, entityLayout) : QVariantMap{};
         view->setLoadedResources(loadedResources);
         view->setLoadedEntities(loadedEntities);
         view->setSceneCamera(sceneCamera);
+        view->setEntityLayout(entityLayout);
         view->setInspectedComponents(this->buildInspectedComponents(view, loadedEntities));
         view->setInspectedMaterialProperties(this->buildInspectedMaterialProperties(view));
     }

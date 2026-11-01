@@ -14,8 +14,12 @@ Rectangle {
     property var selectedEntity: null
 
     signal entitySelected(var entity)
-    // folder: where to file the new entity ("" = root).
-    signal entityCreateRequested(string name, string folder)
+    // folder: where to file the new entity ("" = root); preset: see EntityPresetMenu.
+    signal entityCreateRequested(string name, string folder, string preset)
+
+    function presetName(preset) {
+        return root.uniqueName(preset === "empty" ? "Entity" : preset.replace("_", " "));
+    }
     signal entityRenameRequested(var entity, string newName)
     // folder: where to file the copy, or null to keep the original's folder.
     signal entityDuplicateRequested(var entity, string newName, var folder)
@@ -290,7 +294,12 @@ Rectangle {
                     anchors.fill: parent
                     anchors.margins: -6
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.entityCreateRequested(root.uniqueName("Entity"), "")
+                    onClicked: newEntityMenu.popup()
+                }
+
+                EntityPresetMenu {
+                    id: newEntityMenu
+                    onPresetChosen: preset => root.entityCreateRequested(root.presetName(preset), "", preset)
                 }
             }
         }
@@ -341,7 +350,7 @@ Rectangle {
                         onDragEnded: root.dragEnded()
 
                         onToggled: root.toggleFolder(path)
-                        onNewEntityRequested: root.entityCreateRequested(root.uniqueName("Entity"), path)
+                        onNewEntityRequested: preset => root.entityCreateRequested(root.presetName(preset), path, preset)
                         onNewSubfolderRequested: {
                             folderNameDialog.renamingPath = "";
                             folderNameDialog.parentPath = path;

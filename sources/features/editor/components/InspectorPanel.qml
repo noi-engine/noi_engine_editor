@@ -68,9 +68,10 @@ Rectangle {
 
     readonly property string headerIcon: root.material ? "palette" : "category"
 
+    // Only existing resources: the bridge refuses empty or unknown references.
     function resourceLabelsFor(resourceType) {
         const items = root.loadedResources || [];
-        const labels = [""];
+        const labels = [];
         for (let i = 0; i < items.length; i++) {
             if (items[i].type === resourceType) {
                 labels.push(items[i].label);
@@ -81,7 +82,28 @@ Rectangle {
 
     function missingComponentTypes() {
         const present = (root.componentsData || []).map(c => c.type);
-        return root.allComponentTypes.filter(t => present.indexOf(t) === -1);
+        return root.allComponentTypes.filter(t => present.indexOf(t) === -1)
+            // The scene camera is 2D: a 3D camera component would replace its view.
+            .filter(t => !(root.isCameraEntity && (t === "camera_3d" || t === "orbit_camera")));
+    }
+
+    function hasComponent(type) {
+        return (root.componentsData || []).some(c => c.type === type);
+    }
+
+    // Why a component can't be removed ("" = it can). Mirrors the bridge's own checks.
+    function removeBlockedReason(type) {
+        if (type === "name_component") return qsTr("Every entity has a name");
+        if (type === "world_matrix") return qsTr("Computed by the engine from the transform");
+        if (root.isCameraEntity && type === "camera_2d") return qsTr("The scene camera needs it");
+        if (type === "transform") {
+            if (root.isCameraEntity) return qsTr("The scene camera needs it");
+            const users = ["mesh_renderer", "box_collider", "gravity"].filter(t => root.hasComponent(t));
+            if (users.length > 0) {
+                return qsTr("Used by %1 - remove it first").arg(users.map(t => root.sectionTitle(t)).join(", "));
+            }
+        }
+        return "";
     }
 
     // "Sprite" and "Script" are not real bridge component types - they're utilities:
@@ -91,14 +113,20 @@ Rectangle {
     //   whenever mesh_renderer isn't already present.
     // - Script scaffolds a new project-level script file pair and is always offered - it
     //   isn't "added" to this entity at all (see AddScriptDialog).
+    // Groups first (several components set up together), then single components.
     function addComponentMenuEntries() {
-        const present = (root.componentsData || []).map(c => c.type);
-        const utilities = present.indexOf("mesh_renderer") === -1 ? ["sprite", "script"] : ["script"];
+        const utilities = [];
+        if (!root.hasComponent("mesh_renderer")) utilities.push("sprite");
+        if (!root.hasComponent("box_collider")) utilities.push("static_collider");
+        if (!root.hasComponent("box_collider") && !root.hasComponent("gravity")) utilities.push("physics_body");
+        utilities.push("script");
         return utilities.concat(missingComponentTypes());
     }
 
     function addComponentMenuLabel(type) {
-        if (type === "sprite") return qsTr("Sprite");
+        if (type === "sprite") return qsTr("Sprite (transform + mesh + material)");
+        if (type === "static_collider") return qsTr("Static Collider (doesn't move)");
+        if (type === "physics_body") return qsTr("Physics Body (gravity + collider)");
         if (type === "script") return qsTr("Script");
         return root.componentLabels[type] || type;
     }
@@ -387,6 +415,12 @@ Rectangle {
                                 onTriggered: {
                                     if (addComponentMenuItem.modelData === "sprite") {
                                         addSpriteDialog.open();
+                                    } else if (addComponentMenuItem.modelData === "static_collider") {
+                                        root.componentAddRequested("box_collider");
+                                        root.propertyEdited("box_collider", "is_static", "bool", true);
+                                    } else if (addComponentMenuItem.modelData === "physics_body") {
+                                        root.componentAddRequested("gravity");
+                                        root.componentAddRequested("box_collider");
                                     } else if (addComponentMenuItem.modelData === "script") {
                                         addScriptDialog.open();
                                     } else if (addComponentMenuItem.modelData === "mesh_renderer") {

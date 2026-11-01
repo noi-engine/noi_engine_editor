@@ -191,6 +191,22 @@ namespace noi_engine_editor
         return m_project.windowHeight;
     }
 
+    auto CurrentProjectManager::editorView() const -> QVariantMap
+    {
+        return m_project.editorView.toVariantMap();
+    }
+
+    auto CurrentProjectManager::setEditorView(const QVariantMap& view) -> void
+    {
+        const auto json = QJsonObject::fromVariantMap(view);
+        if (m_project.editorView == json)
+        {
+            return;
+        }
+        m_project.editorView = json;
+        emit editorViewChanged();
+    }
+
     auto CurrentProjectManager::setWindowWidth(const int width) -> void
     {
         if (this->m_project.windowWidth == width)

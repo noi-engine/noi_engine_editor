@@ -16,7 +16,7 @@ Rectangle {
     signal toggled()
     signal renameRequested()
     signal ungroupRequested()
-    signal newEntityRequested()
+    signal newEntityRequested(string preset)
     signal newSubfolderRequested()
     signal duplicateRequested()
     signal deleteRequested()
@@ -110,9 +110,9 @@ Rectangle {
     Menu {
         id: folderMenu
 
-        MenuItem {
-            text: qsTr("New Entity Here")
-            onTriggered: root.newEntityRequested()
+        EntityPresetMenu {
+            title: qsTr("New Entity Here")
+            onPresetChosen: preset => root.newEntityRequested(preset)
         }
         MenuItem {
             text: qsTr("New Sub-folder")

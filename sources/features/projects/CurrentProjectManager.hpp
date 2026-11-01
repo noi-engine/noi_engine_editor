@@ -19,6 +19,8 @@ namespace noi_engine_editor
         Q_PROPERTY(QString engineVersion READ engineVersion NOTIFY engineVersionChanged)
         Q_PROPERTY(int windowWidth READ windowWidth WRITE setWindowWidth NOTIFY windowWidthChanged)
         Q_PROPERTY(int windowHeight READ windowHeight WRITE setWindowHeight NOTIFY windowHeightChanged)
+        // Editor viewport state saved with the project: {zoom, world_width, world_height, scroll_x, scroll_y}.
+        Q_PROPERTY(QVariantMap editorView READ editorView WRITE setEditorView NOTIFY editorViewChanged)
 
         Q_PROPERTY(QString path READ path NOTIFY projectChanged)
         Q_PROPERTY(bool isOpen READ isOpen NOTIFY projectChanged)
@@ -58,6 +60,8 @@ namespace noi_engine_editor
         [[nodiscard]] auto engineVersion() const -> QString;
         [[nodiscard]] auto windowWidth() const -> int;
         [[nodiscard]] auto windowHeight() const -> int;
+        [[nodiscard]] auto editorView() const -> QVariantMap;
+        auto setEditorView(const QVariantMap& view) -> void;
 
         auto setWindowWidth(int width) -> void;
         auto setWindowHeight(int height) -> void;
@@ -78,6 +82,7 @@ namespace noi_engine_editor
         void engineVersionChanged();
         void windowWidthChanged();
         void windowHeightChanged();
+        void editorViewChanged();
 
     private:
         QString m_path;

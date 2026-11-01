@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QQmlEngine>
 #include <QString>
+#include <functional>
 
 namespace noi_engine_editor
 {
@@ -21,7 +22,11 @@ namespace noi_engine_editor
     public:
         explicit ProjectBuilder(QObject* parent = nullptr);
 
+        // Debug build: the one the viewport runs (scripts library), bumps compileGeneration.
         Q_INVOKABLE auto compile(const QString& projectPath) -> void;
+        // Release build of the game (compiled resources) in build/release/bin. Doesn't touch the
+        // debug build's state.
+        Q_INVOKABLE auto compileRelease(const QString& projectPath) -> void;
         Q_INVOKABLE auto clearOutput() -> void;
 
         [[nodiscard]] auto isCompiling() const -> bool;
@@ -37,6 +42,7 @@ namespace noi_engine_editor
         void lastCompileFailedChanged();
         void hasCompiledOnceChanged();
         void compileFinished(bool success);
+        void releaseFinished(bool success, const QString& outputPath);
 
     private:
         bool m_isCompiling{false};
@@ -48,5 +54,6 @@ namespace noi_engine_editor
         auto setCompiling(bool compiling) -> void;
         auto setLastCompileFailed(bool failed) -> void;
         auto appendOutput(const QString& text) -> void;
+        auto build(const QString& projectPath, const QString& preset, const std::function<void(bool)>& onFinished) -> void;
     };
 }

@@ -22,6 +22,9 @@ namespace noi_engine_editor
         int windowWidth{1280};
         int windowHeight{720};
 
+        // Editor viewport state, restored when the project reopens ("editor_view").
+        QJsonObject editorView;
+
         QDateTime lastOpened;
 
         [[nodiscard]] auto serialize() const -> QJsonObject;

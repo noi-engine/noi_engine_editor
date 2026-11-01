@@ -158,6 +158,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/hierarchy/HierarchyItem.qml
         sources/features/editor/components/hierarchy/FolderItem.qml
         sources/features/editor/components/hierarchy/MoveToFolderDialog.qml
+        sources/features/editor/components/hierarchy/EntityPresetMenu.qml
         sources/features/editor/components/ImportTextureDialog.qml
         sources/features/editor/components/InspectorPanel.qml
         sources/features/editor/components/inspector/ComponentSection.qml
@@ -185,6 +186,8 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/viewport/ViewportPanel.qml
         sources/features/editor/components/viewport/ViewportToolbar.qml
         sources/features/editor/components/viewport/CameraFrameHandles.qml
+        sources/features/editor/components/viewport/EntityPicking.qml
+        sources/features/editor/components/viewport/ViewportViewState.qml
         SOURCES
         sources/features/editor/CurrentProjectResourcesManager.hpp
         sources/features/editor/CurrentProjectResourcesManager.cpp
