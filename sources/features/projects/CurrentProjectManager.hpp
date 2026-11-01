@@ -23,11 +23,19 @@ namespace noi_engine_editor
         Q_PROPERTY(QString path READ path NOTIFY projectChanged)
         Q_PROPERTY(bool isOpen READ isOpen NOTIFY projectChanged)
 
+        // Why the last openProject() failed, and the editor bridge version to download when
+        // that's the only thing missing (empty otherwise).
+        Q_PROPERTY(QString lastOpenError READ lastOpenError NOTIFY lastOpenErrorChanged)
+        Q_PROPERTY(QString missingEditorBridgeVersion READ missingEditorBridgeVersion NOTIFY lastOpenErrorChanged)
+
     public:
         explicit CurrentProjectManager(QObject* parent = nullptr);
 
         Q_INVOKABLE auto closeProject() -> void;
+        // Refuses (with lastOpenError set) projects this editor can't run: invalid project file,
+        // no editor_bridge_version, or a bridge that is missing or doesn't support the engine.
         Q_INVOKABLE [[nodiscard]] auto openProject(const QString& path) -> bool;
+        Q_INVOKABLE [[nodiscard]] static bool isProjectFolder(const QString& path);
         Q_INVOKABLE [[nodiscard]] auto saveProject() const -> bool;
         Q_INVOKABLE [[nodiscard]] auto resourcesPath() const -> QString;
         Q_INVOKABLE [[nodiscard]] auto scriptsLibraryPath() const -> QString;
@@ -40,6 +48,8 @@ namespace noi_engine_editor
 
         [[nodiscard]] auto path() const -> QString;
         [[nodiscard]] auto isOpen() const -> bool;
+        [[nodiscard]] auto lastOpenError() const -> QString;
+        [[nodiscard]] auto missingEditorBridgeVersion() const -> QString;
 
         [[nodiscard]] auto name() const -> QString;
         [[nodiscard]] auto version() const -> QString;
@@ -59,6 +69,7 @@ namespace noi_engine_editor
     signals:
         void projectChanged();
         void projectOpenFailed(const QString& reason);
+        void lastOpenErrorChanged();
 
         void nameChanged();
         void versionChanged();
@@ -72,5 +83,9 @@ namespace noi_engine_editor
         QString m_path;
         ProjectInfo m_project{};
         bool m_isOpen{false};
+        QString m_lastOpenError;
+        QString m_missingEditorBridgeVersion;
+
+        auto failOpen(const QString& reason, const QString& missingEditorBridgeVersion = {}) -> bool;
     };
 }

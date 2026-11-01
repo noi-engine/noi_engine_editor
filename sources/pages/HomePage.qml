@@ -29,6 +29,15 @@ CustomPage {
         color: Theme.bgPrimary
     }
 
+    ProjectOpenErrorDialog {
+        id: projectOpenErrorDialog
+
+        onProjectOpened: path => {
+            RecentProjectsManager.addProject(UrlConverter.getFolderName(path), path);
+            Router.push("/editor");
+        }
+    }
+
     FolderDialog {
         id: openProjectFolderDialog
         title: qsTr("Select Project Folder")
@@ -38,6 +47,8 @@ CustomPage {
             if (CurrentProjectManager.openProject(localPath)) {
                 RecentProjectsManager.addProject(UrlConverter.getFolderName(localPath), localPath);
                 Router.push("/editor");
+            } else {
+                projectOpenErrorDialog.openFor(localPath);
             }
         }
     }
@@ -183,8 +194,11 @@ CustomPage {
                 onProjectClicked: path => {
                     if (CurrentProjectManager.openProject(path)) {
                         Router.push("/editor");
-                    } else {
+                    } else if (!CurrentProjectManager.isProjectFolder(path)) {
+                        // The project was moved or deleted.
                         RecentProjectsManager.removeProject(path);
+                    } else {
+                        projectOpenErrorDialog.openFor(path);
                     }
                 }
             }

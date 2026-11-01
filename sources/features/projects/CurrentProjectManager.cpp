@@ -1,6 +1,7 @@
 #include "CurrentProjectManager.hpp"
 
 #include <QDir>
+#include <QFile>
 #include <QJsonObject>
 
 #include "../../common/utils/EditorBridgeResolver.hpp"
@@ -14,27 +15,51 @@ namespace noi_engine_editor
     {
     }
 
+    auto CurrentProjectManager::failOpen(const QString& reason, const QString& missingEditorBridgeVersion) -> bool
+    {
+        qWarning() << "[CurrentProjectManager] Can't open project:" << reason;
+        m_lastOpenError = reason;
+        m_missingEditorBridgeVersion = missingEditorBridgeVersion;
+        emit lastOpenErrorChanged();
+        emit projectOpenFailed(reason);
+        return false;
+    }
+
+    auto CurrentProjectManager::isProjectFolder(const QString& path) -> bool
+    {
+        return QFile::exists(PathResolver::projectFilePath(path));
+    }
+
     auto CurrentProjectManager::openProject(const QString& path) -> bool
     {
+        ProjectInfo project;
         try
         {
             const auto doc = JsonIO::read(PathResolver::projectFilePath(path));
             if (!doc.isObject())
             {
-                emit projectOpenFailed(tr("Invalid project file"));
-                return false;
+                return failOpen(tr("Invalid project file"));
             }
 
-            m_project = Json::deserialize<ProjectInfo>(doc.object());
+            project = Json::deserialize<ProjectInfo>(doc.object());
         }
         catch (const std::runtime_error &e)
         {
-            qWarning() << "[CurrentProjectManager] Failed to open project:" << e.what();
-            emit projectOpenFailed(tr("Invalid project file"));
-            return false;
+            qWarning() << "[CurrentProjectManager] Failed to read project:" << e.what();
+            return failOpen(tr("Invalid project file"));
         }
 
+        if (const auto bridge = EditorBridgeResolver::resolve(project.editorBridgeVersion, project.engineVersion);
+            bridge.libraryPath.isEmpty())
+        {
+            return failOpen(bridge.error, bridge.notInstalled ? project.editorBridgeVersion : QString{});
+        }
 
+        m_lastOpenError.clear();
+        m_missingEditorBridgeVersion.clear();
+        emit lastOpenErrorChanged();
+
+        m_project = project;
         m_path = path;
         m_isOpen = true;
 
@@ -119,6 +144,16 @@ namespace noi_engine_editor
 
         emit projectChanged();
         emit engineVersionChanged();
+    }
+
+    auto CurrentProjectManager::lastOpenError() const -> QString
+    {
+        return m_lastOpenError;
+    }
+
+    auto CurrentProjectManager::missingEditorBridgeVersion() const -> QString
+    {
+        return m_missingEditorBridgeVersion;
     }
 
     auto CurrentProjectManager::name() const -> QString

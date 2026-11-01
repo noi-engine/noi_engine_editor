@@ -37,6 +37,9 @@ Dialog {
             if (CurrentProjectManager.openProject(path)) {
                 root.close();
                 Router.push("/editor");
+            } else {
+                errorLabel.text = CurrentProjectManager.lastOpenError;
+                errorLabel.visible = true;
             }
         }
 

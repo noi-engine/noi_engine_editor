@@ -11,6 +11,7 @@ namespace noi_engine_editor::EditorBridgeResolver
     {
         QString libraryPath; // empty when the bridge can't be used
         QString error;       // why, when libraryPath is empty
+        bool notInstalled{}; // the only problem is that the bridge isn't downloaded yet
     };
 
     [[nodiscard]] auto resolve(const QString& bridgeVersion, const QString& engineVersion) -> Resolution;

@@ -31,7 +31,8 @@ namespace noi_engine_editor
     {
         if (bridgeVersion.isEmpty())
         {
-            return {.error = QObject::tr("The project doesn't declare an editor_bridge_version")};
+            return {.error = QObject::tr("This project was made for an older version of the editor (it has no "
+                                         "editor_bridge_version). Create a new project from an up-to-date template.")};
         }
 
         const auto contentPath = PathResolver::editorBridgeContentPath(bridgeVersion);
@@ -42,7 +43,9 @@ namespace noi_engine_editor
         }
         catch (const std::exception&)
         {
-            return {.error = QObject::tr("Editor bridge v%1 is not installed (Settings > Tools)").arg(bridgeVersion)};
+            return {.error = QObject::tr("This project needs the editor bridge v%1, which isn't downloaded yet")
+                                 .arg(bridgeVersion),
+                    .notInstalled = true};
         }
 
         if (const auto apiVersion = manifest.value("api_version").toInt(); apiVersion != NOI_ENGINE_EDITOR_BRIDGE_API_VERSION)

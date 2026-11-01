@@ -100,6 +100,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/projects/components/RecentProjectItem.qml
         sources/features/projects/components/RecentProjectsSection.qml
         sources/features/projects/components/ToolStatusRow.qml
+        sources/features/projects/components/ProjectOpenErrorDialog.qml
         SOURCES
         sources/features/projects/CurrentProjectManager.hpp
         sources/features/projects/CurrentProjectManager.cpp
