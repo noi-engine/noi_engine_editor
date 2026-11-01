@@ -1,24 +1,23 @@
 #include "TemplateInstaller.hpp"
 #include "PathResolver.hpp"
 #include "TemplateUrlResolver.hpp"
-#include "ZipExtractor.hpp"
+#include "ZipInstall.hpp"
 
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QNetworkRequest>
-#include <QNetworkReply>
-#include <QTemporaryFile>
 #include <QDebug>
 
 namespace
 {
+    constexpr auto LOG_TAG = "[TemplateInstaller]";
+
     auto postProcessExtraction(const QString& targetDirPath) -> bool
     {
         const QDir targetDir(targetDirPath);
         if (!targetDir.exists())
         {
-            qWarning() << "[TemplateInstaller] Post-process failed: target directory does not exist:" << targetDirPath;
+            qWarning() << LOG_TAG << "Post-process failed: target directory does not exist:" << targetDirPath;
             return false;
         }
 
@@ -45,14 +44,14 @@ namespace
 
             if (!QFile::rename(srcPath, destPath))
             {
-                qWarning() << "[TemplateInstaller] Failed to move item:" << srcPath << "to:" << destPath;
+                qWarning() << LOG_TAG << "Failed to move item:" << srcPath << "to:" << destPath;
                 return false;
             }
         }
 
         if (!extractedSubDir.removeRecursively())
         {
-            qWarning() << "[TemplateInstaller] Failed to remove unwrapped directory:" << extractedSubDirPath;
+            qWarning() << LOG_TAG << "Failed to remove unwrapped directory:" << extractedSubDirPath;
             return false;
         }
 
@@ -77,87 +76,31 @@ namespace noi_engine_editor
         const auto downloadUrl = TemplateUrlResolver::zipUrl(repositoryUrl);
         const auto targetPath = PathResolver::templateAbsolutePath(templateId, version);
 
-        downloadZip(
+        zip_install::downloadZip(
+            m_networkManager,
             downloadUrl,
+            LOG_TAG,
             [targetPath, templateId, onFinished](const QByteArray& zipData)
             {
                 const auto success = extractAndUnwrap(targetPath, zipData);
                 if (!success)
                 {
-                    qWarning() << "[TemplateInstaller] Extraction/Unwrapping failed for template:" << templateId << "- cleaning target path:" << targetPath;
-                    cleanupFailedInstall(targetPath);
+                    qWarning() << LOG_TAG << "Extraction/Unwrapping failed for template:" << templateId << "- cleaning target path:" << targetPath;
+                    zip_install::removeDirectory(targetPath, LOG_TAG);
                 }
                 onFinished(success);
             },
             [targetPath, templateId, onFinished]()
             {
-                qWarning() << "[TemplateInstaller] Download failed for template:" << templateId << "- cleaning target path:" << targetPath;
-                cleanupFailedInstall(targetPath);
+                qWarning() << LOG_TAG << "Download failed for template:" << templateId << "- cleaning target path:" << targetPath;
+                zip_install::removeDirectory(targetPath, LOG_TAG);
                 onFinished(false);
             }
         );
     }
 
-    auto TemplateInstaller::downloadZip(
-        const QString& downloadUrl,
-        const std::function<void(const QByteArray& zipData)>& onSuccess,
-        const std::function<void()>& onError
-    ) -> void
-    {
-        QNetworkRequest request((QUrl(downloadUrl)));
-        request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-        request.setRawHeader("User-Agent", "noi_engine_editor");
-
-        auto* reply = m_networkManager.get(request);
-
-        QObject::connect(reply, &QNetworkReply::finished, [reply, downloadUrl, onSuccess, onError]()
-        {
-            reply->deleteLater();
-
-            if (reply->error() == QNetworkReply::NoError)
-            {
-                onSuccess(reply->readAll());
-            }
-            else
-            {
-                const auto httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-                qWarning() << "[TemplateInstaller] HTTP Download error for URL:" << downloadUrl
-                           << "| Error:" << reply->errorString()
-                           << "| HTTP Code:" << httpStatus;
-                onError();
-            }
-        });
-    }
-
     auto TemplateInstaller::extractAndUnwrap(const QString& targetPath, const QByteArray& zipData) -> bool
     {
-        QTemporaryFile tempZip;
-        if (!tempZip.open())
-        {
-            qWarning() << "[TemplateInstaller] Failed to create temporary ZIP file for writing.";
-            return false;
-        }
-
-        tempZip.write(zipData);
-        tempZip.flush();
-
-        if (!noi_engine::zip_utils::unzip(tempZip.fileName(), targetPath))
-        {
-            qWarning() << "[TemplateInstaller] Failed to unzip file:" << tempZip.fileName() << "to destination:" << targetPath;
-            return false;
-        }
-
-        return postProcessExtraction(targetPath);
-    }
-
-    auto TemplateInstaller::cleanupFailedInstall(const QString& targetPath) -> void
-    {
-        if (QDir dir(targetPath); dir.exists())
-        {
-            if (!dir.removeRecursively())
-            {
-                qWarning() << "[TemplateInstaller] Failed to clean up directory:" << targetPath;
-            }
-        }
+        return zip_install::extractZipData(targetPath, zipData, LOG_TAG) && postProcessExtraction(targetPath);
     }
 }

@@ -1,11 +1,12 @@
 #include "ToolInstaller.hpp"
-#include "ZipExtractor.hpp"
+#include "ZipInstall.hpp"
 
-#include <QDir>
-#include <QNetworkRequest>
-#include <QNetworkReply>
-#include <QTemporaryFile>
 #include <QDebug>
+
+namespace
+{
+    constexpr auto LOG_TAG = "[ToolInstaller]";
+}
 
 namespace noi_engine_editor
 {
@@ -20,87 +21,26 @@ namespace noi_engine_editor
         const std::function<void(bool success)>& onFinished
     ) -> void
     {
-        downloadZip(
+        zip_install::downloadZip(
+            m_networkManager,
             downloadUrl,
+            LOG_TAG,
             [targetPath, onFinished](const QByteArray& zipData)
             {
-                const auto success = extract(targetPath, zipData);
+                const auto success = zip_install::extractZipData(targetPath, zipData, LOG_TAG);
                 if (!success)
                 {
-                    qWarning() << "[ToolInstaller] Extraction failed for target:" << targetPath;
-                    cleanupFailedInstall(targetPath);
+                    qWarning() << LOG_TAG << "Extraction failed for target:" << targetPath;
+                    zip_install::removeDirectory(targetPath, LOG_TAG);
                 }
                 onFinished(success);
             },
             [targetPath, onFinished]()
             {
-                qWarning() << "[ToolInstaller] Download failed for target:" << targetPath;
-                cleanupFailedInstall(targetPath);
+                qWarning() << LOG_TAG << "Download failed for target:" << targetPath;
+                zip_install::removeDirectory(targetPath, LOG_TAG);
                 onFinished(false);
             }
         );
-    }
-
-    auto ToolInstaller::downloadZip(
-        const QString& downloadUrl,
-        const std::function<void(const QByteArray& zipData)>& onSuccess,
-        const std::function<void()>& onError
-    ) -> void
-    {
-        QNetworkRequest request((QUrl(downloadUrl)));
-        request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-        request.setRawHeader("User-Agent", "noi_engine_editor");
-
-        auto* reply = m_networkManager.get(request);
-
-        QObject::connect(reply, &QNetworkReply::finished, [reply, downloadUrl, onSuccess, onError]()
-        {
-            reply->deleteLater();
-
-            if (reply->error() == QNetworkReply::NoError)
-            {
-                onSuccess(reply->readAll());
-            }
-            else
-            {
-                const auto httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-                qWarning() << "[ToolInstaller] HTTP Download error for URL:" << downloadUrl
-                           << "| Error:" << reply->errorString()
-                           << "| HTTP Code:" << httpStatus;
-                onError();
-            }
-        });
-    }
-
-    auto ToolInstaller::extract(const QString& targetPath, const QByteArray& zipData) -> bool
-    {
-        QTemporaryFile tempZip;
-        if (!tempZip.open())
-        {
-            qWarning() << "[ToolInstaller] Failed to create temporary ZIP file for writing.";
-            return false;
-        }
-
-        tempZip.write(zipData);
-        tempZip.flush();
-
-        if (!noi_engine::zip_utils::unzip(tempZip.fileName(), targetPath))
-        {
-            qWarning() << "[ToolInstaller] Failed to unzip file:" << tempZip.fileName() << "to destination:" << targetPath;
-            return false;
-        }
-
-        return true;
-    }
-
-    auto ToolInstaller::cleanupFailedInstall(const QString& targetPath) -> void
-    {
-        if (QDir dir(targetPath); dir.exists())
-        {
-            if (!dir.removeRecursively())
-            {
-                qWarning() << "[ToolInstaller] Failed to clean up directory:" << targetPath;
-            }
-        }
     }
 }

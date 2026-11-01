@@ -20,14 +20,7 @@ namespace noi_engine_editor
         ) -> void;
 
     private:
-        auto downloadZip(
-            const QString& downloadUrl,
-            const std::function<void(const QByteArray& zipData)>& onSuccess,
-            const std::function<void()>& onError
-        ) -> void;
-
         static auto extractAndUnwrap(const QString& targetPath, const QByteArray& zipData) -> bool;
-        static auto cleanupFailedInstall(const QString& targetPath) -> void;
 
         QNetworkAccessManager& m_networkManager;
     };

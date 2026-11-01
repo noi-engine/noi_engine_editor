@@ -76,6 +76,8 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/common/utils/PathResolver.cpp
         sources/common/utils/ZipExtractor.hpp
         sources/common/utils/ZipExtractor.cpp
+        sources/common/utils/ZipInstall.hpp
+        sources/common/utils/ZipInstall.cpp
         sources/noi_engine_editorConfig.hpp
 
         # Pages
@@ -151,6 +153,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/HierarchyItem.qml
         sources/features/editor/components/ImportTextureDialog.qml
         sources/features/editor/components/InspectorPanel.qml
+        sources/features/editor/components/LogPanel.qml
         sources/features/editor/components/LoadedResourceItem.qml
         sources/features/editor/components/LoadedResourcesPanel.qml
         sources/features/editor/components/ProjectSettingsDialog.qml
