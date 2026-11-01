@@ -10,6 +10,7 @@ Rectangle {
     signal playRequested()
     signal stopRequested()
     signal saveRequested()
+    signal searchRequested()
 
     property string currentScenePath: ""
     property bool isPlaying: false
@@ -88,6 +89,52 @@ Rectangle {
                 font.pixelSize: 13
                 font.bold: root.currentScenePath !== ""
                 color: root.currentScenePath !== "" ? Theme.white : Theme.darkGrey
+            }
+        }
+
+        Item { Layout.fillWidth: true }
+
+        // Opens the global search (Ctrl+K).
+        Rectangle {
+            Layout.preferredWidth: 280
+            Layout.preferredHeight: 32
+            radius: 8
+            color: Theme.bgPrimary
+            border.color: searchArea.containsMouse ? Theme.primaryColor : Theme.borderColor
+            border.width: 1
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+                spacing: 8
+
+                MuiIcon {
+                    name: "search"
+                    font.pixelSize: 16
+                    color: Theme.grey
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: qsTr("Search everything...")
+                    font.pixelSize: 12
+                    color: Theme.grey
+                }
+
+                Text {
+                    text: "Ctrl+K"
+                    font.pixelSize: 10
+                    color: Theme.darkGrey
+                }
+            }
+
+            MouseArea {
+                id: searchArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.searchRequested()
             }
         }
 

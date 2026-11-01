@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Window
 import noi_engine_editor
 
 Item {
@@ -25,6 +26,8 @@ Item {
 
     signal sceneSaved(bool success)
     signal entityCreated(int entityId, int entityGeneration)
+    // The scene camera was resized with the handles on its red border.
+    signal cameraEdited()
 
     Connections {
         target: openGLView
@@ -118,8 +121,17 @@ Item {
 
             Item {
                 id: container
-                width: root.worldWidth
-                height: root.worldHeight
+                // Large enough to show the whole camera border and its handles. Only grows, so
+                // the view doesn't jump when the camera is made smaller.
+                property real fitWidth: 0
+                property real fitHeight: 0
+                readonly property real cameraFitWidth: cameraHandles.cameraWidth + 160
+                readonly property real cameraFitHeight: cameraHandles.cameraHeight + 160
+                onCameraFitWidthChanged: fitWidth = Math.max(fitWidth, cameraFitWidth)
+                onCameraFitHeightChanged: fitHeight = Math.max(fitHeight, cameraFitHeight)
+
+                width: Math.max(root.worldWidth, fitWidth)
+                height: Math.max(root.worldHeight, fitHeight)
 
                 transform: Scale {
                     xScale: root.cameraZoom
@@ -160,6 +172,23 @@ Item {
                     onClicked: (mouse) => {
                         if (root.activeTool === "select") {
                         }
+                    }
+                }
+
+                CameraFrameHandles {
+                    id: cameraHandles
+                    // The bridge maps PIXELS_PER_UNIT (100) device pixels to one world unit.
+                    camera: openGLView.sceneCamera
+                    pixelsPerUnit: 100 / Screen.devicePixelRatio
+                    zoom: root.cameraZoom
+                    enabled: !root.playing
+                    opacity: root.playing ? 0 : 1
+
+                    onResized: (orthographicSize, aspectRatio) => {
+                        const cam = openGLView.sceneCamera;
+                        openGLView.setComponentProperty(cam.id, cam.generation, "camera_2d", "orthographic_size", "float", orthographicSize);
+                        openGLView.setComponentProperty(cam.id, cam.generation, "camera_2d", "aspect_ratio", "float", aspectRatio);
+                        root.cameraEdited();
                     }
                 }
             }

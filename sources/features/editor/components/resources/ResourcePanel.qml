@@ -84,6 +84,19 @@ Item {
 
             Rectangle {
                 Layout.fillWidth: true
+                Layout.preferredHeight: 36
+                color: Theme.bgSecondary
+
+                PanelSearchField {
+                    id: resourceSearch
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    placeholderText: qsTr("Search files in this folder...")
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
                 Layout.preferredHeight: 1
                 color: Theme.borderColor
             }
@@ -106,6 +119,8 @@ Item {
                     showDirsFirst: true
                     showDotAndDotDot: false
                     showHidden: false
+                    caseSensitive: false
+                    nameFilters: resourceSearch.text.trim() === "" ? ["*"] : ["*" + resourceSearch.text.trim() + "*"]
                 }
 
                 delegate: ResourceItemDelegate {

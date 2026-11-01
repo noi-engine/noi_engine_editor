@@ -16,6 +16,20 @@ CustomPage {
     property string pendingScenePath: ""
     property bool compileFailureDismissed: false
     property bool sceneDirty: false
+    // Folder for each queued entity create/duplicate, in order (null = leave as is), applied
+    // when the bridge reports the new entity.
+    property var pendingCreateFolders: []
+
+    function setEntityFolder(entity, folder) {
+        if (folder === "") {
+            viewportPanel.removeComponent(entity.id, entity.generation, "folder")
+        } else {
+            // Adds are applied before property edits, so both land in the same frame.
+            viewportPanel.addComponent(entity.id, entity.generation, "folder")
+            viewportPanel.setComponentProperty(entity.id, entity.generation, "folder", "path", "string", folder)
+        }
+        root.sceneDirty = true;
+    }
 
     function openScene(filePath) {
         if (viewportPanel.playing) {
@@ -41,7 +55,42 @@ CustomPage {
         onActivated: root.saveCurrentScene()
     }
 
-    Component.onCompleted: ProjectBuilder.compile(CurrentProjectManager.path)
+    Shortcut {
+        sequences: ["Ctrl+K", "Ctrl+P"]
+        enabled: !viewportPanel.playing
+        onActivated: globalSearch.open()
+    }
+
+    GlobalSearchPopup {
+        id: globalSearch
+        parent: Overlay.overlay
+        entities: viewportPanel.loadedEntities
+        resources: viewportPanel.loadedResources
+        resourcesRoot: CurrentProjectManager.resourcesPath()
+
+        onAboutToShow: scenePaths = CurrentProjectResourcesManager.getAllScenesRecursively(CurrentProjectManager.resourcesPath())
+
+        onEntityChosen: (entity) => {
+            root.selectedMaterial = null;
+            root.selectedEntity = entity;
+        }
+        onSceneChosen: (filePath) => root.openScene(filePath)
+        onResourceChosen: (resource) => {
+            if (resource.type === "material") {
+                root.selectedEntity = null;
+                root.selectedMaterial = resource;
+            }
+            root.activeBottomPanel = "loadedResources";
+        }
+    }
+
+    Component.onCompleted: {
+        ProjectBuilder.compile(CurrentProjectManager.path);
+        // Open the project's start scene (it waits for the first compile to finish).
+        if (CurrentProjectManager.startScene !== "") {
+            root.openScene(CurrentProjectManager.resourcesPath() + "/" + CurrentProjectManager.startScene);
+        }
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -91,6 +140,7 @@ CustomPage {
             onPlayRequested: viewportPanel.setPlaying(true)
             onStopRequested: viewportPanel.setPlaying(false)
             onSaveRequested: root.saveCurrentScene()
+            onSearchRequested: globalSearch.open()
         }
 
         SplitView {
@@ -116,7 +166,8 @@ CustomPage {
                         root.selectedEntity = entity
                     }
 
-                    onEntityCreateRequested: (name) => {
+                    onEntityCreateRequested: (name, folder) => {
+                        root.pendingCreateFolders = root.pendingCreateFolders.concat([folder === "" ? null : folder]);
                         viewportPanel.createEntity(name)
                         root.sceneDirty = true;
                     }
@@ -127,10 +178,13 @@ CustomPage {
                         root.sceneDirty = true;
                     }
 
-                    onEntityDuplicateRequested: (entity, newName) => {
+                    onEntityDuplicateRequested: (entity, newName, folder) => {
+                        root.pendingCreateFolders = root.pendingCreateFolders.concat([folder]);
                         viewportPanel.duplicateEntity(entity.id, entity.generation, newName)
                         root.sceneDirty = true;
                     }
+
+                    onEntityFolderChangeRequested: (entity, folder) => root.setEntityFolder(entity, folder)
 
                     onEntityDeleteRequested: (entity) => {
                         if (root.selectedEntity && root.selectedEntity.id === entity.id
@@ -155,6 +209,8 @@ CustomPage {
                     inspectedMaterialId: root.selectedMaterial ? root.selectedMaterial.id : 0
                     inspectedMaterialGeneration: root.selectedMaterial ? root.selectedMaterial.generation : 0
 
+                    onCameraEdited: root.sceneDirty = true
+
                     onSceneSaved: (success) => {
                         if (success) {
                             root.sceneDirty = false;
@@ -165,6 +221,11 @@ CustomPage {
                     }
 
                     onEntityCreated: (id, gen) => {
+                        const folder = root.pendingCreateFolders.length > 0 ? root.pendingCreateFolders[0] : null;
+                        root.pendingCreateFolders = root.pendingCreateFolders.slice(1);
+                        if (folder !== null && folder !== undefined) {
+                            root.setEntityFolder({id: id, generation: gen}, folder);
+                        }
                         const items = viewportPanel.loadedEntities || [];
                         for (let i = 0; i < items.length; i++) {
                             if (items[i].id === id && items[i].generation === gen) {

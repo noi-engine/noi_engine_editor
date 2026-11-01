@@ -543,6 +543,64 @@ namespace noi_engine_editor
         return properties;
     }
 
+    // Property name -> value of one component.
+    auto OpenGLRenderer::componentProperties(const uint32_t entityId, const uint32_t entityGeneration,
+                                             const char* componentType) -> QVariantMap
+    {
+        QVariantList properties;
+        m_bridge.enumerateComponentProperties(this->m_gameHandle, entityId, entityGeneration, componentType,
+                                               &OpenGLRenderer::propertyEntryCallback, &properties);
+        QVariantMap values;
+        for (const auto& property : properties)
+        {
+            const auto map = property.toMap();
+            values.insert(map.value(QStringLiteral("name")).toString(), map.value(QStringLiteral("value")));
+        }
+        return values;
+    }
+
+    // Turns the editor-only "folder" component into an entity "folder" field (so it never shows
+    // up as a component in the Inspector) and returns the scene camera, if any.
+    auto OpenGLRenderer::annotateEntities(QVariantList& loadedEntities) -> QVariantMap
+    {
+        QVariantMap sceneCamera{{QStringLiteral("valid"), false}};
+
+        for (auto& entityVariant : loadedEntities)
+        {
+            auto entity = entityVariant.toMap();
+            const auto id = entity.value(QStringLiteral("id")).toUInt();
+            const auto generation = entity.value(QStringLiteral("generation")).toUInt();
+            auto componentTypes = entity.value(QStringLiteral("componentTypes")).toStringList();
+
+            QString folder;
+            if (componentTypes.removeAll(QStringLiteral("folder")) > 0)
+            {
+                folder = componentProperties(id, generation, "folder").value(QStringLiteral("path")).toString();
+            }
+            entity.insert(QStringLiteral("folder"), folder);
+            entity.insert(QStringLiteral("componentTypes"), componentTypes);
+
+            if (componentTypes.contains(QStringLiteral("camera_2d")))
+            {
+                const auto camera = componentProperties(id, generation, "camera_2d");
+                if (camera.value(QStringLiteral("scene_camera")).toBool())
+                {
+                    sceneCamera = {
+                        {QStringLiteral("valid"), true},
+                        {QStringLiteral("id"), id},
+                        {QStringLiteral("generation"), generation},
+                        {QStringLiteral("orthographicSize"), camera.value(QStringLiteral("orthographic_size"))},
+                        {QStringLiteral("aspectRatio"), camera.value(QStringLiteral("aspect_ratio"))},
+                    };
+                }
+            }
+
+            entityVariant = entity;
+        }
+
+        return sceneCamera;
+    }
+
     QVariantList OpenGLRenderer::buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities)
     {
         QVariantList inspectedComponents;
@@ -657,8 +715,10 @@ namespace noi_engine_editor
             m_bridge.enumerateResources(this->m_gameHandle, &OpenGLRenderer::resourceEntryCallback, &loadedResources);
             m_bridge.enumerateEntities(this->m_gameHandle, &OpenGLRenderer::entityEntryCallback, &loadedEntities);
         }
+        const auto sceneCamera = this->m_gameHandle ? this->annotateEntities(loadedEntities) : QVariantMap{};
         view->setLoadedResources(loadedResources);
         view->setLoadedEntities(loadedEntities);
+        view->setSceneCamera(sceneCamera);
         view->setInspectedComponents(this->buildInspectedComponents(view, loadedEntities));
         view->setInspectedMaterialProperties(this->buildInspectedMaterialProperties(view));
     }

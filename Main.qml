@@ -18,5 +18,15 @@ ApplicationWindow {
         Theme.setup()
 
         Router.replace("/");
+
+        // `noi_engine_editor <project folder>` opens that project directly.
+        const args = Qt.application.arguments;
+        if (args.length > 1 && CurrentProjectManager.isProjectFolder(args[1])) {
+            if (CurrentProjectManager.openProject(args[1])) {
+                Router.push("/editor");
+            } else {
+                console.warn("Can't open " + args[1] + ": " + CurrentProjectManager.lastOpenError);
+            }
+        }
     }
 }

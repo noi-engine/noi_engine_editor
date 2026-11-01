@@ -25,11 +25,18 @@ Item {
 
     ListModel { id: resourcesModel }
 
+    property string searchText: ""
+    onSearchTextChanged: refreshModel()
+
     function refreshModel() {
         resourcesModel.clear();
+        const query = rootItem.searchText.trim().toLowerCase();
         const items = rootItem.resources || [];
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
+            if (query !== "" && item.label.toLowerCase().indexOf(query) === -1 && item.type.indexOf(query) === -1) {
+                continue;
+            }
             resourcesModel.append({
                 "itemLabel": item.label,
                 "itemType": item.type,
@@ -69,6 +76,14 @@ Item {
                     }
 
                     Item { Layout.fillWidth: true }
+
+                    PanelSearchField {
+                        Layout.fillWidth: false
+                        Layout.preferredWidth: 200
+                        Layout.preferredHeight: 24
+                        placeholderText: qsTr("Search loaded resources...")
+                        onTextChanged: rootItem.searchText = text
+                    }
                 }
             }
 

@@ -309,6 +309,22 @@ namespace noi_engine_editor
         Q_EMIT loadedEntitiesChanged();
     }
 
+    QVariantMap OpenGLView::sceneCamera() const
+    {
+        return m_sceneCamera;
+    }
+
+    void OpenGLView::setSceneCamera(const QVariantMap& camera)
+    {
+        if (m_sceneCamera == camera)
+        {
+            return;
+        }
+
+        m_sceneCamera = camera;
+        Q_EMIT sceneCameraChanged();
+    }
+
     bool OpenGLView::hasInspectedEntity() const
     {
         return this->m_hasInspectedEntity;

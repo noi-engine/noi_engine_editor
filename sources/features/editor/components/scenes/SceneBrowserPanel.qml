@@ -19,11 +19,18 @@ Item {
 
     ListModel { id: scenesModel }
 
+    property string searchText: ""
+    onSearchTextChanged: refreshScenes()
+
     function refreshScenes() {
         scenesModel.clear();
+        const query = rootItem.searchText.trim().toLowerCase();
         let scenePaths = CurrentProjectResourcesManager.getAllScenesRecursively(rawRootFolder);
         for (let i = 0; i < scenePaths.length; i++) {
             let path = scenePaths[i];
+            if (query !== "" && path.replace(rawRootFolder + "/", "").toLowerCase().indexOf(query) === -1) {
+                continue;
+            }
             scenesModel.append({
                 "filePath": path,
                 "fileName": path.substring(path.lastIndexOf("/") + 1),
@@ -187,6 +194,14 @@ Item {
                     }
 
                     Item { Layout.fillWidth: true }
+
+                    PanelSearchField {
+                        Layout.fillWidth: false
+                        Layout.preferredWidth: 200
+                        Layout.preferredHeight: 24
+                        placeholderText: qsTr("Search scenes...")
+                        onTextChanged: rootItem.searchText = text
+                    }
 
                     MuiIcon {
                         name: "add"

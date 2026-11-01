@@ -131,6 +131,9 @@ namespace noi_engine_editor
         // to false by confirmStopped() from the render thread (see OpenGLRenderer::synchronize()),
         // never synchronously from setPlaying(false) - see setPlaying() for why.
         Q_PROPERTY(bool playing READ isPlaying NOTIFY playingChanged)
+        // The scene's camera as authored: {valid, id, generation, orthographicSize, aspectRatio}.
+        // Used to draw resize handles on its red border.
+        Q_PROPERTY(QVariantMap sceneCamera READ sceneCamera NOTIFY sceneCameraChanged)
 
     public:
         explicit OpenGLView(QQuickItem* parent = nullptr);
@@ -179,6 +182,9 @@ namespace noi_engine_editor
 
         QVariantList loadedEntities() const;
         void setLoadedEntities(const QVariantList& entities); // same rendezvous-point rule as setLoadedResources
+
+        QVariantMap sceneCamera() const;
+        void setSceneCamera(const QVariantMap& camera); // renderer-only, same rendezvous-point rule
 
         // These 3 are plain primitives on purpose - passing the selection as a single JS
         // object across the QML/C++ boundary risks silently landing as an unconvertible
@@ -327,6 +333,7 @@ namespace noi_engine_editor
         void gridVisibleChanged();
         void loadedResourcesChanged();
         void loadedEntitiesChanged();
+        void sceneCameraChanged();
         void inspectedEntityChanged();
         void inspectedComponentsChanged();
         void inspectedMaterialChanged();
@@ -353,6 +360,7 @@ namespace noi_engine_editor
         bool m_gridVisible = false;
         QVariantList m_loadedResources;
         QVariantList m_loadedEntities;
+        QVariantMap m_sceneCamera;
         bool m_hasInspectedEntity = false;
         quint32 m_inspectedEntityId = 0;
         quint32 m_inspectedEntityGeneration = 0;

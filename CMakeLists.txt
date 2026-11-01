@@ -57,6 +57,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/common/components/CustomPage.qml
         sources/common/components/IconBadge.qml
         sources/common/components/SearchField.qml
+        sources/common/components/PanelSearchField.qml
         sources/common/components/icons/IconLoaderCreator.js
         sources/common/components/icons/MaterialSymbolsRegular/codepoints.js
         sources/common/components/icons/MuiIcon.qml
@@ -154,9 +155,15 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/CompilerOutputPanel.qml
         sources/features/editor/components/EditorLogsPanel.qml
         sources/features/editor/components/EditorToolbar.qml
-        sources/features/editor/components/HierarchyItem.qml
+        sources/features/editor/components/hierarchy/HierarchyItem.qml
+        sources/features/editor/components/hierarchy/FolderItem.qml
+        sources/features/editor/components/hierarchy/MoveToFolderDialog.qml
         sources/features/editor/components/ImportTextureDialog.qml
         sources/features/editor/components/InspectorPanel.qml
+        sources/features/editor/components/inspector/ComponentSection.qml
+        sources/features/editor/components/inspector/PropertyRow.qml
+        sources/features/editor/components/inspector/AddPropertyPopup.qml
+        sources/features/editor/components/search/GlobalSearchPopup.qml
         sources/features/editor/components/LogPanel.qml
         sources/features/editor/components/LoadedResourceItem.qml
         sources/features/editor/components/LoadedResourcesPanel.qml
@@ -177,6 +184,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/editor/components/viewport/ToolButtonCustom.qml
         sources/features/editor/components/viewport/ViewportPanel.qml
         sources/features/editor/components/viewport/ViewportToolbar.qml
+        sources/features/editor/components/viewport/CameraFrameHandles.qml
         SOURCES
         sources/features/editor/CurrentProjectResourcesManager.hpp
         sources/features/editor/CurrentProjectResourcesManager.cpp

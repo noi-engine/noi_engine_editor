@@ -35,6 +35,11 @@ Rectangle {
     ]
 
     readonly property var componentLabels: ({
+        "material": qsTr("Material"),
+        "name_component": qsTr("Name"),
+        "mesh_renderer_properties": qsTr("Material Overrides"),
+        "script_component": qsTr("Scripts"),
+        "world_matrix": qsTr("World Matrix"),
         "transform": qsTr("Transform"),
         "render_layer": qsTr("Render Layer"),
         "mesh_renderer": qsTr("Mesh Renderer"),
@@ -163,6 +168,40 @@ Rectangle {
         return componentType === "mesh_renderer_properties" || componentType === "material";
     }
 
+    function sectionTitle(componentType) {
+        return root.componentLabels[componentType] || componentType;
+    }
+
+    // Which sections are open, by component type. Kept here (not in the delegates, which are
+    // rebuilt whenever the inspected data changes) so they stay open while editing and
+    // across entities. Unset = default: only the material section starts open.
+    property var expandedSections: ({})
+
+    function isExpanded(componentType) {
+        const value = root.expandedSections[componentType];
+        return value === undefined ? componentType === "material" : value;
+    }
+
+    function toggleExpanded(componentType) {
+        const next = Object.assign({}, root.expandedSections);
+        next[componentType] = !root.isExpanded(componentType);
+        root.expandedSections = next;
+    }
+
+    function setAllExpanded(expanded) {
+        const next = {};
+        for (const section of root.effectiveComponentsData) {
+            next[section.type] = expanded;
+        }
+        root.expandedSections = Object.assign({}, root.expandedSections, next);
+    }
+
+    function openAddProperty(componentType, existingNames) {
+        addPropertyPopup.componentType = componentType;
+        addPropertyPopup.existingNames = existingNames;
+        addPropertyPopup.open();
+    }
+
     color: Theme.bgSecondary
 
     Rectangle {
@@ -183,733 +222,195 @@ Rectangle {
         description: qsTr("Select an entity in the hierarchy, or a material in Loaded Resources, to inspect its properties.")
     }
 
-    Flickable {
+    ColumnLayout {
         visible: root.hasSelection
-
         anchors.fill: parent
-        anchors.margins: 14
+        anchors.margins: 12
+        spacing: 10
 
-        contentWidth: width
-        contentHeight: column.implicitHeight
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
 
-        clip: true
-        boundsBehavior: Flickable.StopAtBounds
+            IconBadge {
+                icon: root.headerIcon
+            }
 
-        ColumnLayout {
-            id: column
-
-            width: parent.width
-            spacing: 14
-
-            RowLayout {
+            ColumnLayout {
                 Layout.fillWidth: true
-                Layout.bottomMargin: 4
-                spacing: 10
+                spacing: 2
 
-                IconBadge {
-                    icon: root.headerIcon
+                Text {
+                    Layout.fillWidth: true
+                    text: root.headerTitle
+                    font.pixelSize: 14
+                    font.weight: Font.DemiBold
+                    color: Theme.white
+                    elide: Text.ElideRight
                 }
 
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
-
-                    Text {
-                        Layout.fillWidth: true
-                        text: root.headerTitle
-                        font.pixelSize: 14
-                        font.weight: Font.DemiBold
-                        color: Theme.white
-                        elide: Text.ElideRight
-                    }
-
-                    Text {
-                        text: root.headerSubtitle
-                        font.pixelSize: 11
-                        color: Theme.grey
-                    }
+                Text {
+                    text: root.headerSubtitle
+                    font.pixelSize: 11
+                    color: Theme.grey
                 }
             }
 
-            Repeater {
-                model: root.effectiveComponentsData
+            MuiIcon {
+                name: "unfold_more"
+                font.pixelSize: 16
+                color: Theme.grey
+                ToolTip.visible: expandAllArea.containsMouse
+                ToolTip.text: qsTr("Expand all")
 
-                delegate: Rectangle {
-                    id: componentSection
+                MouseArea {
+                    id: expandAllArea
+                    anchors.fill: parent
+                    anchors.margins: -4
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.setAllExpanded(true)
+                }
+            }
 
-                    required property var modelData
-                    readonly property string componentType: componentSection.modelData.type
-                    readonly property var componentProperties: componentSection.modelData.properties
-                    readonly property bool forcedReadOnly: root.isEditorManaged(componentSection.componentType)
+            MuiIcon {
+                name: "unfold_less"
+                font.pixelSize: 16
+                color: Theme.grey
+                ToolTip.visible: collapseAllArea.containsMouse
+                ToolTip.text: qsTr("Collapse all")
 
+                MouseArea {
+                    id: collapseAllArea
+                    anchors.fill: parent
+                    anchors.margins: -4
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.setAllExpanded(false)
+                }
+            }
+        }
+
+        PanelSearchField {
+            id: searchField
+            placeholderText: qsTr("Search components or properties...")
+        }
+
+        Flickable {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
+            contentWidth: width
+            contentHeight: column.implicitHeight
+
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+            ColumnLayout {
+                id: column
+
+                readonly property int visibleSections: {
+                    let count = 0;
+                    for (let i = 0; i < column.children.length; i++) {
+                        if (column.children[i].componentType !== undefined && column.children[i].visible) count++;
+                    }
+                    return count;
+                }
+
+                width: parent.width
+                spacing: 8
+
+                Repeater {
+                    model: root.effectiveComponentsData
+
+                    delegate: ComponentSection {
+                        inspector: root
+                        query: searchField.text.trim().toLowerCase()
+                    }
+                }
+
+                Text {
+                    visible: searchField.text.trim() !== "" && column.visibleSections === 0
                     Layout.fillWidth: true
-                    implicitHeight: cardColumn.implicitHeight + 24
-                    radius: 8
-                    color: Theme.bgTertiary
-                    border.color: Theme.borderColor
-                    border.width: 1
+                    text: qsTr("Nothing matches \"%1\"").arg(searchField.text.trim())
+                    font.pixelSize: 11
+                    font.italic: true
+                    color: Theme.grey
+                    wrapMode: Text.Wrap
+                }
 
-                    ColumnLayout {
-                        id: cardColumn
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        spacing: 12
+                AppButton {
+                    Layout.fillWidth: true
+                    Layout.topMargin: 6
+                    visible: root.entity !== null && root.addComponentMenuEntries().length > 0
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
+                    icon: "add_circle"
+                    text: qsTr("Add Component")
 
-                            Text {
-                                Layout.fillWidth: true
-                                text: componentSection.componentType.toUpperCase()
-                                font.pixelSize: 11
-                                font.weight: Font.DemiBold
-                                font.letterSpacing: 0.5
-                                color: Theme.primaryColor
-                                elide: Text.ElideRight
-                            }
+                    onClicked: addComponentMenu.open()
 
-                            Text {
-                                visible: componentSection.forcedReadOnly
-                                text: qsTr("editor-managed · not saved")
-                                font.pixelSize: 9
-                                font.italic: true
-                                color: Theme.grey
-                            }
+                    Menu {
+                        id: addComponentMenu
+                        y: parent.height
 
-                            MuiIcon {
-                                name: "delete"
-                                font.pixelSize: 14
-                                color: Theme.grey
-                                visible: root.entity !== null && componentSection.componentType !== "name_component"
-                                    && !componentSection.forcedReadOnly
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    anchors.margins: -4
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.componentRemoved(componentSection.componentType)
-                                }
-                            }
+                        background: Rectangle {
+                            implicitWidth: 200
+                            color: Theme.bgTertiary
+                            border.color: Theme.borderColor
+                            border.width: 1
+                            radius: 6
                         }
 
                         Repeater {
-                            model: componentSection.componentProperties
+                            model: root.addComponentMenuEntries()
 
-                            delegate: Item {
-                                id: propRow
+                            delegate: MenuItem {
+                                id: addComponentMenuItem
+                                required property string modelData
 
-                                required property var modelData
-                                readonly property bool effectiveReadOnly: propRow.modelData.readOnly || componentSection.forcedReadOnly
-
-                                Layout.fillWidth: true
-                                implicitHeight: propColumn.implicitHeight
-
-                                ColumnLayout {
-                                    id: propColumn
-                                    width: parent.width
-                                    spacing: 6
-
-                                    RowLayout {
-                                        visible: propRow.modelData.type !== "bool" && propRow.modelData.type !== "vec4"
-                                        Layout.fillWidth: true
-                                        spacing: 6
-
-                                        Text {
-                                            Layout.fillWidth: true
-                                            text: root.displayName(propRow.modelData.name)
-                                            font.pixelSize: 10
-                                            color: Theme.darkGrey
-                                        }
-
-                                        MuiIcon {
-                                            name: "delete"
-                                            font.pixelSize: 12
-                                            color: Theme.grey
-                                            visible: root.supportsAddProperty(componentSection.componentType)
-                                                && root.isDynamicProperty(propRow.modelData.name)
-                                                && !propRow.effectiveReadOnly
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                anchors.margins: -4
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: root.propertyRemoved(componentSection.componentType, propRow.modelData.name)
-                                            }
-                                        }
-                                    }
-
-                                    RowLayout {
-                                        visible: propRow.modelData.type === "vec3"
-                                        Layout.fillWidth: true
-                                        spacing: 6
-
-                                        PropertyField {
-                                            Layout.fillWidth: true
-                                            label: "X"
-                                            accentColor: "#E05B5B"
-                                            readOnly: propRow.effectiveReadOnly
-                                            isNumeric: true
-                                            value: Number(propRow.modelData.value[0]).toFixed(2)
-                                            onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec3",
-                                                [parseFloat(v), propRow.modelData.value[1], propRow.modelData.value[2]])
-                                        }
-                                        PropertyField {
-                                            Layout.fillWidth: true
-                                            label: "Y"
-                                            accentColor: "#35C98A"
-                                            readOnly: propRow.effectiveReadOnly
-                                            isNumeric: true
-                                            value: Number(propRow.modelData.value[1]).toFixed(2)
-                                            onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec3",
-                                                [propRow.modelData.value[0], parseFloat(v), propRow.modelData.value[2]])
-                                        }
-                                        PropertyField {
-                                            Layout.fillWidth: true
-                                            label: "Z"
-                                            accentColor: "#4B8CE0"
-                                            readOnly: propRow.effectiveReadOnly
-                                            isNumeric: true
-                                            value: Number(propRow.modelData.value[2]).toFixed(2)
-                                            onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec3",
-                                                [propRow.modelData.value[0], propRow.modelData.value[1], parseFloat(v)])
-                                        }
-                                    }
-
-                                    // Color (vec4): swatch + stripped name on their own row, RGBA fields
-                                    // on a second full-width row - packing swatch+4 fields into one row
-                                    // left each TextField too narrow to show its value.
-                                    ColumnLayout {
-                                        visible: propRow.modelData.type === "vec4"
-                                        Layout.fillWidth: true
-                                        spacing: 6
-
-                                        RowLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 8
-
-                                            Rectangle {
-                                                Layout.preferredWidth: 32
-                                                Layout.preferredHeight: 32
-                                                radius: 8
-                                                border.color: Theme.borderColor
-                                                border.width: 1
-                                                color: propRow.modelData.type === "vec4"
-                                                    ? Qt.rgba(propRow.modelData.value[0], propRow.modelData.value[1],
-                                                              propRow.modelData.value[2], propRow.modelData.value[3])
-                                                    : "transparent"
-                                            }
-
-                                            Text {
-                                                Layout.fillWidth: true
-                                                text: root.displayName(propRow.modelData.name)
-                                                font.pixelSize: 11
-                                                color: Theme.darkGrey
-                                                elide: Text.ElideRight
-                                            }
-
-                                            MuiIcon {
-                                                name: "delete"
-                                                font.pixelSize: 12
-                                                color: Theme.grey
-                                                visible: root.supportsAddProperty(componentSection.componentType)
-                                                    && root.isDynamicProperty(propRow.modelData.name)
-                                                    && !propRow.effectiveReadOnly
-
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    anchors.margins: -4
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: root.propertyRemoved(componentSection.componentType, propRow.modelData.name)
-                                                }
-                                            }
-                                        }
-
-                                        RowLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 6
-
-                                            PropertyField {
-                                                Layout.fillWidth: true
-                                                label: "R"
-                                                accentColor: "#E05B5B"
-                                                readOnly: propRow.effectiveReadOnly
-                                                isNumeric: true
-                                                minValue: 0
-                                                maxValue: 1
-                                                value: Number(propRow.modelData.value[0]).toFixed(2)
-                                                onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
-                                                    [parseFloat(v), propRow.modelData.value[1], propRow.modelData.value[2], propRow.modelData.value[3]])
-                                            }
-                                            PropertyField {
-                                                Layout.fillWidth: true
-                                                label: "G"
-                                                accentColor: "#35C98A"
-                                                readOnly: propRow.effectiveReadOnly
-                                                isNumeric: true
-                                                minValue: 0
-                                                maxValue: 1
-                                                value: Number(propRow.modelData.value[1]).toFixed(2)
-                                                onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
-                                                    [propRow.modelData.value[0], parseFloat(v), propRow.modelData.value[2], propRow.modelData.value[3]])
-                                            }
-                                            PropertyField {
-                                                Layout.fillWidth: true
-                                                label: "B"
-                                                accentColor: "#4B8CE0"
-                                                readOnly: propRow.effectiveReadOnly
-                                                isNumeric: true
-                                                minValue: 0
-                                                maxValue: 1
-                                                value: Number(propRow.modelData.value[2]).toFixed(2)
-                                                onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
-                                                    [propRow.modelData.value[0], propRow.modelData.value[1], parseFloat(v), propRow.modelData.value[3]])
-                                            }
-                                            PropertyField {
-                                                Layout.fillWidth: true
-                                                label: "A"
-                                                accentColor: Theme.lightGrey
-                                                readOnly: propRow.effectiveReadOnly
-                                                isNumeric: true
-                                                minValue: 0
-                                                maxValue: 1
-                                                value: Number(propRow.modelData.value[3]).toFixed(2)
-                                                onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name, "vec4",
-                                                    [propRow.modelData.value[0], propRow.modelData.value[1], propRow.modelData.value[2], parseFloat(v)])
-                                            }
-                                        }
-                                    }
-
-                                    ComboBox {
-                                        id: resourceCombo
-                                        visible: propRow.modelData.type === "resourceRef"
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 30
-                                        enabled: !propRow.effectiveReadOnly
-
-                                        model: root.resourceLabelsFor(propRow.modelData.resourceType)
-                                        displayText: currentText !== "" ? currentText : qsTr("(none)")
-
-                                        Component.onCompleted: currentIndex = find(propRow.modelData.value)
-
-                                        onActivated: (index) => root.propertyEdited(componentSection.componentType,
-                                            propRow.modelData.name, "resourceRef", textAt(index))
-
-                                        background: Rectangle {
-                                            radius: 6
-                                            color: Theme.bgPrimary
-                                            border.color: resourceCombo.activeFocus ? Theme.primaryColor : Theme.borderColor
-                                            border.width: 1
-                                        }
-
-                                        contentItem: Text {
-                                            leftPadding: 10
-                                            rightPadding: 24
-                                            text: resourceCombo.displayText
-                                            font.pixelSize: 12
-                                            font.italic: resourceCombo.currentText === ""
-                                            color: resourceCombo.enabled ? (resourceCombo.currentText !== "" ? Theme.white : Theme.grey) : Theme.lightGrey
-                                            verticalAlignment: Text.AlignVCenter
-                                            elide: Text.ElideRight
-                                        }
-
-                                        indicator: MuiIcon {
-                                            x: resourceCombo.width - width - 8
-                                            y: (resourceCombo.height - height) / 2
-                                            name: "expand_more"
-                                            font.pixelSize: 16
-                                            color: Theme.grey
-                                        }
-
-                                        popup.background: Rectangle {
-                                            color: Theme.bgTertiary
-                                            border.color: Theme.borderColor
-                                            border.width: 1
-                                            radius: 6
-                                        }
-
-                                        delegate: ItemDelegate {
-                                            width: resourceCombo.width
-                                            highlighted: resourceCombo.highlightedIndex === index
-
-                                            contentItem: Text {
-                                                text: modelData !== "" ? modelData : qsTr("(none)")
-                                                font.pixelSize: 12
-                                                font.italic: modelData === ""
-                                                color: Theme.white
-                                                elide: Text.ElideRight
-                                                verticalAlignment: Text.AlignVCenter
-                                            }
-
-                                            background: Rectangle {
-                                                color: highlighted ? Theme.primaryLightC : "transparent"
-                                            }
-                                        }
-
-                                        MouseArea {
-                                            // ComboBox changes its value on mouse wheel by default (Qt Quick
-                                            // Controls' QQuickComboBox::wheelEvent), which fires just from
-                                            // scrolling the Inspector past it - not what a "click to pick a
-                                            // value" control should do. acceptedButtons: Qt.NoButton makes
-                                            // this MouseArea ignore presses (they fall through to the
-                                            // ComboBox underneath, so clicking still opens it normally) while
-                                            // still intercepting - and swallowing - wheel events.
-                                            anchors.fill: parent
-                                            acceptedButtons: Qt.NoButton
-                                            onWheel: (wheel) => wheel.accepted = true
-                                        }
-                                    }
-
-                                    PropertyField {
-                                        visible: propRow.modelData.type === "float" || propRow.modelData.type === "string"
-                                        Layout.fillWidth: true
-                                        label: root.displayName(propRow.modelData.name).substring(0, 1).toUpperCase()
-                                        accentColor: Theme.lightGrey
-                                        readOnly: propRow.effectiveReadOnly
-                                        isNumeric: propRow.modelData.type === "float"
-                                        integerValue: propRow.modelData.type === "float"
-                                            && !!root.constraintFor(componentSection.componentType, propRow.modelData.name).integer
-                                        minValue: propRow.modelData.type === "float"
-                                            ? (root.constraintFor(componentSection.componentType, propRow.modelData.name).min ?? NaN)
-                                            : NaN
-                                        maxValue: propRow.modelData.type === "float"
-                                            ? (root.constraintFor(componentSection.componentType, propRow.modelData.name).max ?? NaN)
-                                            : NaN
-                                        value: propRow.modelData.type === "float"
-                                            ? (integerValue ? String(Math.round(propRow.modelData.value)) : Number(propRow.modelData.value).toFixed(3))
-                                            : String(propRow.modelData.value)
-                                        onEdited: (v) => root.propertyEdited(componentSection.componentType, propRow.modelData.name,
-                                            propRow.modelData.type, propRow.modelData.type === "float" ? parseFloat(v) : v)
-                                    }
-
-                                    RowLayout {
-                                        visible: propRow.modelData.type === "bool"
-                                        Layout.fillWidth: true
-                                        spacing: 8
-
-                                        CheckBox {
-                                            checked: !!propRow.modelData.value
-                                            enabled: !propRow.effectiveReadOnly
-                                            onToggled: root.propertyEdited(componentSection.componentType, propRow.modelData.name, "bool", checked)
-                                        }
-                                        Text {
-                                            text: root.displayName(propRow.modelData.name)
-                                            font.pixelSize: 11
-                                            color: Theme.darkGrey
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        Text {
-                            visible: componentSection.componentProperties.length === 0
-                            text: qsTr("No editable fields")
-                            font.pixelSize: 10
-                            font.italic: true
-                            color: Theme.grey
-                        }
-
-                        Rectangle {
-                            visible: root.supportsAddProperty(componentSection.componentType) && !componentSection.forcedReadOnly
-                            Layout.fillWidth: true
-                            Layout.topMargin: 4
-                            Layout.preferredHeight: addPropertyRow.implicitHeight + 12
-                            radius: 6
-                            color: "transparent"
-                            border.color: Theme.borderColor
-                            border.width: 1
-
-                            RowLayout {
-                                id: addPropertyRow
-                                anchors.fill: parent
-                                anchors.margins: 6
-                                spacing: 6
-
-                                MuiIcon {
-                                    name: "add"
-                                    font.pixelSize: 14
-                                    color: Theme.grey
-                                }
-
-                                Text {
-                                    Layout.fillWidth: true
-                                    text: qsTr("Add Property")
-                                    font.pixelSize: 11
-                                    color: Theme.grey
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    addPropertyPopup.componentType = componentSection.componentType
-                                    addPropertyPopup.existingNames = componentSection.componentProperties.map(p => p.name)
-                                    addPropertyPopup.open()
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            AppButton {
-                Layout.fillWidth: true
-                Layout.topMargin: 6
-                visible: root.entity !== null && root.addComponentMenuEntries().length > 0
-
-                icon: "add_circle"
-                text: qsTr("Add Component")
-
-                onClicked: addComponentMenu.open()
-
-                Menu {
-                    id: addComponentMenu
-                    y: parent.height
-
-                    background: Rectangle {
-                        implicitWidth: 200
-                        color: Theme.bgTertiary
-                        border.color: Theme.borderColor
-                        border.width: 1
-                        radius: 6
-                    }
-
-                    Repeater {
-                        model: root.addComponentMenuEntries()
-
-                        delegate: MenuItem {
-                            id: addComponentMenuItem
-                            required property string modelData
-
-                            text: root.addComponentMenuLabel(addComponentMenuItem.modelData)
-                            width: addComponentMenu.width
-
-                            contentItem: Text {
                                 text: root.addComponentMenuLabel(addComponentMenuItem.modelData)
-                                font.pixelSize: 12
-                                color: Theme.white
-                                leftPadding: 8
-                                verticalAlignment: Text.AlignVCenter
-                            }
+                                width: addComponentMenu.width
 
-                            background: Rectangle {
-                                color: addComponentMenuItem.highlighted ? Theme.primaryLightC : "transparent"
-                            }
+                                contentItem: Text {
+                                    text: root.addComponentMenuLabel(addComponentMenuItem.modelData)
+                                    font.pixelSize: 12
+                                    color: Theme.white
+                                    leftPadding: 8
+                                    verticalAlignment: Text.AlignVCenter
+                                }
 
-                            onTriggered: {
-                                if (addComponentMenuItem.modelData === "sprite") {
-                                    addSpriteDialog.open();
-                                } else if (addComponentMenuItem.modelData === "script") {
-                                    addScriptDialog.open();
-                                } else if (addComponentMenuItem.modelData === "mesh_renderer") {
-                                    // mesh_renderer_properties is meaningless on its own - always
-                                    // bundled with mesh_renderer instead of offered separately.
-                                    root.componentAddRequested("mesh_renderer");
-                                    root.componentAddRequested("mesh_renderer_properties");
-                                } else {
-                                    root.componentAddRequested(addComponentMenuItem.modelData);
+                                background: Rectangle {
+                                    color: addComponentMenuItem.highlighted ? Theme.primaryLightC : "transparent"
+                                }
+
+                                onTriggered: {
+                                    if (addComponentMenuItem.modelData === "sprite") {
+                                        addSpriteDialog.open();
+                                    } else if (addComponentMenuItem.modelData === "script") {
+                                        addScriptDialog.open();
+                                    } else if (addComponentMenuItem.modelData === "mesh_renderer") {
+                                        // mesh_renderer_properties is meaningless on its own - always
+                                        // bundled with mesh_renderer instead of offered separately.
+                                        root.componentAddRequested("mesh_renderer");
+                                        root.componentAddRequested("mesh_renderer_properties");
+                                    } else {
+                                        root.componentAddRequested(addComponentMenuItem.modelData);
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            Item { Layout.preferredHeight: 10 }
+                Item { Layout.preferredHeight: 10 }
+            }
         }
     }
 
-    Popup {
+    AddPropertyPopup {
         id: addPropertyPopup
-
-        property string componentType: ""
-        property var existingNames: []
-
-        // Textures have no default/builtin fallback the way meshes and materials do (there is
-        // no "always exists" texture) - a new texture *property* is only useful once it points
-        // at a real, already-loaded texture resource, so unlike Parameter/Color it can't ship
-        // with a safe placeholder default. Populated fresh each time the popup opens.
-        readonly property var availableTextures: root.resourceLabelsFor("texture").filter(l => l !== "")
-        readonly property bool isTextureKind: addPropertyPopup.kinds[kindCombo.currentIndex]
-            ? addPropertyPopup.kinds[kindCombo.currentIndex].prefix === "texture"
-            : false
-
-        // A freshly-imported texture only shows up in availableTextures once the scene reload
-        // triggered by ImportTextureDialog actually completes (a few render frames later, not
-        // synchronously with its imported() signal) - remember which label to select and apply
-        // it once the list catches up.
-        property string pendingTextureSelect: ""
-        onAvailableTexturesChanged: {
-            if (addPropertyPopup.pendingTextureSelect === "") return;
-            const idx = addPropertyPopup.availableTextures.indexOf(addPropertyPopup.pendingTextureSelect);
-            if (idx !== -1) {
-                textureCombo.currentIndex = idx;
-                addPropertyPopup.pendingTextureSelect = "";
-            }
-        }
-
-        readonly property var kinds: [
-            { label: qsTr("Parameter"), prefix: "param", propertyType: "float", defaultValue: 0.0 },
-            { label: qsTr("Color"), prefix: "color", propertyType: "vec4", defaultValue: [1, 1, 1, 1] },
-            { label: qsTr("Texture"), prefix: "texture", propertyType: "resourceRef" }
-        ]
-
-        function fullName(kindIndex, name) {
-            return addPropertyPopup.kinds[kindIndex].prefix + ":" + name;
-        }
-
-        function nameTaken(kindIndex, name) {
-            const candidate = addPropertyPopup.fullName(kindIndex, name);
-            return addPropertyPopup.existingNames.indexOf(candidate) !== -1;
-        }
-
-        modal: true
-        anchors.centerIn: Overlay.overlay
-        width: 300
-
-        onOpened: {
-            kindCombo.currentIndex = 0
-            nameInput.text = ""
-            nameInput.forceActiveFocus()
-            addPropertyPopup.pendingTextureSelect = ""
-            popupImportTexture.errorText = ""
-        }
-
-        background: Rectangle {
-            color: Theme.bgTertiary
-            border.color: Theme.borderColor
-            border.width: 1
-            radius: 8
-        }
-
-        ColumnLayout {
-            anchors.fill: parent
-            spacing: 10
-
-            Text {
-                text: qsTr("Add Property")
-                font.pixelSize: 12
-                font.weight: Font.DemiBold
-                color: Theme.white
-            }
-
-            ComboBox {
-                id: kindCombo
-                Layout.fillWidth: true
-                model: addPropertyPopup.kinds.map(k => k.label)
-            }
-
-            TextField {
-                id: nameInput
-                Layout.fillWidth: true
-                placeholderText: qsTr("name")
-                selectByMouse: true
-                color: Theme.white
-            }
-
-            // A texture property is only meaningful pointing at a real, already-loaded texture -
-            // there's no safe placeholder to fall back to (unlike Parameter's 0.0 or Color's
-            // white), so require picking one instead of silently defaulting to an empty/unknown
-            // reference (that used to crash the renderer on an invalid handle - see
-            // resource_manager::get() and material::apply() in noi_engine).
-            ColumnLayout {
-                Layout.fillWidth: true
-                visible: addPropertyPopup.isTextureKind
-                spacing: 6
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-
-                    ComboBox {
-                        id: textureCombo
-                        Layout.fillWidth: true
-                        visible: addPropertyPopup.availableTextures.length > 0
-                        model: addPropertyPopup.availableTextures
-                    }
-
-                    AppButton {
-                        text: qsTr("Import...")
-                        enabled: !popupImportTexture.busy
-                        onClicked: popupImportTexture.pick()
-                    }
-                }
-
-                Text {
-                    visible: addPropertyPopup.availableTextures.length === 0 && popupImportTexture.errorText === ""
-                    text: qsTr("No textures loaded yet - import an image to make one available.")
-                    color: Theme.grey
-                    font.pixelSize: 10
-                    font.italic: true
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-
-                Text {
-                    visible: popupImportTexture.errorText !== ""
-                    text: popupImportTexture.errorText
-                    color: Theme.error
-                    font.pixelSize: 10
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-            }
-
-            ImportTextureDialog {
-                id: popupImportTexture
-                resourcesPath: root.resourcesPath
-                scenePath: root.currentScenePath
-                onReloadRequested: root.sceneReloadRequested()
-                onImported: (label) => {
-                    const idx = addPropertyPopup.availableTextures.indexOf(label);
-                    if (idx !== -1) {
-                        textureCombo.currentIndex = idx;
-                    } else {
-                        addPropertyPopup.pendingTextureSelect = label;
-                    }
-                }
-            }
-
-            Text {
-                readonly property bool empty: nameInput.text.trim() === ""
-                readonly property bool taken: !empty && addPropertyPopup.nameTaken(kindCombo.currentIndex, nameInput.text.trim())
-                visible: taken
-                text: qsTr("A property with that name already exists.")
-                color: Theme.error
-                font.pixelSize: 10
-                wrapMode: Text.WordWrap
-                Layout.fillWidth: true
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-
-                Item { Layout.fillWidth: true }
-
-                AppButton {
-                    text: qsTr("Cancel")
-                    onClicked: addPropertyPopup.close()
-                }
-
-                AppButton {
-                    text: qsTr("Add")
-                    enabled: nameInput.text.trim() !== ""
-                        && !addPropertyPopup.nameTaken(kindCombo.currentIndex, nameInput.text.trim())
-                        && (!addPropertyPopup.isTextureKind || addPropertyPopup.availableTextures.length > 0)
-                    onClicked: {
-                        const kind = addPropertyPopup.kinds[kindCombo.currentIndex]
-                        const name = nameInput.text.trim()
-                        const value = addPropertyPopup.isTextureKind ? textureCombo.currentText : kind.defaultValue
-                        root.propertyEdited(addPropertyPopup.componentType, addPropertyPopup.fullName(kindCombo.currentIndex, name),
-                            kind.propertyType, value)
-                        addPropertyPopup.close()
-                    }
-                }
-            }
-        }
+        inspector: root
     }
 
     AddSpriteDialog {

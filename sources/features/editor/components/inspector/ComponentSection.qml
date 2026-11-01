@@ -1,0 +1,161 @@
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+
+import noi_engine_editor
+
+// One component (or the material) in the Inspector. Collapsed by default: click the header to
+// open it, several can be open at once. While searching, only matching sections/properties
+// show, already opened.
+Rectangle {
+    id: section
+
+    required property var modelData
+    property var inspector
+    property string query: "" // lower-case search text
+
+    readonly property string componentType: section.modelData.type
+    readonly property var componentProperties: (section.modelData.properties || [])
+        .filter(p => p.name !== "scene_camera")
+    readonly property bool forcedReadOnly: inspector.isEditorManaged(section.componentType)
+    readonly property string title: inspector.sectionTitle(section.componentType)
+
+    readonly property bool titleMatches: section.query === ""
+        || section.title.toLowerCase().indexOf(section.query) !== -1
+        || section.componentType.indexOf(section.query) !== -1
+    readonly property var shownProperties: section.titleMatches
+        ? section.componentProperties
+        : section.componentProperties.filter(p => inspector.displayName(p.name).toLowerCase().indexOf(section.query) !== -1)
+    readonly property bool expanded: section.query !== "" || inspector.isExpanded(section.componentType)
+
+    visible: section.titleMatches || section.shownProperties.length > 0
+    Layout.fillWidth: true
+    implicitHeight: visible ? cardColumn.implicitHeight + 16 : 0
+    radius: 8
+    color: Theme.bgTertiary
+    border.color: Theme.borderColor
+    border.width: 1
+
+    ColumnLayout {
+        id: cardColumn
+        anchors.fill: parent
+        anchors.margins: 8
+        spacing: 10
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 6
+
+            MuiIcon {
+                name: section.expanded ? "expand_more" : "chevron_right"
+                font.pixelSize: 16
+                color: Theme.grey
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: section.title
+                font.pixelSize: 12
+                font.weight: Font.DemiBold
+                color: section.expanded ? Theme.white : Theme.darkGrey
+                elide: Text.ElideRight
+            }
+
+            Text {
+                visible: section.forcedReadOnly
+                text: qsTr("editor-managed")
+                font.pixelSize: 9
+                font.italic: true
+                color: Theme.grey
+            }
+
+            Text {
+                visible: !section.expanded && section.componentProperties.length > 0
+                text: section.componentProperties.length
+                font.pixelSize: 10
+                color: Theme.grey
+            }
+
+            MuiIcon {
+                name: "delete"
+                font.pixelSize: 14
+                color: Theme.grey
+                // name_component (the entity's identity) and world_matrix (engine-managed) can't be removed.
+                visible: inspector.entity !== null && section.componentType !== "name_component"
+                    && section.componentType !== "world_matrix" && !section.forcedReadOnly
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -4
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: inspector.componentRemoved(section.componentType)
+                }
+            }
+        }
+
+        Repeater {
+            model: section.expanded ? section.shownProperties : []
+
+            delegate: PropertyRow {
+                inspector: section.inspector
+                componentType: section.componentType
+                sectionReadOnly: section.forcedReadOnly
+            }
+        }
+
+        Text {
+            visible: section.expanded && section.componentProperties.length === 0
+            text: qsTr("No editable fields")
+            font.pixelSize: 10
+            font.italic: true
+            color: Theme.grey
+        }
+
+        Rectangle {
+            visible: section.expanded && inspector.supportsAddProperty(section.componentType) && !section.forcedReadOnly
+            Layout.fillWidth: true
+            Layout.preferredHeight: addPropertyRow.implicitHeight + 12
+            radius: 6
+            color: "transparent"
+            border.color: Theme.borderColor
+            border.width: 1
+
+            RowLayout {
+                id: addPropertyRow
+                anchors.fill: parent
+                anchors.margins: 6
+                spacing: 6
+
+                MuiIcon {
+                    name: "add"
+                    font.pixelSize: 14
+                    color: Theme.grey
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: qsTr("Add Property")
+                    font.pixelSize: 11
+                    color: Theme.grey
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: inspector.openAddProperty(section.componentType, section.componentProperties.map(p => p.name))
+            }
+        }
+    }
+
+    // Header click target, behind the delete icon's own MouseArea.
+    MouseArea {
+        x: 0
+        y: 0
+        width: parent.width - 32
+        height: 32
+        cursorShape: Qt.PointingHandCursor
+        enabled: section.query === ""
+        onClicked: inspector.toggleExpanded(section.componentType)
+    }
+}
