@@ -43,13 +43,14 @@ namespace noi_engine_editor
 
     OpenGLRenderer::OpenGLRenderer(const int gameWidth, const int gameHeight, const QString& resourcesPath,
                                    const QString& scriptsLibraryPath, const QString& bridgeLibraryPath,
-                                   const QString& engineVersion) :
+                                   const QString& engineLibraryPath, const QString& engineVersion) :
         m_gameWidth(gameWidth),
         m_gameHeight(gameHeight),
         m_resourcesPath(
             resourcesPath),
         m_scriptsLibraryPath(scriptsLibraryPath),
         m_bridgeLibraryPath(bridgeLibraryPath),
+        m_engineLibraryPath(engineLibraryPath),
         m_engineVersion(engineVersion)
     {
         this->ensureBridgeLoaded();
@@ -62,23 +63,15 @@ namespace noi_engine_editor
             return;
         }
 
-        if (!m_bridge.load(this->m_bridgeLibraryPath))
+        if (!m_bridge.load(this->m_bridgeLibraryPath, this->m_engineLibraryPath))
         {
             if (!m_bridgeLoadWarned)
             {
                 m_bridgeLoadWarned = true;
-                qWarning() << "[OpenGLRenderer] No usable noi_engine preview bridge for engine version" <<
-                    this->m_engineVersion <<
-                    "yet - will keep retrying (the project may still be building).";
+                qWarning() << "[OpenGLRenderer] No usable editor bridge for noi_engine" << this->m_engineVersion <<
+                    "yet - will keep retrying (the bridge may still be downloading).";
             }
             return;
-        }
-
-        if (const auto loadedVersion = m_bridge.engineVersion(); loadedVersion != this->m_engineVersion)
-        {
-            qWarning() << "[OpenGLRenderer] Preview bridge at" << this->m_bridgeLibraryPath << "reports engine version"
-                << loadedVersion << "but the project declares" << this->m_engineVersion <<
-                "- the download may be corrupted.";
         }
 
         m_bridge.initGl(

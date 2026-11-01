@@ -20,7 +20,7 @@ namespace noi_engine_editor
     public:
         explicit OpenGLRenderer(int gameWidth, int gameHeight, const QString& resourcesPath,
                                  const QString& scriptsLibraryPath, const QString& bridgeLibraryPath,
-                                 const QString& engineVersion);
+                                 const QString& engineLibraryPath, const QString& engineVersion);
         ~OpenGLRenderer() override;
 
         OpenGLRenderer(const OpenGLRenderer&) = delete;
@@ -58,6 +58,7 @@ namespace noi_engine_editor
         QString m_resourcesPath{};
         QString m_scriptsLibraryPath{};
         QString m_bridgeLibraryPath{};
+        QString m_engineLibraryPath{};
         QString m_engineVersion{};
         int m_scriptsGeneration{-1};
         int m_lastWarnedScriptsGeneration{-2};

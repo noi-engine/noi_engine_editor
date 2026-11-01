@@ -52,9 +52,24 @@ auto noi_engine_editor::ToolUrlResolver::resourceCompilerDownloadUrl(const QStri
     );
 }
 
+auto noi_engine_editor::ToolUrlResolver::editorBridgeDownloadUrl(const QString& version) -> QString
+{
+    return directDownloadUrl(
+        "noi-engine",
+        "noi_engine_editor_bridge",
+        version,
+        currentPlatformEditorBridgeAssetName()
+    );
+}
+
 auto noi_engine_editor::ToolUrlResolver::currentPlatformNoiEngineAssetName() -> QString
 {
     return QString("noi_engine-%1-%2-release.zip").arg(currentPlatformOsName(), currentPlatformArchName());
+}
+
+auto noi_engine_editor::ToolUrlResolver::currentPlatformEditorBridgeAssetName() -> QString
+{
+    return QString("noi_engine_editor_bridge-%1-%2.zip").arg(currentPlatformOsName(), currentPlatformArchName());
 }
 
 auto noi_engine_editor::ToolUrlResolver::resourceCompilerAssetName() -> QString

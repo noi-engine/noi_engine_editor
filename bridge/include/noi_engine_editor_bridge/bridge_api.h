@@ -1,15 +1,19 @@
 #pragma once
 
 /*
- * Stable C ABI boundary between noi_engine_editor and a noi_engine-version-specific
- * preview bridge (.so), built once per noi_engine version by noi_engine's own release
- * pipeline. The editor dlopens the bridge matching a project's declared engine version
- * and resolves these symbols by name (QLibrary::resolve) - never links against them.
- * Kept dependency-free (no Qt, no noi_engine types) so it compiles identically on both
- * sides regardless of which noi_engine version the bridge was built against.
+ * Stable C ABI boundary between noi_engine_editor and the editor bridge (.so), released from
+ * https://github.com/noi-engine/noi_engine_editor_bridge. Each bridge release supports a range
+ * of noi_engine versions (see bridge.json). The editor dlopens it and resolves these symbols by
+ * name (QLibrary::resolve) - never links against them. Kept dependency-free (no Qt, no
+ * noi_engine types) so it compiles identically on both sides.
+ *
+ * The editor keeps a copy of this header. Bump NOI_ENGINE_EDITOR_BRIDGE_API_VERSION on any
+ * breaking change to it; the editor refuses bridges with a different API version.
  */
 
 #include <stdint.h>
+
+#define NOI_ENGINE_EDITOR_BRIDGE_API_VERSION 1
 
 #ifdef __cplusplus
 extern "C" {
@@ -81,8 +85,14 @@ void noi_engine_editor_bridge_set_scene_2d(noi_engine_editor_bridge_game_handle 
 /* Returns non-zero on success. */
 int noi_engine_editor_bridge_load_scripts(noi_engine_editor_bridge_game_handle handle, const char* scripts_library_path_utf8);
 
-/* The noi_engine version (e.g. "0.0.102") this bridge was built against. */
+/* noi_engine version the bridge was built against (the lowest one it supports). */
 const char* noi_engine_editor_bridge_engine_version(void);
+
+/* NOI_ENGINE_EDITOR_BRIDGE_API_VERSION the bridge was built with. */
+int noi_engine_editor_bridge_api_version(void);
+
+/* The bridge's own release version. */
+const char* noi_engine_editor_bridge_version(void);
 
 /*
  * Synchronously invokes callback once per currently-alive resource, across all 5 kinds.

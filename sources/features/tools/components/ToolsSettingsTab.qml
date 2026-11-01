@@ -15,6 +15,7 @@ ColumnLayout {
         function onInstallFinished() {
             noiEngineSection.model = ToolsManager.installedNoiEngineVersions()
             resourceCompilerSection.model = ToolsManager.installedResourceCompilerVersions()
+            editorBridgeSection.model = ToolsManager.installedEditorBridgeVersions()
         }
     }
 
@@ -147,6 +148,26 @@ ColumnLayout {
         onRemoveRequested: version => {
             ToolsManager.removeResourceCompilerVersion(version)
             model = ToolsManager.installedResourceCompilerVersions()
+        }
+    }
+
+    Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 1
+        color: Theme.borderColor
+        opacity: 0.5
+    }
+
+    ToolSection {
+        id: editorBridgeSection
+
+        icon: "cable"
+        label: qsTr("Editor Bridge")
+        model: ToolsManager.installedEditorBridgeVersions()
+
+        onRemoveRequested: version => {
+            ToolsManager.removeEditorBridgeVersion(version)
+            model = ToolsManager.installedEditorBridgeVersions()
         }
     }
 

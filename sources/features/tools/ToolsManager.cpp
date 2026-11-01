@@ -52,6 +52,11 @@ namespace noi_engine_editor
         return m_isInstallingResourceCompiler;
     }
 
+    auto ToolsManager::isInstallingEditorBridge() const -> bool
+    {
+        return m_isInstallingEditorBridge;
+    }
+
     auto ToolsManager::setInstallingNoiEngine(bool installing) -> void
     {
         m_isInstallingNoiEngine = installing;
@@ -64,6 +69,12 @@ namespace noi_engine_editor
         emit isInstallingResourceCompilerChanged();
     }
 
+    auto ToolsManager::setInstallingEditorBridge(bool installing) -> void
+    {
+        m_isInstallingEditorBridge = installing;
+        emit isInstallingEditorBridgeChanged();
+    }
+
     auto ToolsManager::isNoiEngineInstalled(const QString& version) const -> bool
     {
         return QDir(PathResolver::noiEngineContentPath(version)).exists();
@@ -72,6 +83,11 @@ namespace noi_engine_editor
     auto ToolsManager::isResourceCompilerInstalled(const QString& version) const -> bool
     {
         return QDir(PathResolver::resourceCompilerContentPath(version)).exists();
+    }
+
+    auto ToolsManager::isEditorBridgeInstalled(const QString& version) const -> bool
+    {
+        return QDir(PathResolver::editorBridgeContentPath(version)).exists();
     }
 
     auto ToolsManager::installedNoiEngineVersions() const -> QVariantList
@@ -88,6 +104,17 @@ namespace noi_engine_editor
     {
         QVariantList result;
         for (const auto& version : QDir(PathResolver::resourceCompilerRootPath()).entryList(
+                 QDir::Dirs | QDir::NoDotAndDotDot))
+        {
+            result.append(version);
+        }
+        return result;
+    }
+
+    auto ToolsManager::installedEditorBridgeVersions() const -> QVariantList
+    {
+        QVariantList result;
+        for (const auto& version : QDir(PathResolver::editorBridgeRootPath()).entryList(
                  QDir::Dirs | QDir::NoDotAndDotDot))
         {
             result.append(version);
@@ -130,6 +157,23 @@ namespace noi_engine_editor
         );
     }
 
+    auto ToolsManager::installEditorBridge(const QString& version) -> void
+    {
+        if (m_isInstallingEditorBridge) return;
+        setInstallingEditorBridge(true);
+
+        const auto installer = std::make_shared<ToolInstaller>(m_networkManager);
+        installer->install(
+            ToolUrlResolver::editorBridgeDownloadUrl(version),
+            PathResolver::editorBridgePath(version),
+            [this, version](const bool success)
+            {
+                setInstallingEditorBridge(false);
+                emit installFinished("editor_bridge", version, success);
+            }
+        );
+    }
+
     auto ToolsManager::removeNoiEngineVersion(const QString& version) -> void
     {
         QDir(PathResolver::noiEnginePath(version)).removeRecursively();
@@ -138,5 +182,10 @@ namespace noi_engine_editor
     auto ToolsManager::removeResourceCompilerVersion(const QString& version) -> void
     {
         QDir(PathResolver::resourceCompilerPath(version)).removeRecursively();
+    }
+
+    auto ToolsManager::removeEditorBridgeVersion(const QString& version) -> void
+    {
+        QDir(PathResolver::editorBridgePath(version)).removeRecursively();
     }
 }

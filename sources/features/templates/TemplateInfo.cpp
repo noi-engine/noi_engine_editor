@@ -10,6 +10,7 @@ auto noi_engine_editor::TemplateInfo::deserialize(const QJsonObject &json, const
     .description = json["description"].toString(),
     .repositoryUrl = repoUrl,
     .engineVersion = json["noi_engine_version"].toString(),
-    .resourceCompilerVersion = json["resources_compiler_version"].toString()
+    .resourceCompilerVersion = json["resources_compiler_version"].toString(),
+    .editorBridgeVersion = json["editor_bridge_version"].toString()
     };
 }

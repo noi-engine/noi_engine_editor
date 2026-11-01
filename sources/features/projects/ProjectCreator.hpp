@@ -19,7 +19,8 @@ namespace noi_engine_editor
             const QString& templateId,
             const QString& templateVersion,
             const QString& engineVersion,
-            const QString& resourceCompilerVersion
+            const QString& resourceCompilerVersion,
+            const QString& editorBridgeVersion
         ) -> bool;
 
     signals:

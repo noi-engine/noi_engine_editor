@@ -6,7 +6,9 @@ namespace noi_engine_editor::ToolUrlResolver
 {
     [[nodiscard]] auto noiEngineDownloadUrl(const QString& version) -> QString;
     [[nodiscard]] auto resourceCompilerDownloadUrl(const QString& version) -> QString;
+    [[nodiscard]] auto editorBridgeDownloadUrl(const QString& version) -> QString;
 
     [[nodiscard]] auto currentPlatformNoiEngineAssetName() -> QString;
     [[nodiscard]] auto resourceCompilerAssetName() -> QString;
+    [[nodiscard]] auto currentPlatformEditorBridgeAssetName() -> QString;
 }

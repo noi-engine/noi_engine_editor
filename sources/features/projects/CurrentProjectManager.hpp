@@ -31,7 +31,12 @@ namespace noi_engine_editor
         Q_INVOKABLE [[nodiscard]] auto saveProject() const -> bool;
         Q_INVOKABLE [[nodiscard]] auto resourcesPath() const -> QString;
         Q_INVOKABLE [[nodiscard]] auto scriptsLibraryPath() const -> QString;
+        // Editor bridge from the editor's tools folder, or empty (with a warning) if it isn't
+        // installed or can't run this project's engine version.
         Q_INVOKABLE [[nodiscard]] auto bridgeLibraryPath() const -> QString;
+        // The project's own noi_engine library, loaded before the bridge so the bridge and the
+        // game's scripts share it.
+        Q_INVOKABLE [[nodiscard]] auto engineLibraryPath() const -> QString;
 
         [[nodiscard]] auto path() const -> QString;
         [[nodiscard]] auto isOpen() const -> bool;

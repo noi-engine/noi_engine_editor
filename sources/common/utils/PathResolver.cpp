@@ -62,6 +62,21 @@ auto noi_engine_editor::PathResolver::resourceCompilerContentPath(const QString&
     return resourceCompilerPath(version) + "/resources_compiler";
 }
 
+auto noi_engine_editor::PathResolver::editorBridgeRootPath() -> QString
+{
+    return toolsPath() + "/noi_engine_editor_bridge";
+}
+
+auto noi_engine_editor::PathResolver::editorBridgePath(const QString& version) -> QString
+{
+    return QDir(editorBridgeRootPath()).filePath(version);
+}
+
+auto noi_engine_editor::PathResolver::editorBridgeContentPath(const QString& version) -> QString
+{
+    return editorBridgePath(version) + "/noi_engine_editor_bridge";
+}
+
 auto noi_engine_editor::PathResolver::fallBackDefaultProjectsPath() -> QString
 {
     return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/noi_engine/projects";

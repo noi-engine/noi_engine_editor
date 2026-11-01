@@ -21,6 +21,10 @@ namespace noi_engine_editor::PathResolver
     [[nodiscard]] auto resourceCompilerPath(const QString& version) -> QString;
     [[nodiscard]] auto resourceCompilerContentPath(const QString& version) -> QString;
 
+    [[nodiscard]] auto editorBridgeRootPath() -> QString;
+    [[nodiscard]] auto editorBridgePath(const QString& version) -> QString;
+    [[nodiscard]] auto editorBridgeContentPath(const QString& version) -> QString;
+
     [[nodiscard]] auto templatesPath() -> QString;
     [[nodiscard]] auto templateFilePath(const QString& templatePath) -> QString;
     [[nodiscard]] auto templateRootPath(const QString& templateId) -> QString;

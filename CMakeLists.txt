@@ -71,6 +71,8 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/common/components/opengl/OpenglView.cpp
         sources/common/utils/JsonIO.hpp
         sources/common/utils/JsonIO.cpp
+        sources/common/utils/EditorBridgeResolver.hpp
+        sources/common/utils/EditorBridgeResolver.cpp
         sources/common/utils/JsonSerializer.hpp
         sources/common/utils/PathResolver.hpp
         sources/common/utils/PathResolver.cpp
@@ -97,6 +99,7 @@ qt_add_qml_module(${NOI_ENGINE_EDITOR_PROJECT_NAME}
         sources/features/projects/components/CreateProjectDialog.qml
         sources/features/projects/components/RecentProjectItem.qml
         sources/features/projects/components/RecentProjectsSection.qml
+        sources/features/projects/components/ToolStatusRow.qml
         SOURCES
         sources/features/projects/CurrentProjectManager.hpp
         sources/features/projects/CurrentProjectManager.cpp

@@ -140,6 +140,7 @@ Item {
                     resourcesPath: CurrentProjectManager.resourcesPath()
                     scriptsLibraryPath: CurrentProjectManager.scriptsLibraryPath()
                     bridgeLibraryPath: CurrentProjectManager.bridgeLibraryPath()
+                    engineLibraryPath: CurrentProjectManager.engineLibraryPath()
                     scriptsGeneration: ProjectBuilder.compileGeneration
                     engineVersion: CurrentProjectManager.engineVersion
                     gameWidth: CurrentProjectManager.windowWidth

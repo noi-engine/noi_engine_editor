@@ -211,6 +211,7 @@ namespace noi_engine_editor
             tMap["description"] = latest.description;
             tMap["engineVersion"] = latest.engineVersion;
             tMap["resourceCompilerVersion"] = latest.resourceCompilerVersion;
+            tMap["editorBridgeVersion"] = latest.editorBridgeVersion;
 
             m_templates.append(tMap);
         }

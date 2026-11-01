@@ -9,7 +9,9 @@ namespace noi_engine_editor
     class PreviewBridgeLoader
     {
     public:
-        [[nodiscard]] auto load(const QString& bridgeLibraryPath) -> bool;
+        // Loads the project's noi_engine library first, then the editor bridge (which needs it and
+        // doesn't ship its own), and checks the bridge implements this editor's API version.
+        [[nodiscard]] auto load(const QString& bridgeLibraryPath, const QString& engineLibraryPath) -> bool;
         [[nodiscard]] auto isLoaded() const -> bool;
         [[nodiscard]] auto engineVersion() const -> QString;
 
@@ -90,6 +92,7 @@ namespace noi_engine_editor
         using set_scene_2d_fn = void (*)(noi_engine_editor_bridge_game_handle, const char*);
         using load_scripts_fn = int (*)(noi_engine_editor_bridge_game_handle, const char*);
         using engine_version_fn = const char* (*)();
+        using api_version_fn = int (*)();
         using enumerate_resources_fn = void (*)(noi_engine_editor_bridge_game_handle,
                                                   noi_engine_editor_bridge_resource_entry_callback, void*);
         using enumerate_entities_fn = void (*)(noi_engine_editor_bridge_game_handle,
@@ -122,6 +125,7 @@ namespace noi_engine_editor
         using remove_material_property_fn = int (*)(noi_engine_editor_bridge_game_handle, uint32_t, uint32_t,
                                                        const char*);
 
+        QLibrary m_engineLibrary;
         QLibrary m_library;
         init_gl_fn m_initGl{nullptr};
         create_fn m_create{nullptr};

@@ -287,18 +287,22 @@ Dialog {
 
                     readonly property string engineVersion: root.selectedTemplate ? root.selectedTemplate.engineVersion : ""
                     readonly property string compilerVersion: root.selectedTemplate ? root.selectedTemplate.resourceCompilerVersion : ""
+                    readonly property string bridgeVersion: root.selectedTemplate ? root.selectedTemplate.editorBridgeVersion : ""
 
                     property bool engineReady: false
                     property bool compilerReady: false
+                    property bool bridgeReady: false
 
                     function updateStatus() {
                         if (!root.selectedTemplate) return;
                         engineReady = ToolsManager.isNoiEngineInstalled(engineVersion);
                         compilerReady = ToolsManager.isResourceCompilerInstalled(compilerVersion);
+                        bridgeReady = ToolsManager.isEditorBridgeInstalled(bridgeVersion);
                     }
 
                     onEngineVersionChanged: updateStatus()
                     onCompilerVersionChanged: updateStatus()
+                    onBridgeVersionChanged: updateStatus()
 
                     Connections {
                         target: ToolsManager
@@ -307,7 +311,9 @@ Dialog {
                             toolsStatusCard.updateStatus();
 
                             if (!success) {
-                                const toolLabel = tool === "noi_engine" ? qsTr("Noi Engine") : qsTr("Resource Compiler");
+                                const toolLabel = tool === "noi_engine" ? qsTr("Noi Engine")
+                                    : tool === "editor_bridge" ? qsTr("Editor Bridge")
+                                    : qsTr("Resource Compiler");
                                 errorLabel.text = qsTr("Failed to download %1 v%2. Check your connection and try again.").arg(toolLabel).arg(version);
                                 errorLabel.visible = true;
                             }
@@ -321,101 +327,36 @@ Dialog {
                         anchors.margins: 10
                         spacing: 6
 
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 4
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 8
-
-                                MuiIcon {
-                                    name: "build"
-                                    font.pixelSize: 15
-                                    color: Theme.darkGrey
-                                }
-
-                                Text {
-                                    Layout.fillWidth: true
-                                    text: qsTr("Noi Engine v%1").arg(toolsStatusCard.engineVersion)
-                                    color: Theme.white
-                                    font.pixelSize: 12
-                                }
-
-                                Text {
-                                    visible: toolsStatusCard.engineReady
-                                    text: qsTr("Ready")
-                                    color: Theme.success
-                                    font.pixelSize: 12
-                                    font.bold: true
-                                }
-
-                                BusyIndicator {
-                                    visible: ToolsManager.isInstallingNoiEngine
-                                    running: ToolsManager.isInstallingNoiEngine
-                                    implicitWidth: 20
-                                    implicitHeight: 20
-                                }
-
-                                AppButton {
-                                    visible: !toolsStatusCard.engineReady
-                                    text: ToolsManager.isInstallingNoiEngine ? qsTr("Downloading...") : qsTr("Download")
-                                    icon: "download"
-                                    enabled: !ToolsManager.isInstallingNoiEngine
-                                    onClicked: {
-                                        errorLabel.visible = false;
-                                        ToolsManager.installNoiEngine(toolsStatusCard.engineVersion);
-                                    }
-                                }
+                        ToolStatusRow {
+                            icon: "build"
+                            label: qsTr("Noi Engine v%1").arg(toolsStatusCard.engineVersion)
+                            ready: toolsStatusCard.engineReady
+                            installing: ToolsManager.isInstallingNoiEngine
+                            onDownloadRequested: {
+                                errorLabel.visible = false;
+                                ToolsManager.installNoiEngine(toolsStatusCard.engineVersion);
                             }
                         }
 
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 4
+                        ToolStatusRow {
+                            icon: "terminal"
+                            label: qsTr("Resource Compiler v%1").arg(toolsStatusCard.compilerVersion)
+                            ready: toolsStatusCard.compilerReady
+                            installing: ToolsManager.isInstallingResourceCompiler
+                            onDownloadRequested: {
+                                errorLabel.visible = false;
+                                ToolsManager.installResourceCompiler(toolsStatusCard.compilerVersion);
+                            }
+                        }
 
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 8
-
-                                MuiIcon {
-                                    name: "terminal"
-                                    font.pixelSize: 15
-                                    color: Theme.darkGrey
-                                }
-
-                                Text {
-                                    Layout.fillWidth: true
-                                    text: qsTr("Resource Compiler v%1").arg(toolsStatusCard.compilerVersion)
-                                    color: Theme.white
-                                    font.pixelSize: 12
-                                }
-
-                                Text {
-                                    visible: toolsStatusCard.compilerReady
-                                    text: qsTr("Ready")
-                                    color: Theme.success
-                                    font.pixelSize: 12
-                                    font.bold: true
-                                }
-
-                                BusyIndicator {
-                                    visible: ToolsManager.isInstallingResourceCompiler
-                                    running: ToolsManager.isInstallingResourceCompiler
-                                    implicitWidth: 20
-                                    implicitHeight: 20
-                                }
-
-                                AppButton {
-                                    visible: !toolsStatusCard.compilerReady
-                                    text: ToolsManager.isInstallingResourceCompiler ? qsTr("Downloading...") : qsTr("Download")
-                                    icon: "download"
-                                    enabled: !ToolsManager.isInstallingResourceCompiler
-                                    onClicked: {
-                                        errorLabel.visible = false;
-                                        ToolsManager.installResourceCompiler(toolsStatusCard.compilerVersion);
-                                    }
-                                }
+                        ToolStatusRow {
+                            icon: "cable"
+                            label: qsTr("Editor Bridge v%1").arg(toolsStatusCard.bridgeVersion)
+                            ready: toolsStatusCard.bridgeReady
+                            installing: ToolsManager.isInstallingEditorBridge
+                            onDownloadRequested: {
+                                errorLabel.visible = false;
+                                ToolsManager.installEditorBridge(toolsStatusCard.bridgeVersion);
                             }
                         }
                     }
@@ -466,7 +407,7 @@ Dialog {
                             return;
                         }
 
-                        if (!toolsStatusCard.engineReady || !toolsStatusCard.compilerReady) {
+                        if (!toolsStatusCard.engineReady || !toolsStatusCard.compilerReady || !toolsStatusCard.bridgeReady) {
                             errorLabel.text = qsTr("Please download the required tools before creating the project");
                             errorLabel.visible = true;
                             return;
@@ -483,7 +424,8 @@ Dialog {
                             root.selectedTemplate.id,
                             root.selectedTemplate.version,
                             root.selectedTemplate.engineVersion,
-                            root.selectedTemplate.resourceCompilerVersion
+                            root.selectedTemplate.resourceCompilerVersion,
+                            root.selectedTemplate.editorBridgeVersion
                         );
                     }
                 }

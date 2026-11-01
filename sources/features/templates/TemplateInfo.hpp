@@ -15,6 +15,7 @@ namespace noi_engine_editor
         QString repositoryUrl;
         QString engineVersion;
         QString resourceCompilerVersion;
+        QString editorBridgeVersion;
 
         bool operator==(const TemplateInfo& other) const = default;
         [[nodiscard]] static auto deserialize(const QJsonObject& json, const QString& repoUrl) -> TemplateInfo;

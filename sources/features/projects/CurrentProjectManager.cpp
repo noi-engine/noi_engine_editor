@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QJsonObject>
 
+#include "../../common/utils/EditorBridgeResolver.hpp"
 #include "../../common/utils/JsonSerializer.hpp"
 #include "../../common/utils/JsonIO.hpp"
 #include "../../common/utils/PathResolver.hpp"
@@ -86,12 +87,28 @@ namespace noi_engine_editor
 
     auto CurrentProjectManager::bridgeLibraryPath() const -> QString
     {
-        if (m_project.bridgeLibrary.isEmpty())
+        if (!m_isOpen)
         {
             return {};
         }
 
-        return QDir(this->m_path).filePath(m_project.bridgeLibrary);
+        const auto resolution = EditorBridgeResolver::resolve(m_project.editorBridgeVersion, m_project.engineVersion);
+        if (resolution.libraryPath.isEmpty())
+        {
+            qWarning() << "[CurrentProjectManager] Can't use the editor bridge:" << resolution.error;
+        }
+        return resolution.libraryPath;
+    }
+
+    auto CurrentProjectManager::engineLibraryPath() const -> QString
+    {
+        if (!m_isOpen)
+        {
+            return {};
+        }
+
+        // QLibrary adds the platform prefix/suffix (libnoi_engine.so / .dylib).
+        return QDir(this->m_path).filePath(".noi_engine/libs/noi_engine");
     }
 
     auto CurrentProjectManager::closeProject() -> void

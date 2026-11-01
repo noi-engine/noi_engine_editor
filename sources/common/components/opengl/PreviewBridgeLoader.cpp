@@ -4,11 +4,26 @@
 
 namespace noi_engine_editor
 {
-    auto PreviewBridgeLoader::load(const QString& bridgeLibraryPath) -> bool
+    auto PreviewBridgeLoader::load(const QString& bridgeLibraryPath, const QString& engineLibraryPath) -> bool
     {
         if (m_library.isLoaded())
         {
             return true;
+        }
+
+        if (bridgeLibraryPath.isEmpty() || engineLibraryPath.isEmpty())
+        {
+            return false;
+        }
+
+        // Never unloaded: the game's scripts library, loaded later, links against this same
+        // engine instance.
+        m_engineLibrary.setFileName(engineLibraryPath);
+        if (!m_engineLibrary.isLoaded() && !m_engineLibrary.load())
+        {
+            qWarning() << "[PreviewBridgeLoader] Failed to load the project's noi_engine library" << engineLibraryPath
+                << ":" << m_engineLibrary.errorString();
+            return false;
         }
 
         m_library.setFileName(bridgeLibraryPath);
@@ -17,6 +32,15 @@ namespace noi_engine_editor
         {
             qWarning() << "[PreviewBridgeLoader] Failed to load preview bridge" << bridgeLibraryPath << ":" <<
                 m_library.errorString();
+            return false;
+        }
+
+        const auto apiVersion = reinterpret_cast<api_version_fn>(m_library.resolve("noi_engine_editor_bridge_api_version"));
+        if (!apiVersion || apiVersion() != NOI_ENGINE_EDITOR_BRIDGE_API_VERSION)
+        {
+            qWarning() << "[PreviewBridgeLoader] Editor bridge" << bridgeLibraryPath << "uses API version"
+                << (apiVersion ? apiVersion() : 0) << "but this editor needs" << NOI_ENGINE_EDITOR_BRIDGE_API_VERSION;
+            m_library.unload();
             return false;
         }
 

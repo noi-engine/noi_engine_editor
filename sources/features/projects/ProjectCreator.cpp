@@ -17,7 +17,8 @@ namespace noi_engine_editor
         const QString& templateId,
         const QString& templateVersion,
         const QString& engineVersion,
-        const QString& resourceCompilerVersion
+        const QString& resourceCompilerVersion,
+        const QString& editorBridgeVersion
     ) -> bool
     {
         const auto projectPath = QDir(location).filePath(name);
@@ -33,12 +34,13 @@ namespace noi_engine_editor
             Templi::generate_with_templi_config(
                 templatePath.toStdString(),
                 projectPath.toStdString(),
-                [name, engineVersion](const Templi::Placeholder& placeholder) -> std::string
+                [name, engineVersion, editorBridgeVersion](const Templi::Placeholder& placeholder) -> std::string
                 {
                     if (placeholder.m_name == "PROJECT_NAME") return name.toStdString();
                     if (placeholder.m_name == "PROJECT_VERSION") return "0.0.1";
                     if (placeholder.m_name == "PROJECT_CATEGORY") return "2D";
                     if (placeholder.m_name == "ENGINE_VERSION") return engineVersion.toStdString();
+                    if (placeholder.m_name == "EDITOR_BRIDGE_VERSION") return editorBridgeVersion.toStdString();
                     return "";
                 }
             );
@@ -51,6 +53,8 @@ namespace noi_engine_editor
                 std::filesystem::copy_options::overwrite_existing
             );
 
+            // The editor bridge is editor-only: it stays in the editor's tools folder and is never
+            // copied into the project.
             const auto resourcesCompilerPath = PathResolver::resourceCompilerContentPath(resourceCompilerVersion);
             std::filesystem::copy(
                 resourcesCompilerPath.toStdString(),
