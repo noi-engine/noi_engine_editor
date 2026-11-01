@@ -193,32 +193,62 @@ namespace noi_engine_editor
 
     auto CurrentProjectManager::setWindowWidth(const int width) -> void
     {
+        if (this->m_project.windowWidth == width)
+        {
+            return;
+        }
         this->m_project.windowWidth = width;
+        emit windowWidthChanged();
     }
 
     auto CurrentProjectManager::setWindowHeight(const int height) -> void
     {
+        if (this->m_project.windowHeight == height)
+        {
+            return;
+        }
         this->m_project.windowHeight = height;
+        emit windowHeightChanged();
     }
 
     auto CurrentProjectManager::setName(const QString& name) -> void
     {
+        if (this->m_project.name == name)
+        {
+            return;
+        }
         this->m_project.name = name;
+        emit nameChanged();
     }
 
     auto CurrentProjectManager::setVersion(const QString& version) -> void
     {
+        if (this->m_project.version == version)
+        {
+            return;
+        }
         this->m_project.version = version;
+        emit versionChanged();
     }
 
     auto CurrentProjectManager::setCategory(const QString& category) -> void
     {
+        if (this->m_project.category == category)
+        {
+            return;
+        }
         this->m_project.category = category;
+        emit categoryChanged();
     }
 
     auto CurrentProjectManager::setStartScene(const QString& startScene) -> void
     {
+        if (this->m_project.startScene == startScene)
+        {
+            return;
+        }
         this->m_project.startScene = startScene;
+        emit startSceneChanged();
     }
 
     auto CurrentProjectManager::path() const -> QString
