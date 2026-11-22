@@ -8,6 +8,8 @@ import noi_engine_editor
 Menu {
     id: root
 
+    font.pixelSize: 13
+
     property bool hasEntity: false
     property bool canPaste: false
     property bool isCamera: false

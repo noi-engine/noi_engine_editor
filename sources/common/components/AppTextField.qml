@@ -12,7 +12,7 @@ ColumnLayout {
     property string hint: ""
     property string error: ""
     property alias text: field.text
-    property alias placeholderText: field.placeholderText
+    property string placeholderText: ""
     property alias readOnly: field.readOnly
     property alias field: field
 
@@ -34,7 +34,6 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.preferredHeight: 40
         color: Theme.white
-        placeholderTextColor: Theme.grey
         selectedTextColor: Theme.black
         selectionColor: Theme.primaryColor
         font.pixelSize: 13
@@ -43,6 +42,18 @@ ColumnLayout {
         rightPadding: 12
         onAccepted: root.accepted()
         onTextEdited: root.edited()
+
+        // Our own placeholder: the Material one floats up onto the border when focused.
+        Text {
+            visible: field.text === "" && root.placeholderText !== ""
+            anchors.left: parent.left
+            anchors.leftMargin: field.leftPadding
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.placeholderText
+            color: Theme.grey
+            font.pixelSize: field.font.pixelSize
+            elide: Text.ElideRight
+        }
 
         background: Rectangle {
             radius: Theme.radius

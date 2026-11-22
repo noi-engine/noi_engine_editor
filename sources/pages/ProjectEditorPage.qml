@@ -506,13 +506,13 @@ CustomPage {
     }
 
     Shortcut {
-        sequence: StandardKey.Copy
+        sequences: [StandardKey.Copy]
         enabled: root.selectedEntity !== null && !root.typingInField && !viewportPanel.playing
         onActivated: root.copySelectedEntity()
     }
 
     Shortcut {
-        sequence: StandardKey.Paste
+        sequences: [StandardKey.Paste]
         enabled: root.canPaste && !root.typingInField && !viewportPanel.playing
         onActivated: root.pasteEntity(null)
     }
