@@ -12,6 +12,9 @@ Rectangle {
 
     property var entities: []
     property var selectedEntity: null
+    // The scene shown as the root of the tree (like the scene header of other editors' hierarchies).
+    property string sceneName: ""
+    property bool sceneDirty: false
 
     signal entitySelected(var entity)
     // folder: where to file the new entity ("" = root); preset: see EntityPresetMenu.
@@ -290,6 +293,47 @@ Rectangle {
                 EntityPresetMenu {
                     id: newEntityMenu
                     onPresetChosen: preset => root.entityCreateRequested(root.presetName(preset), "", preset)
+                }
+            }
+        }
+
+        // Root of the tree: the open scene.
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 32
+            Layout.leftMargin: 8
+            Layout.rightMargin: 8
+            radius: 8
+            color: Theme.bgTertiary
+            visible: root.sceneName !== ""
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: 10
+                anchors.rightMargin: 10
+                spacing: 8
+
+                MuiIcon {
+                    name: "landscape"
+                    font.pixelSize: 16
+                    color: Theme.primaryColor
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: root.sceneName
+                    font.pixelSize: 12
+                    font.weight: Font.DemiBold
+                    color: Theme.white
+                    elide: Text.ElideMiddle
+                }
+
+                Rectangle {
+                    visible: root.sceneDirty
+                    Layout.preferredWidth: 7
+                    Layout.preferredHeight: 7
+                    radius: 4
+                    color: Theme.warning
                 }
             }
         }

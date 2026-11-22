@@ -565,6 +565,8 @@ CustomPage {
                         anchors.fill: parent
                         enabled: !viewportPanel.playing
                         entities: viewportPanel.loadedEntities
+                        sceneName: root.sceneName(root.currentScenePath)
+                        sceneDirty: root.sceneDirty
                         selectedEntity: root.selectedEntity
                         onEntitySelected: entity => {
                             root.selectedMaterial = null

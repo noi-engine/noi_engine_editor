@@ -235,6 +235,13 @@ Item {
             viewport: root
         }
 
+        ColliderOutline {
+            anchors.fill: parent
+            visible: root.scenePath !== "" && !root.playing && active
+            viewport: root
+            components: root.hasInspectedEntity ? openGLView.inspectedComponents : []
+        }
+
         EntityPicking {
             anchors.fill: parent
             visible: root.scenePath !== "" && !root.playing
