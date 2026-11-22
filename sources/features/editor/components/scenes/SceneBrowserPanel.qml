@@ -65,7 +65,29 @@ Item {
 
         if (CurrentProjectResourcesManager.createFile(parentFolderPath, fileName, content)) {
             rootItem.refreshScenes();
+            Notifier.success(qsTr("Scene “%1” created and opened. Add objects from the Hierarchy.").arg(sceneName));
+            rootItem.sceneOpenRequested(parentFolderPath + "/" + fileName);
+        } else {
+            Notifier.error(qsTr("Couldn't create “%1”: a scene with that name already exists or the folder can't be written.").arg(fileName));
         }
+    }
+
+    function relativeScenePath(filePath) {
+        return filePath.replace(rawRootFolder + "/", "");
+    }
+
+    function isStartScene(filePath) {
+        return CurrentProjectManager.startScene !== "" && relativeScenePath(filePath) === CurrentProjectManager.startScene;
+    }
+
+    function setStartScene(filePath) {
+        CurrentProjectManager.startScene = relativeScenePath(filePath);
+        if (CurrentProjectManager.saveProject()) {
+            Notifier.success(qsTr("The game will now start on “%1”.").arg(filePath.substring(filePath.lastIndexOf("/") + 1)));
+        } else {
+            Notifier.error(qsTr("Couldn't save the project file."));
+        }
+        refreshScenes();
     }
 
     Connections {
@@ -94,7 +116,10 @@ Item {
                 const dir = oldPath.substring(0, oldPath.lastIndexOf("/"));
                 rootItem.sceneRenamed(oldPath, dir + "/" + stem + ".scene");
                 rootItem.refreshScenes();
+            } else {
+                Notifier.error(qsTr("Couldn't rename the scene to \"%1\": a scene with that name probably already exists.").arg(newName));
             }
+
         }
     }
 
@@ -102,8 +127,15 @@ Item {
         id: deleteSceneDialog
         title: qsTr("Delete Scene")
         onConfirmed: {
-            if (CurrentProjectResourcesManager.deleteItem(deleteSceneDialog.targetPath)) {
+            if (deleteSceneDialog.targetPath === rootItem.currentScenePath) {
+                Notifier.warning(qsTr("This scene is open. Open another scene first, then delete it."));
+            } else if (rootItem.isStartScene(deleteSceneDialog.targetPath)) {
+                Notifier.warning(qsTr("This is the scene your game starts on. Choose another start scene first."));
+            } else if (CurrentProjectResourcesManager.deleteItem(deleteSceneDialog.targetPath)) {
                 rootItem.refreshScenes();
+                Notifier.info(qsTr("Scene deleted"));
+            } else {
+                Notifier.error(qsTr("Couldn't delete the scene file."));
             }
         }
     }
@@ -128,10 +160,19 @@ Item {
                     spacing: 12
 
                     Text {
-                        text: qsTr("SCENES (%1)").arg(scenesModel.count)
+                        text: qsTr("Scenes (%1)").arg(scenesModel.count)
                         color: Theme.white
-                        font.pixelSize: 11
+                        font.pixelSize: 12
                         font.bold: true
+                    }
+
+                    Text {
+                        visible: rootItem.scenesAvailable && scenesModel.count > 0
+                        text: qsTr("A scene is one screen of your game (a level, a menu…). Double-click one to open it.")
+                        color: Theme.grey
+                        font.pixelSize: 11
+                        elide: Text.ElideRight
+                        Layout.maximumWidth: 460
                     }
 
                     Text {
@@ -152,20 +193,13 @@ Item {
                         onTextChanged: rootItem.searchText = text
                     }
 
-                    MuiIcon {
-                        name: "add"
-                        font.pixelSize: 18
-                        color: newSceneArea.containsMouse ? Theme.white : Theme.darkGrey
+                    AppButton {
                         visible: rootItem.scenesAvailable
-
-                        MouseArea {
-                            id: newSceneArea
-                            anchors.fill: parent
-                            anchors.margins: -4
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: newSceneDialog.openFor(rootItem.rawRootFolder + "/scenes")
-                        }
+                        implicitHeight: 26
+                        icon: "add"
+                        text: qsTr("New scene")
+                        primary: true
+                        onClicked: newSceneDialog.openFor(rootItem.rawRootFolder + "/scenes")
                     }
 
                     Rectangle {
@@ -211,8 +245,48 @@ Item {
                 }
             }
 
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: scenesModel.count === 0 && rootItem.scenesAvailable
+                spacing: 10
+
+                Item { Layout.fillHeight: true }
+
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: rootItem.searchText.trim() !== "" ? qsTr("No scene matches your search") : qsTr("This project has no scene yet")
+                    color: Theme.white
+                    font.pixelSize: 14
+                    font.bold: true
+                }
+
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.maximumWidth: 420
+                    visible: rootItem.searchText.trim() === ""
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    text: qsTr("A scene holds the objects of one screen of your game. Create one to start placing objects.")
+                    color: Theme.darkGrey
+                    font.pixelSize: 12
+                }
+
+                AppButton {
+                    Layout.alignment: Qt.AlignHCenter
+                    visible: rootItem.searchText.trim() === ""
+                    primary: true
+                    icon: "add"
+                    text: qsTr("Create the first scene")
+                    onClicked: newSceneDialog.openFor(rootItem.rawRootFolder + "/scenes")
+                }
+
+                Item { Layout.fillHeight: true }
+            }
+
             GridView {
                 id: gridView
+                visible: scenesModel.count > 0
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.margins: 12
@@ -237,6 +311,24 @@ Item {
                             ? Theme.primaryColor
                             : (itemArea.containsMouse ? Theme.primaryColor : Theme.borderColor)
                         border.width: isCurrentScene ? 2 : (itemArea.containsMouse ? 1.5 : 1)
+
+                        Rectangle {
+                            visible: rootItem.isStartScene(model.filePath)
+                            anchors.top: parent.top
+                            anchors.left: parent.left
+                            anchors.margins: 6
+                            width: startLabel.implicitWidth + 12
+                            height: 18
+                            radius: 9
+                            color: Theme.primaryLightB
+                            Text {
+                                id: startLabel
+                                anchors.centerIn: parent
+                                text: qsTr("Game starts here")
+                                font.pixelSize: 9
+                                color: Theme.primaryLightA
+                            }
+                        }
 
                         Rectangle {
                             visible: isCurrentScene && rootItem.sceneDirty
@@ -313,6 +405,17 @@ Item {
 
                             Menu {
                                 id: sceneMenu
+                                MenuItem {
+                                    text: qsTr("Open")
+                                    enabled: model.filePath !== rootItem.currentScenePath
+                                    onTriggered: rootItem.sceneOpenRequested(model.filePath)
+                                }
+                                MenuItem {
+                                    text: qsTr("Start the game on this scene")
+                                    enabled: !rootItem.isStartScene(model.filePath)
+                                    onTriggered: rootItem.setStartScene(model.filePath)
+                                }
+                                MenuSeparator {}
                                 MenuItem {
                                     text: qsTr("Rename")
                                     onTriggered: {

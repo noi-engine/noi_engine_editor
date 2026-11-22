@@ -33,13 +33,6 @@ Rectangle {
 
     color: Theme.bgSecondary
 
-    Rectangle {
-        anchors.right: parent.right
-        width: 1
-        height: parent.height
-        color: Theme.borderColor
-    }
-
     // Folders created with "New Folder" that hold no entity yet (not saved until they do).
     property var emptyFolders: []
     // Collapsed folders, by path.
@@ -262,7 +255,7 @@ Rectangle {
 
             Text {
                 Layout.fillWidth: true
-                text: qsTr("HIERARCHY (%1)").arg(root.sortedEntities.length)
+                text: qsTr("Scene objects (%1)").arg(root.sortedEntities.length)
                 font.pixelSize: 13
                 font.weight: Font.DemiBold
                 color: Theme.white
@@ -285,17 +278,14 @@ Rectangle {
                 }
             }
 
-            MuiIcon {
-                name: "add"
-                font.pixelSize: 16
-                color: Theme.grey
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -6
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: newEntityMenu.popup()
-                }
+            AppButton {
+                id: addObjectButton
+                implicitHeight: 28
+                icon: "add"
+                text: qsTr("Add")
+                primary: true
+                tooltip: qsTr("Add an object to the scene: an image, a platform, a character…")
+                onClicked: newEntityMenu.popup(addObjectButton, 0, addObjectButton.height + 4)
 
                 EntityPresetMenu {
                     id: newEntityMenu
@@ -422,6 +412,31 @@ Rectangle {
                         + "  →  " + (root.dropFolder() === "" ? qsTr("(root)") : root.dropFolder())
                     font.pixelSize: 11
                     color: Theme.white
+                }
+            }
+
+            ColumnLayout {
+                anchors.centerIn: parent
+                width: parent.width - 32
+                visible: root.query === "" && root.sortedEntities.length === 0
+                spacing: 8
+
+                Text {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    text: qsTr("This scene is empty")
+                    font.pixelSize: 13
+                    font.bold: true
+                    color: Theme.white
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    text: qsTr("Objects are everything you see and use in your game: the player, platforms, backgrounds… Press Add to create your first one.")
+                    font.pixelSize: 11
+                    color: Theme.darkGrey
                 }
             }
 

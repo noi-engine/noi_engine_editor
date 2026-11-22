@@ -15,6 +15,8 @@ CustomPage {
     property string currentScenePath: ""
     property string pendingScenePath: ""
     property bool compileFailureDismissed: false
+    // The first build after opening the project is silent; later ones announce their result.
+    property bool compileWasManual: false
     property bool sceneDirty: false
     // What to do with each queued entity create/duplicate, in order ({folder, preset}; folder
     // null = leave as is), applied when the bridge reports the new entity.
@@ -294,6 +296,9 @@ CustomPage {
     }
 
     Component.onCompleted: {
+        // Development aid (screenshots): `--panel scenes|resources|output|logs`.
+        const panelIndex = Qt.application.arguments.indexOf("--panel");
+        if (panelIndex >= 0) root.activeBottomPanel = Qt.application.arguments[panelIndex + 1];
         ProjectBuilder.compile(CurrentProjectManager.path);
         // Open the project's start scene (it waits for the first compile to finish).
         if (CurrentProjectManager.startScene !== "") {
@@ -320,9 +325,27 @@ CustomPage {
         }
     }
 
+    PrerequisitesDialog { id: prerequisitesDialog }
+
     ProjectSettingsDialog {
         id: settingsDialog
         onResolutionChanged: (width, height) => root.setCameraSize(width, height)
+    }
+
+    ReleaseDoneDialog { id: releaseDoneDialog }
+
+    Connections {
+        target: ProjectBuilder
+        function onReleaseFinished(success, outputPath) {
+            if (success) {
+                releaseDoneDialog.show(outputPath);
+            } else {
+                root.activeBottomPanel = "output";
+                Notifier.error(PrerequisitesManager.canRelease
+                    ? qsTr("The release build failed. Open “Build output” to see why.")
+                    : qsTr("The release build couldn't run: some tools are missing."));
+            }
+        }
     }
 
     Connections {
@@ -334,6 +357,14 @@ CustomPage {
             }
         }
         function onCompileFinished(success) {
+            if (success) {
+                if (root.compileWasManual) Notifier.success(qsTr("Build finished: your scripts are up to date"));
+            } else {
+                Notifier.error(PrerequisitesManager.canBuild
+                    ? qsTr("The build failed. Open “Build output” to see why.")
+                    : qsTr("The build couldn't run: some tools are missing."));
+            }
+            root.compileWasManual = true;
             if (root.pendingScenePath !== "") {
                 if (success) {
                     root.currentScenePath = root.pendingScenePath;
@@ -365,13 +396,32 @@ CustomPage {
             onStopRequested: viewportPanel.setPlaying(false)
             onSaveRequested: root.saveCurrentScene()
             onSearchRequested: globalSearch.open()
+            onScenesRequested: root.activeBottomPanel = (root.activeBottomPanel === "scenes") ? "" : "scenes"
+            onBuildHelpRequested: prerequisitesDialog.open()
         }
 
         SplitView {
             Layout.fillWidth: true
             Layout.fillHeight: true
+            Layout.margins: 8
+            Layout.topMargin: 8
+            Layout.bottomMargin: 4
 
             orientation: Qt.Vertical
+
+            handle: Item {
+                implicitWidth: 8
+                implicitHeight: 8
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: SplitHandle.pressed || SplitHandle.hovered ? 36 : 0
+                    height: 3
+                    radius: 2
+                    color: SplitHandle.pressed ? Theme.primaryColor : Theme.borderStrong
+                    Behavior on width { NumberAnimation { duration: 120 } }
+                }
+            }
 
             SplitView {
                 SplitView.fillWidth: true
@@ -379,173 +429,199 @@ CustomPage {
 
                 orientation: Qt.Horizontal
 
-                SceneHierarchyPanel {
+                handle: Item {
+                    implicitWidth: 8
+                    implicitHeight: 8
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: 3
+                        height: SplitHandle.pressed || SplitHandle.hovered ? 36 : 0
+                        radius: 2
+                        color: SplitHandle.pressed ? Theme.primaryColor : Theme.borderStrong
+                        Behavior on height { NumberAnimation { duration: 120 } }
+                    }
+                }
+
+                PanelCard {
                     SplitView.preferredWidth: 260
                     SplitView.minimumWidth: 220
-                    enabled: !viewportPanel.playing
-                    entities: viewportPanel.loadedEntities
-                    selectedEntity: root.selectedEntity
-                    onEntitySelected: entity => {
-                        root.selectedMaterial = null
-                        root.selectedEntity = entity
-                    }
-
-                    onEntityCreateRequested: (name, folder, preset) => {
-                        root.pendingCreates = root.pendingCreates.concat([{folder: folder === "" ? null : folder, preset: preset}]);
-                        viewportPanel.createEntity(name)
-                        root.sceneDirty = true;
-                    }
-
-                    onEntityRenameRequested: (entity, newName) => {
-                        viewportPanel.setComponentProperty(entity.id, entity.generation,
-                            "name_component", "name", "string", newName)
-                        root.sceneDirty = true;
-                    }
-
-                    onEntityDuplicateRequested: (entity, newName, folder) => {
-                        root.pendingCreates = root.pendingCreates.concat([{folder: folder, preset: ""}]);
-                        viewportPanel.duplicateEntity(entity.id, entity.generation, newName)
-                        root.sceneDirty = true;
-                    }
-
-                    onEntityFolderChangeRequested: (entity, folder) => root.setEntityFolder(entity, folder)
-
-                    onEntityDeleteRequested: (entity) => {
-                        if (root.selectedEntity && root.selectedEntity.id === entity.id
-                            && root.selectedEntity.generation === entity.generation) {
-                            root.selectedEntity = null;
+                    SceneHierarchyPanel {
+                        anchors.fill: parent
+                        enabled: !viewportPanel.playing
+                        entities: viewportPanel.loadedEntities
+                        selectedEntity: root.selectedEntity
+                        onEntitySelected: entity => {
+                            root.selectedMaterial = null
+                            root.selectedEntity = entity
                         }
-                        viewportPanel.destroyEntity(entity.id, entity.generation)
-                        root.sceneDirty = true;
+
+                        onEntityCreateRequested: (name, folder, preset) => {
+                            root.pendingCreates = root.pendingCreates.concat([{folder: folder === "" ? null : folder, preset: preset}]);
+                            viewportPanel.createEntity(name)
+                            root.sceneDirty = true;
+                        }
+
+                        onEntityRenameRequested: (entity, newName) => {
+                            viewportPanel.setComponentProperty(entity.id, entity.generation,
+                                "name_component", "name", "string", newName)
+                            root.sceneDirty = true;
+                        }
+
+                        onEntityDuplicateRequested: (entity, newName, folder) => {
+                            root.pendingCreates = root.pendingCreates.concat([{folder: folder, preset: ""}]);
+                            viewportPanel.duplicateEntity(entity.id, entity.generation, newName)
+                            root.sceneDirty = true;
+                        }
+
+                        onEntityFolderChangeRequested: (entity, folder) => root.setEntityFolder(entity, folder)
+
+                        onEntityDeleteRequested: (entity) => {
+                            if (root.selectedEntity && root.selectedEntity.id === entity.id
+                                && root.selectedEntity.generation === entity.generation) {
+                                root.selectedEntity = null;
+                            }
+                            viewportPanel.destroyEntity(entity.id, entity.generation)
+                            root.sceneDirty = true;
+                        }
                     }
                 }
 
-                ViewportPanel {
-                    id: viewportPanel
+                PanelCard {
                     SplitView.fillWidth: true
                     SplitView.minimumWidth: 400
-                    scenePath: root.currentScenePath
-                    selectedEntity: root.selectedEntity
-                    hasInspectedEntity: root.selectedEntity !== null
-                    inspectedEntityId: root.selectedEntity ? root.selectedEntity.id : 0
-                    inspectedEntityGeneration: root.selectedEntity ? root.selectedEntity.generation : 0
-                    hasInspectedMaterial: root.selectedMaterial !== null
-                    inspectedMaterialId: root.selectedMaterial ? root.selectedMaterial.id : 0
-                    inspectedMaterialGeneration: root.selectedMaterial ? root.selectedMaterial.generation : 0
+                    ViewportPanel {
+                        anchors.fill: parent
+                        id: viewportPanel
+                        scenePath: root.currentScenePath
+                        selectedEntity: root.selectedEntity
+                        hasInspectedEntity: root.selectedEntity !== null
+                        inspectedEntityId: root.selectedEntity ? root.selectedEntity.id : 0
+                        inspectedEntityGeneration: root.selectedEntity ? root.selectedEntity.generation : 0
+                        hasInspectedMaterial: root.selectedMaterial !== null
+                        inspectedMaterialId: root.selectedMaterial ? root.selectedMaterial.id : 0
+                        inspectedMaterialGeneration: root.selectedMaterial ? root.selectedMaterial.generation : 0
 
-                    onCameraEdited: root.sceneDirty = true
-                    onImageDropped: (filePath, x, y) => root.createImageSprite(filePath, false, x, y)
-                    onSceneCameraChanged: {
-                        if (root.pendingCameraSize && root.isStartSceneOpen() && sceneCamera.valid) {
-                            root.setCameraSize(root.pendingCameraSize.width, root.pendingCameraSize.height);
-                        }
-                    }
-                    onEntityMoved: root.sceneDirty = true
-                    onEntityPicked: (entityId, entityGeneration) => {
-                        for (const entity of viewportPanel.loadedEntities || []) {
-                            if (entity.id === entityId && entity.generation === entityGeneration) {
-                                root.selectedMaterial = null;
-                                root.selectedEntity = entity;
-                                return;
+                        onScenesRequested: root.activeBottomPanel = "scenes"
+                        onCameraEdited: root.sceneDirty = true
+                        onImageDropped: (filePath, x, y) => root.createImageSprite(filePath, false, x, y)
+                        onSceneCameraChanged: {
+                            if (root.pendingCameraSize && root.isStartSceneOpen() && sceneCamera.valid) {
+                                root.setCameraSize(root.pendingCameraSize.width, root.pendingCameraSize.height);
                             }
                         }
-                    }
-
-                    onSceneSaved: (success) => {
-                        if (success) {
-                            root.sceneDirty = false;
-                            root.syncWindowToCamera();
-                            if (root.reloadAfterSave) {
-                                root.reloadAfterSave = false;
-                                viewportPanel.reloadScene();
+                        onEntityMoved: root.sceneDirty = true
+                        onEntityPicked: (entityId, entityGeneration) => {
+                            for (const entity of viewportPanel.loadedEntities || []) {
+                                if (entity.id === entityId && entity.generation === entityGeneration) {
+                                    root.selectedMaterial = null;
+                                    root.selectedEntity = entity;
+                                    return;
+                                }
                             }
-                            if (root.afterSave) {
-                                const action = root.afterSave;
-                                root.afterSave = null;
-                                action();
-                            }
-                            console.log("Scene saved: " + root.currentScenePath);
-                        } else {
-                            console.warn("Failed to save scene: " + root.currentScenePath);
-                            root.afterSave = null; // stay on the scene: its changes aren't saved
                         }
-                    }
 
-                    onEntityCreated: (id, gen) => {
-                        const pending = root.pendingCreates.length > 0 ? root.pendingCreates[0] : {folder: null, preset: ""};
-                        root.pendingCreates = root.pendingCreates.slice(1);
-                        if (pending.folder !== null && pending.folder !== undefined) {
-                            root.setEntityFolder({id: id, generation: gen}, pending.folder);
+                        onSceneSaved: (success) => {
+                            if (success) {
+                                root.sceneDirty = false;
+                                root.syncWindowToCamera();
+                                if (root.reloadAfterSave) {
+                                    root.reloadAfterSave = false;
+                                    viewportPanel.reloadScene();
+                                }
+                                if (root.afterSave) {
+                                    const action = root.afterSave;
+                                    root.afterSave = null;
+                                    action();
+                                }
+                                console.log("Scene saved: " + root.currentScenePath);
+                                Notifier.success(qsTr("Scene saved"));
+                            } else {
+                                console.warn("Failed to save scene: " + root.currentScenePath);
+                                Notifier.error(qsTr("Couldn't save the scene. Check that the file isn't read-only, then press Save again."));
+                                root.afterSave = null; // stay on the scene: its changes aren't saved
+                            }
                         }
-                        root.applyEntityPreset({id: id, generation: gen}, pending.preset, pending.image);
-                        const items = viewportPanel.loadedEntities || [];
-                        for (let i = 0; i < items.length; i++) {
-                            if (items[i].id === id && items[i].generation === gen) {
-                                root.selectedMaterial = null;
-                                root.selectedEntity = items[i];
-                                break;
+
+                        onEntityCreated: (id, gen) => {
+                            const pending = root.pendingCreates.length > 0 ? root.pendingCreates[0] : {folder: null, preset: ""};
+                            root.pendingCreates = root.pendingCreates.slice(1);
+                            if (pending.folder !== null && pending.folder !== undefined) {
+                                root.setEntityFolder({id: id, generation: gen}, pending.folder);
+                            }
+                            root.applyEntityPreset({id: id, generation: gen}, pending.preset, pending.image);
+                            const items = viewportPanel.loadedEntities || [];
+                            for (let i = 0; i < items.length; i++) {
+                                if (items[i].id === id && items[i].generation === gen) {
+                                    root.selectedMaterial = null;
+                                    root.selectedEntity = items[i];
+                                    break;
+                                }
                             }
                         }
                     }
                 }
 
-                InspectorPanel {
+                PanelCard {
                     SplitView.preferredWidth: 300
                     SplitView.minimumWidth: 260
-                    enabled: !viewportPanel.playing
-                    entity: root.selectedEntity
-                    componentsData: viewportPanel.inspectedComponents
-                    loadedResources: viewportPanel.loadedResources
-                    material: root.selectedMaterial
-                    materialProperties: viewportPanel.inspectedMaterialProperties
-                    resourcesPath: CurrentProjectManager.resourcesPath()
-                    currentScenePath: root.currentScenePath
+                    InspectorPanel {
+                        anchors.fill: parent
+                        enabled: !viewportPanel.playing
+                        entity: root.selectedEntity
+                        componentsData: viewportPanel.inspectedComponents
+                        loadedResources: viewportPanel.loadedResources
+                        material: root.selectedMaterial
+                        materialProperties: viewportPanel.inspectedMaterialProperties
+                        resourcesPath: CurrentProjectManager.resourcesPath()
+                        currentScenePath: root.currentScenePath
 
-                    onSceneReloadRequested: root.reloadSceneKeepingEdits()
+                        onSceneReloadRequested: root.reloadSceneKeepingEdits()
 
-                    onGroupsChanged: (groups) => {
-                        if (root.selectedEntity) root.setEntityGroups(root.selectedEntity, groups)
-                    }
-
-                    onPropertyEdited: (componentType, propertyName, propertyType, value) => {
-                        if (root.selectedMaterial) {
-                            viewportPanel.setMaterialProperty(root.selectedMaterial.id, root.selectedMaterial.generation,
-                                propertyName, propertyType, value)
-                        } else if (root.selectedEntity) {
-                            viewportPanel.setComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
-                                componentType, propertyName, propertyType, value)
+                        onGroupsChanged: (groups) => {
+                            if (root.selectedEntity) root.setEntityGroups(root.selectedEntity, groups)
                         }
-                        root.sceneDirty = true;
-                    }
 
-                    onComponentAddRequested: (componentType) => {
-                        viewportPanel.addComponent(root.selectedEntity.id, root.selectedEntity.generation, componentType)
-                        root.sceneDirty = true;
-                    }
-
-                    onComponentRemoved: (componentType) => {
-                        if (root.selectedEntity) {
-                            viewportPanel.removeComponent(root.selectedEntity.id, root.selectedEntity.generation, componentType)
+                        onPropertyEdited: (componentType, propertyName, propertyType, value) => {
+                            if (root.selectedMaterial) {
+                                viewportPanel.setMaterialProperty(root.selectedMaterial.id, root.selectedMaterial.generation,
+                                    propertyName, propertyType, value)
+                            } else if (root.selectedEntity) {
+                                viewportPanel.setComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
+                                    componentType, propertyName, propertyType, value)
+                            }
                             root.sceneDirty = true;
                         }
-                    }
 
-                    onPropertyRemoved: (componentType, propertyName) => {
-                        if (root.selectedMaterial) {
-                            viewportPanel.removeMaterialProperty(root.selectedMaterial.id, root.selectedMaterial.generation, propertyName)
+                        onComponentAddRequested: (componentType) => {
+                            viewportPanel.addComponent(root.selectedEntity.id, root.selectedEntity.generation, componentType)
                             root.sceneDirty = true;
-                        } else if (root.selectedEntity) {
-                            viewportPanel.removeComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
-                                componentType, propertyName)
-                            root.sceneDirty = true;
+                        }
+
+                        onComponentRemoved: (componentType) => {
+                            if (root.selectedEntity) {
+                                viewportPanel.removeComponent(root.selectedEntity.id, root.selectedEntity.generation, componentType)
+                                root.sceneDirty = true;
+                            }
+                        }
+
+                        onPropertyRemoved: (componentType, propertyName) => {
+                            if (root.selectedMaterial) {
+                                viewportPanel.removeMaterialProperty(root.selectedMaterial.id, root.selectedMaterial.generation, propertyName)
+                                root.sceneDirty = true;
+                            } else if (root.selectedEntity) {
+                                viewportPanel.removeComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
+                                    componentType, propertyName)
+                                root.sceneDirty = true;
+                            }
                         }
                     }
                 }
             }
 
-            Item {
-                SplitView.preferredHeight: 220
-                SplitView.minimumHeight: 120
+            PanelCard {
+                SplitView.preferredHeight: 240
+                SplitView.minimumHeight: 130
                 visible: root.activeBottomPanel !== ""
 
                 StackLayout {
@@ -629,30 +705,48 @@ CustomPage {
                 }
 
                 BottomTabButton {
-                    text: qsTr("Folder Resources")
+                    text: qsTr("Resources")
                     isOpen: root.activeBottomPanel === "resources"
                     onClicked: root.activeBottomPanel = (root.activeBottomPanel === "resources") ? "" : "resources"
                 }
 
                 BottomTabButton {
-                    text: qsTr("Output")
+                    text: qsTr("Build output")
                     isOpen: root.activeBottomPanel === "output"
                     onClicked: root.activeBottomPanel = (root.activeBottomPanel === "output") ? "" : "output"
                 }
 
                 BottomTabButton {
-                    text: qsTr("Editor Logs")
+                    text: qsTr("Logs")
                     isOpen: root.activeBottomPanel === "logs"
                     onClicked: root.activeBottomPanel = (root.activeBottomPanel === "logs") ? "" : "logs"
                 }
 
                 BottomTabButton {
-                    text: qsTr("Loaded Resources")
+                    text: qsTr("In memory")
                     isOpen: root.activeBottomPanel === "loadedResources"
                     onClicked: root.activeBottomPanel = (root.activeBottomPanel === "loadedResources") ? "" : "loadedResources"
                 }
 
                 Item { Layout.fillWidth: true }
+
+                // What the editor is doing / what needs attention, always visible.
+                Text {
+                    id: statusText
+                    readonly property string message: {
+                        if (viewportPanel.playing) return qsTr("Playing — press Stop to edit again")
+                        if (ProjectBuilder.isCompiling) return qsTr("Building…")
+                        if (ProjectBuilder.lastCompileFailed) return qsTr("Build failed — open “Build output”")
+                        if (!PrerequisitesManager.canBuild) return qsTr("Tools missing — you can't build yet")
+                        if (root.currentScenePath === "") return qsTr("No scene open — open the Scenes tab")
+                        if (root.sceneDirty) return qsTr("Unsaved changes — Ctrl+S to save")
+                        return qsTr("All changes saved")
+                    }
+                    text: message
+                    font.pixelSize: 11
+                    color: ProjectBuilder.lastCompileFailed || !PrerequisitesManager.canBuild ? Theme.error
+                         : (root.sceneDirty || ProjectBuilder.isCompiling) ? Theme.warning : Theme.darkGrey
+                }
             }
         }
     }
@@ -688,56 +782,25 @@ CustomPage {
         }
     }
 
-    Rectangle {
+    // The build failed (or can't even start): say why in plain words and where to look.
+    Banner {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.topMargin: 64
         anchors.leftMargin: 16
         anchors.rightMargin: 16
-        height: 44
-        radius: 6
-        color: "#3a1414"
-        border.color: "#8a2b2b"
+        z: 5
         visible: ProjectBuilder.lastCompileFailed && !ProjectBuilder.isCompiling && !root.compileFailureDismissed
-
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 12
-            anchors.rightMargin: 12
-            spacing: 10
-
-            MuiIcon {
-                name: "error"
-                font.pixelSize: 18
-                color: "#ff6b6b"
-            }
-
-            Text {
-                Layout.fillWidth: true
-                text: qsTr("Project failed to compile — fix the errors, then recompile. See the Output panel for details.")
-                color: Theme.white
-                font.pixelSize: 12
-                elide: Text.ElideRight
-            }
-
-            AppButton {
-                text: qsTr("View Output")
-                onClicked: root.activeBottomPanel = "output"
-            }
-
-            MuiIcon {
-                name: "close"
-                font.pixelSize: 16
-                color: Theme.grey
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.margins: -4
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.compileFailureDismissed = true
-                }
-            }
-        }
+        kind: "error"
+        closable: true
+        title: PrerequisitesManager.canBuild ? qsTr("Your project didn't build")
+                                              : qsTr("Your project can't build: some tools are missing")
+        text: PrerequisitesManager.canBuild
+              ? qsTr("Read the red lines in “Build output” to find what to fix, then press Build ▸ Compile scripts.")
+              : qsTr("Missing: %1. Install them, then press Build ▸ Compile scripts.").arg(PrerequisitesManager.missingSummary)
+        actionText: PrerequisitesManager.canBuild ? qsTr("Show build output") : qsTr("How to install")
+        onActionTriggered: PrerequisitesManager.canBuild ? root.activeBottomPanel = "output" : prerequisitesDialog.open()
+        onClosed: root.compileFailureDismissed = true
     }
 }

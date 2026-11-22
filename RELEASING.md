@@ -16,6 +16,10 @@ The editor itself downloads the other pieces at runtime, from their GitHub relea
 | Editor bridge | `noi_engine_editor_bridge` | `noi_engine_editor_bridge-<os>-<arch>.zip` | editor only: runs the scene live in the viewport |
 | Template | `template-basic-2d` | the `v<version>` tag archive | starting point of a new project |
 
+## Testing locally before an editor release
+
+The editor is only tagged once it has been tried by hand. Build and run it from the source tree (`cmake --preset debug && cmake --build --preset debug`), try a full round (new project, edit, Save, Play, Build release), and only then push the `v<x.y.z>` tag. The other repositories are released as soon as they change, in the order below.
+
 ## Order
 
 Each step needs the previous one to be published, because they download each other.

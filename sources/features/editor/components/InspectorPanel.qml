@@ -394,13 +394,6 @@ Rectangle {
 
     color: Theme.bgSecondary
 
-    Rectangle {
-        anchors.left: parent.left
-        width: 1
-        height: parent.height
-        color: Theme.borderColor
-    }
-
     EmptyState {
         visible: !root.hasSelection
 
@@ -408,8 +401,8 @@ Rectangle {
         width: parent.width - 24
 
         icon: "ads_click"
-        title: qsTr("No Selection")
-        description: qsTr("Select an entity in the hierarchy, or a material in Loaded Resources, to inspect its properties.")
+        title: qsTr("Nothing selected")
+        description: qsTr("Click an object in the Hierarchy or in the viewport to edit it here: its position, size, appearance and scripts.")
     }
 
     ColumnLayout {

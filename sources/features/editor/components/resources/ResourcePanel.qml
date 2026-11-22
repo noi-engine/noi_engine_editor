@@ -35,7 +35,9 @@ Item {
         RenameDialog {
             id: renameDialog
             onConfirmed: function (newName) {
-                CurrentProjectResourcesManager.renameItem(renameDialog.targetPath, newName);
+                if (!CurrentProjectResourcesManager.renameItem(renameDialog.targetPath, newName)) {
+                    Notifier.error(qsTr("Couldn't rename it to \"%1\": a file or folder with that name probably already exists.").arg(newName));
+                }
             }
         }
 
@@ -44,6 +46,8 @@ Item {
             onConfirmed: {
                 if (CurrentProjectResourcesManager.deleteItem(deleteDialog.targetPath)) {
                     rootItem.selectedFilePath = "";
+                } else {
+                    Notifier.error(qsTr("Couldn't delete %1. Check that no other program is using it.").arg(deleteDialog.targetName));
                 }
             }
         }
@@ -51,21 +55,27 @@ Item {
         NewFolderDialog {
             id: newFolderDialog
             onConfirmed: function (folderName) {
-                CurrentProjectResourcesManager.createFolder(targetPath, folderName);
+                if (!CurrentProjectResourcesManager.createFolder(targetPath, folderName)) {
+                    Notifier.error(qsTr("Couldn't create the folder \"%1\": it probably already exists.").arg(folderName));
+                }
             }
         }
 
         ImportDialog {
             id: importDialog
             onImported: function (paths) {
-                CurrentProjectResourcesManager.importPaths(paths, rootItem.currentFolder);
+                if (!CurrentProjectResourcesManager.importPaths(paths, rootItem.currentFolder)) {
+                    Notifier.error(qsTr("Some items couldn't be imported. Check that they still exist and that the project folder is writable."));
+                }
             }
         }
 
         ResourceDropArea {
             anchors.fill: parent
             onImportDropped: function (paths) {
-                CurrentProjectResourcesManager.importPaths(paths, rootItem.currentFolder);
+                if (!CurrentProjectResourcesManager.importPaths(paths, rootItem.currentFolder)) {
+                    Notifier.error(qsTr("Some dropped items couldn't be imported. Check that they still exist and that the project folder is writable."));
+                }
             }
         }
 
@@ -102,6 +112,25 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 1
                 color: Theme.borderColor
+            }
+
+            // What this panel is for, and how to use a file in the scene.
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: hintText.implicitHeight + 12
+                color: Theme.bgTertiary
+
+                Text {
+                    id: hintText
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    anchors.leftMargin: 12
+                    text: qsTr("Your project's files (images, sounds…). To use an image in the scene, drag it onto the viewport, or right-click it and choose “Create Sprite in Scene” or “Use as Background”. Drop files here to import them.")
+                    color: Theme.darkGrey
+                    font.pixelSize: 11
+                    wrapMode: Text.WordWrap
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
 
             GridView {

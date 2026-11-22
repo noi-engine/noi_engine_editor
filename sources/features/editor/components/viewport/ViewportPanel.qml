@@ -24,6 +24,7 @@ Item {
 
     readonly property alias playing: openGLView.playing
 
+    signal scenesRequested()
     signal sceneSaved(bool success)
     signal entityCreated(int entityId, int entityGeneration)
     // The scene camera was moved / resized with its red border.
@@ -306,7 +307,7 @@ Item {
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: qsTr("No Scene Loaded")
+                text: qsTr("No scene open")
                 color: Theme.white
                 font.pixelSize: 14
                 font.bold: true
@@ -314,9 +315,23 @@ Item {
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: qsTr("Double-click a scene in the Scenes panel to open it.")
+                Layout.maximumWidth: 380
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.WordWrap
+                text: ProjectBuilder.isCompiling ? qsTr("The project is building. Your scene opens when it's done.")
+                    : ProjectBuilder.lastCompileFailed ? qsTr("The build failed, so scenes can't open yet. Open “Build output” to see why.")
+                    : qsTr("A scene is one screen of your game. Open an existing one or create a new one.")
                 color: Theme.darkGrey
-                font.pixelSize: 11
+                font.pixelSize: 12
+            }
+
+            AppButton {
+                Layout.alignment: Qt.AlignHCenter
+                visible: !ProjectBuilder.isCompiling && !ProjectBuilder.lastCompileFailed
+                primary: true
+                icon: "landscape"
+                text: qsTr("Browse scenes")
+                onClicked: root.scenesRequested()
             }
         }
     }

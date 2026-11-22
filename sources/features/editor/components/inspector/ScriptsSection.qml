@@ -87,6 +87,15 @@ Rectangle {
             }
         }
 
+        Text {
+            visible: section.expanded
+            Layout.fillWidth: true
+            text: qsTr("A script is the code that makes this object do things: move, react to keys, hit things… It runs when you press Play.")
+            font.pixelSize: 11
+            color: Theme.darkGrey
+            wrapMode: Text.WordWrap
+        }
+
         Repeater {
             model: section.expanded ? section.attached : []
 
@@ -134,10 +143,10 @@ Rectangle {
         Text {
             visible: section.expanded && section.attached.length === 0
             Layout.fillWidth: true
-            text: qsTr("No script attached yet.")
-            font.pixelSize: 10
-            font.italic: true
+            text: qsTr("No script yet: this object just sits there. Attach an existing script or create a new one.")
+            font.pixelSize: 11
             color: Theme.grey
+            wrapMode: Text.WordWrap
         }
 
         RowLayout {
@@ -166,14 +175,25 @@ Rectangle {
             }
         }
 
-        Text {
+        RowLayout {
             visible: section.expanded
             Layout.fillWidth: true
-            text: qsTr("Scripts run in Play mode. Edit their code in sources/scripts, then Compile.")
-            font.pixelSize: 9
-            font.italic: true
-            color: Theme.grey
-            wrapMode: Text.WordWrap
+            spacing: 8
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("Edit the code in your editor, then Build ▸ Compile scripts.")
+                font.pixelSize: 11
+                color: Theme.grey
+                wrapMode: Text.WordWrap
+            }
+
+            AppButton {
+                implicitHeight: 28
+                icon: "folder_open"
+                text: qsTr("Open code folder")
+                onClicked: Qt.openUrlExternally("file://" + CurrentProjectManager.path + "/sources/scripts")
+            }
         }
     }
 }
