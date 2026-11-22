@@ -25,6 +25,12 @@ Item {
     readonly property alias playing: openGLView.playing
 
     signal scenesRequested()
+    // Right-click menu: what was chosen, and where (world position of the click).
+    signal contextAction(string name, real worldX, real worldY)
+    property bool canPaste: false
+    // Moving objects snaps to a grid (one step = snapStep world units, 16 pixels by default).
+    property bool snapToGrid: false
+    readonly property real snapStep: 0.16
     signal sceneSaved(bool success)
     signal snapshotTaken(string path, bool success)
     signal sceneRestored(string path, bool success)
@@ -38,6 +44,7 @@ Item {
     signal imageDropped(string filePath, real x, real y)
 
     readonly property var sceneCamera: openGLView.sceneCamera
+    readonly property var entityLayout: openGLView.entityLayout
 
     Connections {
         target: openGLView
@@ -180,6 +187,7 @@ Item {
     ViewportViewState {
         viewport: root
         sceneShown: root.sceneShown
+        sceneKey: root.scenePath.replace(CurrentProjectManager.resourcesPath() + "/", "")
     }
 
     Shortcut {
@@ -243,6 +251,7 @@ Item {
         }
 
         EntityPicking {
+            id: picking
             anchors.fill: parent
             visible: root.scenePath !== "" && !root.playing
             enabled: root.activeTool === "select" && !root.playing
@@ -257,6 +266,32 @@ Item {
                 if (scale) openGLView.setComponentProperty(entityId, entityGeneration, "transform", "scale", "vec3", scale);
                 root.entityMoved();
             }
+        }
+
+        // Right-click: select what is under the cursor and open the menu. Left clicks fall through.
+        MouseArea {
+            anchors.fill: parent
+            enabled: root.scenePath !== "" && !root.playing
+            acceptedButtons: Qt.RightButton
+
+            onClicked: mouse => {
+                const entry = picking.entityAt(mouse.x, mouse.y);
+                if (entry) root.entityPicked(entry.id, entry.generation);
+                contextMenu.hasEntity = !!entry || root.hasInspectedEntity;
+                contextMenu.isCamera = !!entry && picking.isCamera(entry);
+                contextMenu.canPaste = root.canPaste;
+                const world = root.toWorld(mouse.x, mouse.y);
+                contextMenu.worldX = world.x;
+                contextMenu.worldY = world.y;
+                contextMenu.popup();
+            }
+        }
+
+        ViewportContextMenu {
+            id: contextMenu
+            property real worldX: 0
+            property real worldY: 0
+            onAction: name => root.contextAction(name, worldX, worldY)
         }
 
         CameraFrameHandles {

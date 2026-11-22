@@ -9,13 +9,20 @@ Item {
 
     property Item viewport // ViewportPanel: viewX, viewY, viewZoom, frameCamera()
     property bool sceneShown: false
+    // Which scene the view belongs to (its path inside the resources folder).
+    property string sceneKey: ""
 
     property bool restored: false
 
+    // Another scene: its own view (or the camera's frame the first time), never the previous one's.
+    onSceneKeyChanged: root.restored = false
+
     onSceneShownChanged: {
-        if (!root.sceneShown || root.restored) return;
+        if (!root.sceneShown) { root.restored = false; return; }
+        if (root.restored) return;
         root.restored = true;
-        const view = CurrentProjectManager.editorView || {};
+        const views = CurrentProjectManager.editorView || {};
+        const view = views[root.sceneKey] || {};
         if (view.view_x !== undefined && view.view_y !== undefined && view.zoom) {
             root.viewport.viewX = view.view_x;
             root.viewport.viewY = view.view_y;
@@ -36,11 +43,14 @@ Item {
         id: saveTimer
         interval: 700
         onTriggered: {
-            CurrentProjectManager.editorView = {
+            if (root.sceneKey === "") return;
+            const views = Object.assign({}, CurrentProjectManager.editorView || {});
+            views[root.sceneKey] = {
                 "view_x": root.viewport.viewX,
                 "view_y": root.viewport.viewY,
                 "zoom": root.viewport.viewZoom
             };
+            CurrentProjectManager.editorView = views;
             CurrentProjectManager.saveProject();
         }
     }

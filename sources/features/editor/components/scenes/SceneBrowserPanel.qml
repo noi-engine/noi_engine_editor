@@ -63,7 +63,20 @@ Item {
             name: sceneName,
             resources: {},
             entities: [
-                { name: "main_camera", components: [ { type: "camera_2d" } ] }
+                {
+                    name: "main_camera",
+                    components: [
+                        { type: "transform", properties: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] } },
+                        // Same view as the game window (100 pixels per unit), centred on the origin, so
+                        // whatever is placed near (0, 0) is on screen when the scene runs.
+                        { type: "camera_2d", properties: {
+                            orthographic_size: CurrentProjectManager.windowHeight / 200,
+                            aspect_ratio_width: CurrentProjectManager.windowWidth / CurrentProjectManager.windowHeight,
+                            aspect_ratio_height: 1.0,
+                            zoom: 1.0, near_plane: -1.0, far_plane: 1.0
+                        } }
+                    ]
+                }
             ]
         }, null, 2);
 

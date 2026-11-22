@@ -185,16 +185,43 @@ Rectangle {
     // by wrapping its flat property list as a single synthetic "material" section.
     readonly property var effectiveComponentsData: {
         if (root.material) return [{"type": "material", "properties": root.materialProperties}];
-        if (!root.isSprite || root.showGroupComponents || !root.sectionData("mesh_renderer")) return root.componentsData;
-        const sprite = {
-            "type": "sprite",
-            "meshRenderer": root.sectionData("mesh_renderer").properties,
-            "overrides": (root.sectionData("mesh_renderer_properties") || {properties: []}).properties,
-            "transform": (root.sectionData("transform") || {properties: []}).properties
-        };
-        return [sprite].concat((root.componentsData || [])
-            .filter(c => c.type !== "mesh_renderer" && c.type !== "mesh_renderer_properties"));
+        // The scene camera and "show everything" keep the raw component list.
+        if (root.isCameraEntity || root.showGroupComponents || !root.componentsData || root.componentsData.length === 0)
+            return root.componentsData;
+
+        // Simple view, the way other engines present a node: Object, Appearance, Physics, Scripts.
+        const list = [];
+        const data = type => root.sectionData(type);
+        list.push({
+            "type": "object",
+            "name": (data("name_component") || {properties: []}).properties,
+            "transform": (data("transform") || {properties: []}).properties,
+            "renderLayer": data("render_layer") ? data("render_layer").properties : null
+        });
+        if (data("mesh_renderer")) {
+            list.push({
+                "type": "sprite",
+                "meshRenderer": data("mesh_renderer").properties,
+                "overrides": (data("mesh_renderer_properties") || {properties: []}).properties,
+                "transform": (data("transform") || {properties: []}).properties
+            });
+        }
+        list.push({
+            "type": "physics",
+            "gravity": data("gravity"),
+            "collider": data("box_collider"),
+            "transform": (data("transform") || {properties: []}).properties
+        });
+        if (data("script_component")) list.push(data("script_component"));
+        return list;
     }
+
+    // Components the simple view doesn't cover (cameras, culling, fill screen...): reachable
+    // through "Show all components".
+    readonly property bool hasHiddenComponents: root.entity !== null && !root.isCameraEntity && !root.showGroupComponents
+        && (root.componentsData || []).some(c => ["name_component", "transform", "render_layer", "mesh_renderer",
+                                                  "mesh_renderer_properties", "gravity", "box_collider",
+                                                  "script_component", "world_matrix"].indexOf(c.type) === -1)
 
     readonly property string headerTitle: root.material
         ? (root.material.label !== "" ? root.material.label : ("Material #" + root.material.id))
@@ -369,7 +396,8 @@ Rectangle {
 
     function isExpanded(componentType) {
         const value = root.expandedSections[componentType];
-        return value === undefined ? componentType === "material" : value;
+        // Open by default: the material, and the simple sections (sprite look, scripts).
+        return value === undefined ? (componentType === "material" || componentType === "sprite" || componentType === "script_component") : value;
     }
 
     function toggleExpanded(componentType) {
@@ -506,9 +534,9 @@ Rectangle {
                 spacing: 8
 
                 Text {
-                    visible: root.isSprite && root.showGroupComponents
+                    visible: root.showGroupComponents && root.entity !== null && !root.isCameraEntity
                     Layout.fillWidth: true
-                    text: qsTr("Showing the components behind the sprite. <a href=\"back\">Back to the Sprite section</a>")
+                    text: qsTr("Showing every component. <a href=\"back\">Back to the simple view</a>")
                     textFormat: Text.RichText
                     font.pixelSize: 10
                     color: Theme.grey
@@ -528,7 +556,25 @@ Rectangle {
                         Layout.fillWidth: true
                         visible: item ? item.visible : true
                         sourceComponent: modelData.type === "sprite" ? spriteSection
+                            : modelData.type === "object" ? objectSection
+                            : modelData.type === "physics" ? physicsSection
                             : modelData.type === "script_component" ? scriptsSection : componentSection
+
+                        Component {
+                            id: objectSection
+                            ObjectSection {
+                                modelData: sectionLoader.modelData
+                                inspector: root
+                            }
+                        }
+
+                        Component {
+                            id: physicsSection
+                            PhysicsSection {
+                                modelData: sectionLoader.modelData
+                                inspector: root
+                            }
+                        }
 
                         Component {
                             id: componentSection
@@ -567,10 +613,36 @@ Rectangle {
                     wrapMode: Text.Wrap
                 }
 
+                // Things the simple view doesn't show yet: one click each.
                 AppButton {
                     Layout.fillWidth: true
                     Layout.topMargin: 6
-                    visible: root.entity !== null && root.addComponentMenuEntries().length > 0
+                    visible: root.entity !== null && !root.isCameraEntity && !root.material && !root.hasComponent("mesh_renderer") && !root.showGroupComponents
+                    icon: "image"
+                    text: qsTr("Give it an appearance (sprite)")
+                    onClicked: addSpriteDialog.open()
+                }
+
+                AppButton {
+                    Layout.fillWidth: true
+                    visible: root.entity !== null && !root.isCameraEntity && !root.material && !root.hasComponent("script_component") && !root.showGroupComponents
+                    icon: "code"
+                    text: qsTr("Attach a script")
+                    onClicked: root.addScriptComponent()
+                }
+
+                AppButton {
+                    Layout.fillWidth: true
+                    visible: root.hasHiddenComponents
+                    icon: "tune"
+                    text: qsTr("Show all components")
+                    onClicked: root.showGroupComponents = true
+                }
+
+                AppButton {
+                    Layout.fillWidth: true
+                    Layout.topMargin: 6
+                    visible: root.entity !== null && (root.showGroupComponents || root.isCameraEntity) && root.addComponentMenuEntries().length > 0
 
                     icon: "add_circle"
                     text: qsTr("Add Component")

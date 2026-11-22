@@ -81,8 +81,14 @@ Item {
             const dy = mouse.y - start.y;
             if (!moving && Math.abs(dx) + Math.abs(dy) < 3) return;
             moving = true;
-            root.entityTransformed(dragged.id, dragged.generation,
-                [startPosition[0] + dx / root.viewport.unit, startPosition[1] - dy / root.viewport.unit, startPosition[2]], null);
+            let x = startPosition[0] + dx / root.viewport.unit;
+            let y = startPosition[1] - dy / root.viewport.unit;
+            if (root.viewport.snapToGrid && !(mouse.modifiers & Qt.AltModifier)) {
+                const step = root.viewport.snapStep;
+                x = Math.round(x / step) * step;
+                y = Math.round(y / step) * step;
+            }
+            root.entityTransformed(dragged.id, dragged.generation, [x, y, startPosition[2]], null);
         }
 
         onReleased: dragged = null

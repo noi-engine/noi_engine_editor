@@ -193,6 +193,13 @@ CustomPage {
 
     // Components of the Hierarchy's entity presets (see EntityPresetMenu). Adds are applied
     // before property edits, so everything lands in the same frame.
+    // Where new objects start: the middle of what the scene camera sees, so they are on screen
+    // when the scene runs.
+    function cameraCenter() {
+        const cam = viewportPanel.sceneCamera;
+        return cam && cam.valid ? [cam.x, cam.y, 0] : [0, 0, 0];
+    }
+
     function applyEntityPreset(entity, preset, image) {
         if (preset === "" || preset === "empty") return;
         if (preset === "image") {
@@ -216,12 +223,16 @@ CustomPage {
         if (preset === "trigger_zone") {
             // Invisible area that only reports who enters it (coins, doors, damage zones...).
             viewportPanel.addComponent(id, gen, "transform");
+            viewportPanel.setComponentProperty(id, gen, "transform", "position", "vec3", root.cameraCenter());
             viewportPanel.addComponent(id, gen, "box_collider");
             viewportPanel.setComponentProperty(id, gen, "box_collider", "is_static", "bool", true);
             viewportPanel.setComponentProperty(id, gen, "box_collider", "is_trigger", "bool", true);
             return;
         }
         viewportPanel.addComponent(id, gen, "transform");
+        if (preset !== "background") {
+            viewportPanel.setComponentProperty(id, gen, "transform", "position", "vec3", root.cameraCenter());
+        }
         viewportPanel.addComponent(id, gen, "render_layer");
         viewportPanel.addComponent(id, gen, "mesh_renderer");
         viewportPanel.addComponent(id, gen, "mesh_renderer_properties");
@@ -367,6 +378,83 @@ CustomPage {
         else root.startPlay();
     }
 
+    // ---- Copy / paste / align / order (the viewport's right-click menu and keyboard shortcuts).
+    // The clipboard holds a reference to an object of the open scene; pasting makes a copy of it.
+    property var clipboard: null
+    readonly property bool canPaste: clipboard !== null && clipboard.scene === root.currentScenePath
+
+    function layoutEntry(entity) {
+        for (const entry of viewportPanel.entityLayout || []) {
+            if (entity && entry.id === entity.id && entry.generation === entity.generation) return entry;
+        }
+        return null;
+    }
+
+    function copySelectedEntity() {
+        const entity = root.selectedEntity;
+        if (!entity || entity.name === "main_camera") return;
+        root.clipboard = {id: entity.id, generation: entity.generation, name: entity.name, scene: root.currentScenePath};
+        Notifier.info(qsTr("Copied “%1”").arg(entity.name || qsTr("object")));
+    }
+
+    // worldPosition: where the copy goes ([x, y, z]); without it, next to the original.
+    function pasteEntity(worldPosition) {
+        if (!root.canPaste || viewportPanel.playing) return;
+        const source = root.clipboard;
+        let position = worldPosition;
+        if (!position) {
+            const entry = root.layoutEntry(source);
+            position = entry ? [entry.position[0] + 0.3, entry.position[1] - 0.3, entry.position[2]] : root.cameraCenter();
+        }
+        root.pendingCreates = root.pendingCreates.concat([{folder: null, preset: "", position: position}]);
+        viewportPanel.duplicateEntity(source.id, source.generation, (source.name || "Object") + " copy");
+        root.touch();
+    }
+
+    // Moves the selected object against an edge (or the middle) of what the scene camera sees.
+    function alignSelected(mode) {
+        const entity = root.selectedEntity;
+        const entry = root.layoutEntry(entity);
+        const cam = viewportPanel.sceneCamera;
+        if (!entry || !cam || !cam.valid || viewportPanel.playing) return;
+        const halfH = cam.orthographicSize / cam.zoom;
+        const halfW = halfH * cam.aspectRatio;
+        const w = Math.abs(entry.size[0]), h = Math.abs(entry.size[1]);
+        let x = entry.position[0], y = entry.position[1];
+        if (mode === "center" || mode === "hcenter") x = cam.x;
+        if (mode === "center" || mode === "vcenter") y = cam.y;
+        if (mode === "left") x = cam.x - halfW + w / 2;
+        if (mode === "right") x = cam.x + halfW - w / 2;
+        if (mode === "top") y = cam.y + halfH - h / 2;
+        if (mode === "bottom") y = cam.y - halfH + h / 2;
+        viewportPanel.setComponentProperty(entity.id, entity.generation, "transform", "position", "vec3", [x, y, entry.position[2]]);
+        root.touch();
+    }
+
+    // Draw order: above everything else, or below it.
+    function reorderSelected(front) {
+        const entity = root.selectedEntity;
+        if (!entity || viewportPanel.playing) return;
+        let extreme = 0;
+        for (const entry of viewportPanel.entityLayout || []) {
+            if (entry.renderOrder === undefined) continue;
+            extreme = front ? Math.max(extreme, entry.renderOrder) : Math.min(extreme, entry.renderOrder);
+        }
+        viewportPanel.setComponentProperty(entity.id, entity.generation, "render_layer", "order", "float", front ? extreme + 1 : extreme - 1);
+        root.touch();
+    }
+
+    function viewportAction(name, worldX, worldY) {
+        if (name === "copy") root.copySelectedEntity();
+        else if (name === "paste") root.pasteEntity([worldX, worldY, 0]);
+        else if (name === "duplicate") root.duplicateSelectedEntity();
+        else if (name === "delete") root.deleteSelectedEntity();
+        else if (name === "front") root.reorderSelected(true);
+        else if (name === "back") root.reorderSelected(false);
+        else if (name === "frame") viewportPanel.frameCamera();
+        else if (name.indexOf("align_") === 0) root.alignSelected(name.substring(6));
+    }
+
     function deleteSelectedEntity() {
         const entity = root.selectedEntity;
         if (!entity || entity.name === "main_camera" || viewportPanel.playing) return;
@@ -415,6 +503,18 @@ CustomPage {
         sequence: StandardKey.Delete
         enabled: root.selectedEntity !== null && !root.typingInField && !viewportPanel.playing
         onActivated: root.deleteSelectedEntity()
+    }
+
+    Shortcut {
+        sequence: StandardKey.Copy
+        enabled: root.selectedEntity !== null && !root.typingInField && !viewportPanel.playing
+        onActivated: root.copySelectedEntity()
+    }
+
+    Shortcut {
+        sequence: StandardKey.Paste
+        enabled: root.canPaste && !root.typingInField && !viewportPanel.playing
+        onActivated: root.pasteEntity(null)
     }
 
     Shortcut {
@@ -622,7 +722,7 @@ CustomPage {
                         anchors.fill: parent
                         enabled: !viewportPanel.playing
                         entities: viewportPanel.loadedEntities
-                        onImageDropped: filePath => root.createImageSprite(filePath, false, viewportPanel.viewX, viewportPanel.viewY)
+                        onImageDropped: filePath => root.createImageSprite(filePath, false, root.cameraCenter()[0], root.cameraCenter()[1])
                         sceneName: root.sceneName(root.currentScenePath)
                         sceneDirty: root.sceneDirty
                         selectedEntity: root.selectedEntity
@@ -690,6 +790,8 @@ CustomPage {
                             inspectedMaterialId: root.selectedMaterial ? root.selectedMaterial.id : 0
                             inspectedMaterialGeneration: root.selectedMaterial ? root.selectedMaterial.generation : 0
 
+                            canPaste: root.canPaste
+                            onContextAction: (name, worldX, worldY) => root.viewportAction(name, worldX, worldY)
                             onScenesRequested: root.activeBottomPanel = "resources"
                             onSnapshotTaken: (path, success) => {
                                 if (success) return;
@@ -750,6 +852,9 @@ CustomPage {
                                 root.pendingCreates = root.pendingCreates.slice(1);
                                 if (pending.folder !== null && pending.folder !== undefined) {
                                     root.setEntityFolder({id: id, generation: gen}, pending.folder);
+                                }
+                                if (pending.position) {
+                                    viewportPanel.setComponentProperty(id, gen, "transform", "position", "vec3", pending.position);
                                 }
                                 root.applyEntityPreset({id: id, generation: gen}, pending.preset, pending.image);
                                 const items = viewportPanel.loadedEntities || [];

@@ -60,6 +60,13 @@ Rectangle {
         Rectangle { width: 1; height: 18; color: Theme.borderColor }
 
         ToolButtonCustom {
+            iconName: "grid_on"
+            tooltipText: qsTr("Snap to grid: moved objects jump by 16 pixels (hold Alt to move freely)")
+            isActive: root.viewport.snapToGrid
+            onClicked: root.viewport.snapToGrid = !root.viewport.snapToGrid
+        }
+
+        ToolButtonCustom {
             iconName: "videocam"
             tooltipText: qsTr("Frame the camera (Ctrl+0)")
             onClicked: root.viewport.frameCamera()

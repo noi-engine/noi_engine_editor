@@ -281,6 +281,19 @@ namespace noi_engine_editor
         }
     }
 
+    QStringList CurrentProjectResourcesManager::imageFiles(const QString& rootPath) const
+    {
+        QStringList files;
+        QDirIterator it(rootPath, {"*.png", "*.jpg", "*.jpeg", "*.bmp", "*.tga", "*.gif"}, QDir::Files,
+                        QDirIterator::Subdirectories);
+        while (it.hasNext())
+        {
+            files.append(it.next());
+        }
+        files.sort(Qt::CaseInsensitive);
+        return files;
+    }
+
     bool CurrentProjectResourcesManager::fileExists(const QString& path) const
     {
         return QFileInfo::exists(path);

@@ -28,6 +28,27 @@ Rectangle {
     readonly property string texture: valueOf(modelData.overrides, "texture:u_texture", "")
     readonly property var scale: valueOf(modelData.transform, "scale", [1, 1, 1])
     readonly property var textures: inspector.resourceLabelsFor("texture")
+    // A scene declares the pictures it loads ("resources.textures": label and path). Read from
+    // the scene file, to know where the current picture is (preview) and which file has which
+    // label. Re-read when the loaded resources change (after a declare + reload).
+    readonly property var sceneTextures: {
+        const touch = inspector.loadedResources; // dependency: re-evaluated after a reload
+        try {
+            const scene = JSON.parse(CurrentProjectResourcesManager.readFile(inspector.currentScenePath));
+            return scene.resources && scene.resources.textures ? scene.resources.textures : [];
+        } catch (e) {
+            return [];
+        }
+    }
+    readonly property var pathToLabel: {
+        const map = {};
+        for (const t of sceneTextures) map[inspector.resourcesPath + "/" + t.path] = t.name;
+        return map;
+    }
+    readonly property string texturePath: {
+        const found = sceneTextures.find(t => t.name === section.texture);
+        return found ? inspector.resourcesPath + "/" + found.path : "";
+    }
     property bool keepRatio: true
     readonly property bool fillsWindow: (inspector.componentsData || []).some(c => c.type === "fill_screen")
 
@@ -216,24 +237,56 @@ Rectangle {
                 Layout.fillWidth: true
                 spacing: 6
 
-                RowLayout {
+                // The current picture and the way to change it.
+                Rectangle {
                     Layout.fillWidth: true
-                    spacing: 6
+                    Layout.preferredHeight: 72
+                    radius: Theme.radius
+                    color: Theme.bgPrimary
+                    border.color: Theme.borderColor
 
-                    ComboBox {
-                        id: textureCombo
-                        Layout.fillWidth: true
-                        model: section.textures
-                        currentIndex: section.textures.indexOf(section.texture)
-                        displayText: currentIndex >= 0 ? currentText : qsTr("(pick an image)")
-                        onActivated: index => section.useImage(textAt(index))
-                    }
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 8
+                        spacing: 10
 
-                    AppButton {
-                        text: qsTr("Import...")
-                        icon: "upload"
-                        enabled: !importTexture.busy
-                        onClicked: importTexture.pick()
+                        Rectangle {
+                            Layout.preferredWidth: 56
+                            Layout.preferredHeight: 56
+                            radius: 6
+                            color: Theme.bgTertiary
+                            clip: true
+
+                            Image {
+                                anchors.fill: parent
+                                anchors.margins: 3
+                                source: section.texturePath !== "" ? "file://" + section.texturePath : ""
+                                sourceSize.width: 128
+                                sourceSize.height: 128
+                                fillMode: Image.PreserveAspectFit
+                                asynchronous: true
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: section.texture !== "" ? section.texture : qsTr("No image chosen")
+                                font.pixelSize: 12
+                                color: Theme.white
+                                elide: Text.ElideMiddle
+                            }
+
+                            AppButton {
+                                implicitHeight: 28
+                                icon: "image_search"
+                                text: qsTr("Choose image…")
+                                onClicked: imagePicker.open()
+                            }
+                        }
                     }
                 }
 
@@ -311,6 +364,23 @@ Rectangle {
                 wrapMode: Text.WordWrap
             }
         }
+    }
+
+    ImagePickerDialog {
+        id: imagePicker
+        resourcesPath: inspector.resourcesPath
+        currentPath: section.texturePath
+        onImagePicked: filePath => {
+            // Already loaded by the scene: use it. Otherwise register it in the scene first.
+            const known = section.pathToLabel[filePath];
+            if (known) {
+                section.useImage(known);
+                return;
+            }
+            const label = importTexture.declareImage(filePath);
+            if (label !== "") inspector.pendingSpriteTexture = label;
+        }
+        onImportRequested: importTexture.pick()
     }
 
     ImportTextureDialog {
