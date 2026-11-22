@@ -83,7 +83,14 @@ namespace noi_engine_editor
             {
                 arguments << filePath;
             }
-            if (QProcess::startDetached(program, arguments))
+            // Detached, and its console output (VS Code and other Electron editors print a lot of
+            // start-up warnings) goes nowhere instead of into the editor's own log.
+            QProcess process;
+            process.setProgram(program);
+            process.setArguments(arguments);
+            process.setStandardOutputFile(QProcess::nullDevice());
+            process.setStandardErrorFile(QProcess::nullDevice());
+            if (process.startDetached())
             {
                 return true;
             }
