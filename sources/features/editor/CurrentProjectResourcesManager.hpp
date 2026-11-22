@@ -2,6 +2,7 @@
 
 #include <QQmlEngine>
 #include <QString>
+#include <QVariantList>
 
 namespace noi_engine_editor
 {
@@ -19,6 +20,9 @@ namespace noi_engine_editor
         Q_INVOKABLE [[nodiscard]] auto deleteItem(const QString& itemPath) -> bool;
         Q_INVOKABLE [[nodiscard]] auto importPaths(const QList<QString>& paths, const QString& targetFolderPath) -> bool;
         Q_INVOKABLE QStringList getAllScenesRecursively(const QString& rootPath);
+        // Every folder under rootPath, depth first and sorted: [{path, name, depth}] (rootPath itself
+        // first, depth 0). Hidden folders (the editor's scratch space) are left out.
+        Q_INVOKABLE [[nodiscard]] QVariantList folderTree(const QString& rootPath) const;
 
         // Writes a brand-new file with the given text content. Fails (returns false) if
         // parentFolderPath doesn't exist or a file with that name is already there.

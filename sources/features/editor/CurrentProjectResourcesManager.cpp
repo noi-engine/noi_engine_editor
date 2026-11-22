@@ -1,4 +1,5 @@
 #include "CurrentProjectResourcesManager.hpp"
+#include <QDir>
 #include <QDirIterator>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -259,5 +260,41 @@ namespace noi_engine_editor
             sceneFiles.append(it.next());
         }
         return sceneFiles;
+    }
+
+    namespace
+    {
+        auto collectFolders(const QDir& dir, const int depth, QVariantList& out) -> void
+        {
+            auto names = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase);
+            for (const auto& name : names)
+            {
+                const auto path = dir.filePath(name);
+                QVariantMap entry;
+                entry["path"] = path;
+                entry["name"] = name;
+                entry["depth"] = depth;
+                out.append(entry);
+                collectFolders(QDir(path), depth + 1, out);
+            }
+        }
+    }
+
+    QVariantList CurrentProjectResourcesManager::folderTree(const QString& rootPath) const
+    {
+        QVariantList result;
+        const QDir root(rootPath);
+        if (!root.exists())
+        {
+            return result;
+        }
+
+        QVariantMap rootEntry;
+        rootEntry["path"] = root.absolutePath();
+        rootEntry["name"] = root.dirName();
+        rootEntry["depth"] = 0;
+        result.append(rootEntry);
+        collectFolders(root, 1, result);
+        return result;
     }
 }

@@ -332,7 +332,7 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 text: ProjectBuilder.isCompiling ? qsTr("The project is building. Your scene opens when it's done.")
-                    : ProjectBuilder.lastCompileFailed ? qsTr("The build failed, so scenes can't open yet. Open “Build output” to see why.")
+                    : ProjectBuilder.lastCompileFailed ? qsTr("The build failed, so scenes can't open yet. Open “Console” to see why.")
                     : qsTr("A scene is one screen of your game. Open an existing one or create a new one.")
                 color: Theme.darkGrey
                 font.pixelSize: 12

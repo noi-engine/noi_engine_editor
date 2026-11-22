@@ -21,6 +21,12 @@ Item {
     signal spriteRequested(bool background)
 
     readonly property bool isImage: !root.isDir && /\.(png|jpe?g|bmp|tga|gif)$/i.test(root.fileName)
+    readonly property bool isScene: !root.isDir && /\.scene$/i.test(root.fileName)
+    readonly property bool isCode: !root.isDir && /\.(cpp|hpp|h|cc)$/i.test(root.fileName)
+    readonly property bool isShader: !root.isDir && /\.(shader|glsl|vert|frag)$/i.test(root.fileName)
+    readonly property bool isAudio: !root.isDir && /\.(wav|ogg|mp3|flac)$/i.test(root.fileName)
+    readonly property string typeIcon: isDir ? "folder" : isScene ? "landscape" : isCode ? "code"
+        : isShader ? "blur_on" : isAudio ? "music_note" : "description"
 
     // Images can be dragged into the viewport to create a sprite there.
     Drag.active: mouseArea.drag.active && root.isImage
@@ -52,10 +58,35 @@ Item {
         anchors.centerIn: parent
         spacing: 6 * root.iconScale
 
-        IconBadge {
+        // Images show themselves; everything else gets the icon of its kind.
+        Rectangle {
             Layout.alignment: Qt.AlignHCenter
-            icon: root.isDir ? "folder" : "description"
-            scale: root.iconScale
+            Layout.preferredWidth: 56 * root.iconScale
+            Layout.preferredHeight: 56 * root.iconScale
+            radius: 8
+            color: root.isScene ? Theme.primaryLightB : Theme.bgTertiary
+            border.color: Theme.borderColor
+            clip: true
+
+            Image {
+                anchors.fill: parent
+                anchors.margins: 3
+                visible: root.isImage
+                source: root.isImage ? "file://" + root.filePath : ""
+                sourceSize.width: 128
+                sourceSize.height: 128
+                fillMode: Image.PreserveAspectFit
+                asynchronous: true
+                cache: true
+            }
+
+            MuiIcon {
+                anchors.centerIn: parent
+                visible: !root.isImage
+                name: root.typeIcon
+                font.pixelSize: 26 * root.iconScale
+                color: root.isScene ? Theme.primaryColor : (root.isDir ? Theme.warning : Theme.darkGrey)
+            }
         }
 
         Text {

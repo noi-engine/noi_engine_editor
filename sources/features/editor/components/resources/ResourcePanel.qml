@@ -10,6 +10,8 @@ Item {
 
     // An image to put in the open scene (see ProjectEditorPage.createImageSprite()).
     signal imageSpriteRequested(string filePath, bool background)
+    // A scene file was double-clicked: open it in the editor.
+    signal sceneOpenRequested(string filePath)
 
     readonly property string rootFolder: CurrentProjectManager.resourcesPath()
     property string currentFolder: rootFolder
@@ -79,8 +81,84 @@ Item {
             }
         }
 
-        ColumnLayout {
+        RowLayout {
             anchors.fill: parent
+            spacing: 0
+
+            // Folder tree (like the left column of other editors' asset browsers).
+            Rectangle {
+                Layout.fillHeight: true
+                Layout.preferredWidth: 200
+                color: Theme.bgSecondary
+
+                Rectangle {
+                    anchors.right: parent.right
+                    width: 1
+                    height: parent.height
+                    color: Theme.borderColor
+                }
+
+                property var folders: []
+                function refresh() { folders = CurrentProjectResourcesManager.folderTree(rootItem.rootFolder); }
+                Component.onCompleted: refresh()
+
+                Connections {
+                    target: folderModel
+                    function onCountChanged() { treeColumn.parent.refresh(); }
+                }
+
+                ListView {
+                    id: treeColumn
+                    anchors.fill: parent
+                    anchors.topMargin: 6
+                    anchors.bottomMargin: 6
+                    clip: true
+                    model: parent.folders
+                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                    delegate: Rectangle {
+                        required property var modelData
+                        readonly property bool current: rootItem.currentFolder === modelData.path
+                        width: treeColumn.width - 1
+                        height: 28
+                        color: current ? Theme.primaryLightB : (treeArea.containsMouse ? Theme.bgTertiary : "transparent")
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 10 + modelData.depth * 14
+                            anchors.rightMargin: 8
+                            spacing: 7
+
+                            MuiIcon {
+                                name: current ? "folder_open" : "folder"
+                                font.pixelSize: 16
+                                color: current ? Theme.primaryColor : Theme.warning
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: modelData.depth === 0 ? qsTr("Project files") : modelData.name
+                                font.pixelSize: 12
+                                font.weight: current ? Font.DemiBold : Font.Normal
+                                color: current ? Theme.white : Theme.darkGrey
+                                elide: Text.ElideRight
+                            }
+                        }
+
+                        MouseArea {
+                            id: treeArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: rootItem.enterFolder(modelData.path)
+                        }
+                    }
+                }
+            }
+
+            ColumnLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
             spacing: 0
 
             ResourceToolbar {
@@ -169,6 +247,8 @@ Item {
                     onDoubleClicked: {
                         if (isDir)
                             rootItem.enterFolder(model.filePath);
+                        else if (isScene)
+                            rootItem.sceneOpenRequested(model.filePath);
                     }
                     onRenameRequested: renameDialog.openFor(filePath, fileName)
                     onSpriteRequested: background => rootItem.imageSpriteRequested(filePath, background)
@@ -184,6 +264,7 @@ Item {
                             rootItem.gridScale = Math.max(0.75, rootItem.gridScale - 0.1);
                     }
                 }
+            }
             }
         }
     }

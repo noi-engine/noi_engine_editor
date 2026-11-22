@@ -453,7 +453,7 @@ CustomPage {
             } else {
                 root.activeBottomPanel = "output";
                 Notifier.error(PrerequisitesManager.canRelease
-                    ? qsTr("The release build failed. Open “Build output” to see why.")
+                    ? qsTr("The release build failed. Open “Console” to see why.")
                     : qsTr("The release build couldn't run: some tools are missing."));
             }
         }
@@ -463,7 +463,6 @@ CustomPage {
         target: ProjectBuilder
         function onIsCompilingChanged() {
             if (ProjectBuilder.isCompiling) {
-                root.activeBottomPanel = "output";
                 root.compileFailureDismissed = false;
             }
         }
@@ -471,8 +470,9 @@ CustomPage {
             if (success) {
                 if (root.compileWasManual) Notifier.success(qsTr("Build finished: your scripts are up to date"));
             } else {
+                root.activeBottomPanel = "output"; // show why it failed
                 Notifier.error(PrerequisitesManager.canBuild
-                    ? qsTr("The build failed. Open “Build output” to see why.")
+                    ? qsTr("The build failed. Open “Console” to see why.")
                     : qsTr("The build couldn't run: some tools are missing."));
             }
             root.compileWasManual = true;
@@ -853,6 +853,7 @@ CustomPage {
 
                     ResourcePanel {
                         id: resourcePanel
+                        onSceneOpenRequested: filePath => root.openScene(filePath)
                         onImageSpriteRequested: (filePath, background) =>
                             root.createImageSprite(filePath, background, viewportPanel.viewX, viewportPanel.viewY)
                     }
@@ -909,7 +910,7 @@ CustomPage {
                     readonly property string message: {
                         if (viewportPanel.playing) return qsTr("Playing — press Stop to edit again")
                         if (ProjectBuilder.isCompiling) return qsTr("Building…")
-                        if (ProjectBuilder.lastCompileFailed) return qsTr("Build failed — open “Build output”")
+                        if (ProjectBuilder.lastCompileFailed) return qsTr("Build failed — open “Console”")
                         if (!PrerequisitesManager.canBuild) return qsTr("Tools missing — you can't build yet")
                         if (root.currentScenePath === "") return qsTr("No scene open — open the Scenes tab")
                         if (root.sceneDirty) return qsTr("Unsaved changes — Ctrl+S to save")
@@ -970,7 +971,7 @@ CustomPage {
         title: PrerequisitesManager.canBuild ? qsTr("Your project didn't build")
                                               : qsTr("Your project can't build: some tools are missing")
         text: PrerequisitesManager.canBuild
-              ? qsTr("Read the red lines in “Build output” to find what to fix, then press Build ▸ Compile scripts.")
+              ? qsTr("Read the red lines in “Console” to find what to fix, then press Build ▸ Compile scripts.")
               : qsTr("Missing: %1. Install them, then press Build ▸ Compile scripts.").arg(PrerequisitesManager.missingSummary)
         actionText: PrerequisitesManager.canBuild ? qsTr("Show build output") : qsTr("How to install")
         onActionTriggered: PrerequisitesManager.canBuild ? root.activeBottomPanel = "output" : prerequisitesDialog.open()
