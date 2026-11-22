@@ -50,14 +50,15 @@ set_source_files_properties(${NOI_ENGINE_EDITOR_QML_SINGLETONS} PROPERTIES QT_QM
 set_source_files_properties(sources/features/editor/components/viewport/ViewportPanel.qml
         PROPERTIES QT_QML_SKIP_CACHEGEN TRUE)
 
-# Sources are collected by folder, so a new file only has to be dropped in the right place:
+# Sources are collected by folder, so a new file only has to be dropped in the right place
+# (re-run CMake to pick it up; CONFIGURE_DEPENDS makes ninja re-run CMake forever with qt_add_qml_module):
 #   sources/common/       shared QML components and helpers (no feature knowledge)
 #   sources/features/<f>/ one folder per feature: C++ managers at its root, QML in components/
 #   sources/pages/        top-level pages, assembled from the features
-file(GLOB_RECURSE NOI_ENGINE_EDITOR_QML_FILES CONFIGURE_DEPENDS
+file(GLOB_RECURSE NOI_ENGINE_EDITOR_QML_FILES
         RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         Main.qml sources/*.qml sources/*.js)
-file(GLOB_RECURSE NOI_ENGINE_EDITOR_CPP_FILES CONFIGURE_DEPENDS
+file(GLOB_RECURSE NOI_ENGINE_EDITOR_CPP_FILES
         RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         sources/*.hpp sources/*.cpp)
 
