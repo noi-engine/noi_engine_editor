@@ -57,6 +57,8 @@ Rectangle {
         inspector.propertyEdited("box_collider", "offset_y", "float", 0);
     }
 
+    readonly property bool expanded: inspector.isExpanded("physics")
+
     Layout.fillWidth: true
     implicitHeight: column.implicitHeight + 24
     radius: Theme.radius
@@ -70,7 +72,14 @@ Rectangle {
         spacing: 12
 
         RowLayout {
+            Layout.fillWidth: true
             spacing: 8
+
+            MuiIcon {
+                name: section.expanded ? "expand_more" : "chevron_right"
+                font.pixelSize: 16
+                color: Theme.grey
+            }
 
             MuiIcon {
                 name: "sports_basketball"
@@ -79,182 +88,193 @@ Rectangle {
             }
 
             Text {
+                Layout.fillWidth: true
                 text: qsTr("Physics")
                 font.pixelSize: 13
                 font.weight: Font.DemiBold
                 color: Theme.white
             }
+
+            // The whole header folds / unfolds the card.
+            TapHandler { onTapped: section.inspector.toggleExpanded("physics") }
+            HoverHandler { cursorShape: Qt.PointingHandCursor }
         }
 
-        // ---- Gravity
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 0
-
-                Text {
-                    text: qsTr("Falls with gravity")
-                    font.pixelSize: 12
-                    color: Theme.white
-                }
-
-                Text {
-                    Layout.fillWidth: true
-                    text: qsTr("It drops until it lands on something solid.")
-                    font.pixelSize: 10
-                    color: Theme.grey
-                    wrapMode: Text.WordWrap
-                }
-            }
-
-            Switch {
-                checked: section.hasGravity
-                onToggled: {
-                    if (checked) section.inspector.componentAddRequested("gravity");
-                    else section.inspector.componentRemoved("gravity");
-                }
-            }
-        }
-
-        NumberField {
-            visible: section.hasGravity
-            label: qsTr("Gravity strength (higher falls faster)")
-            value: section.gravityStrength
-            onEdited: number => section.inspector.propertyEdited("gravity", "acceleration_y", "float", -number)
-        }
-
-        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.borderColor }
-
-        // ---- Collision
-        Text {
-            text: qsTr("Collision")
-            font.pixelSize: 12
-            color: Theme.white
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 6
-
-            Repeater {
-                model: [
-                    { mode: 0, label: qsTr("None"), icon: "block" },
-                    { mode: 1, label: qsTr("Solid"), icon: "crop_square" },
-                    { mode: 2, label: qsTr("Trigger"), icon: "crop_free" }
-                ]
-
-                delegate: AppButton {
-                    required property var modelData
-                    Layout.fillWidth: true
-                    implicitHeight: 34
-                    icon: modelData.icon
-                    text: modelData.label
-                    primary: section.collisionMode === modelData.mode
-                    onClicked: section.setCollisionMode(modelData.mode)
-                }
-            }
-        }
-
-        Text {
-            Layout.fillWidth: true
-            text: section.collisionMode === 0 ? qsTr("Nothing collides with it: it passes through everything.")
-                : section.collisionMode === 1 ? qsTr("Solid: things can't pass through it.")
-                : qsTr("Trigger: nothing is pushed, your scripts are told when something enters it.")
-            font.pixelSize: 10
-            color: Theme.grey
-            wrapMode: Text.WordWrap
-        }
-
-        RowLayout {
-            visible: section.collisionMode === 1
-            Layout.fillWidth: true
-            spacing: 10
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 0
-
-                Text {
-                    text: qsTr("Never moves")
-                    font.pixelSize: 12
-                    color: Theme.white
-                }
-
-                Text {
-                    Layout.fillWidth: true
-                    text: qsTr("Floors and walls: others bump into it, it stays put.")
-                    font.pixelSize: 10
-                    color: Theme.grey
-                    wrapMode: Text.WordWrap
-                }
-            }
-
-            Switch {
-                checked: section.isStatic
-                onToggled: section.inspector.propertyEdited("box_collider", "is_static", "bool", checked)
-            }
-        }
-
-        // ---- Box size
         ColumnLayout {
-            visible: section.hasCollider
+            visible: section.expanded
             Layout.fillWidth: true
-            spacing: 8
+            spacing: 12
+            // ---- Gravity
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 10
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 0
+
+                    Text {
+                        text: qsTr("Falls with gravity")
+                        font.pixelSize: 12
+                        color: Theme.white
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: qsTr("It drops until it lands on something solid.")
+                        font.pixelSize: 10
+                        color: Theme.grey
+                        wrapMode: Text.WordWrap
+                    }
+                }
+
+                Switch {
+                    checked: section.hasGravity
+                    onToggled: {
+                        if (checked) section.inspector.componentAddRequested("gravity");
+                        else section.inspector.componentRemoved("gravity");
+                    }
+                }
+            }
+
+            NumberField {
+                visible: section.hasGravity
+                label: qsTr("Gravity strength (higher falls faster)")
+                value: section.gravityStrength
+                onEdited: number => section.inspector.propertyEdited("gravity", "acceleration_y", "float", -number)
+            }
+
+            Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: Theme.borderColor }
+
+            // ---- Collision
+            Text {
+                text: qsTr("Collision")
+                font.pixelSize: 12
+                color: Theme.white
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 6
+
+                Repeater {
+                    model: [
+                        { mode: 0, label: qsTr("None"), icon: "block" },
+                        { mode: 1, label: qsTr("Solid"), icon: "crop_square" },
+                        { mode: 2, label: qsTr("Trigger"), icon: "crop_free" }
+                    ]
+
+                    delegate: AppButton {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        implicitHeight: 34
+                        icon: modelData.icon
+                        text: modelData.label
+                        primary: section.collisionMode === modelData.mode
+                        onClicked: section.setCollisionMode(modelData.mode)
+                    }
+                }
+            }
 
             Text {
-                text: qsTr("Collision box (pixels)")
-                font.pixelSize: 11
-                color: Theme.darkGrey
+                Layout.fillWidth: true
+                text: section.collisionMode === 0 ? qsTr("Nothing collides with it: it passes through everything.")
+                    : section.collisionMode === 1 ? qsTr("Solid: things can't pass through it.")
+                    : qsTr("Trigger: nothing is pushed, your scripts are told when something enters it.")
+                font.pixelSize: 10
+                color: Theme.grey
+                wrapMode: Text.WordWrap
             }
 
             RowLayout {
+                visible: section.collisionMode === 1
+                Layout.fillWidth: true
+                spacing: 10
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 0
+
+                    Text {
+                        text: qsTr("Never moves")
+                        font.pixelSize: 12
+                        color: Theme.white
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: qsTr("Floors and walls: others bump into it, it stays put.")
+                        font.pixelSize: 10
+                        color: Theme.grey
+                        wrapMode: Text.WordWrap
+                    }
+                }
+
+                Switch {
+                    checked: section.isStatic
+                    onToggled: section.inspector.propertyEdited("box_collider", "is_static", "bool", checked)
+                }
+            }
+
+            // ---- Box size
+            ColumnLayout {
+                visible: section.hasCollider
                 Layout.fillWidth: true
                 spacing: 8
 
-                NumberField {
-                    label: qsTr("Width")
-                    decimals: 1
-                    value: section.halfWidth * 200
-                    onEdited: number => section.inspector.propertyEdited("box_collider", "half_width", "float", Math.abs(number) / 200)
+                Text {
+                    text: qsTr("Collision box (pixels)")
+                    font.pixelSize: 11
+                    color: Theme.darkGrey
                 }
 
-                NumberField {
-                    label: qsTr("Height")
-                    decimals: 1
-                    value: section.halfHeight * 200
-                    onEdited: number => section.inspector.propertyEdited("box_collider", "half_height", "float", Math.abs(number) / 200)
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    NumberField {
+                        label: qsTr("Width")
+                        decimals: 1
+                        value: section.halfWidth * 200
+                        onEdited: number => section.inspector.propertyEdited("box_collider", "half_width", "float", Math.abs(number) / 200)
+                    }
+
+                    NumberField {
+                        label: qsTr("Height")
+                        decimals: 1
+                        value: section.halfHeight * 200
+                        onEdited: number => section.inspector.propertyEdited("box_collider", "half_height", "float", Math.abs(number) / 200)
+                    }
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    NumberField {
+                        label: qsTr("Offset X")
+                        decimals: 1
+                        value: section.offsetX * 100
+                        onEdited: number => section.inspector.propertyEdited("box_collider", "offset_x", "float", number / 100)
+                    }
+
+                    NumberField {
+                        label: qsTr("Offset Y")
+                        decimals: 1
+                        value: section.offsetY * 100
+                        onEdited: number => section.inspector.propertyEdited("box_collider", "offset_y", "float", number / 100)
+                    }
+                }
+
+                AppButton {
+                    Layout.fillWidth: true
+                    implicitHeight: 32
+                    icon: "fit_screen"
+                    text: qsTr("Fit to the object's size")
+                    onClicked: section.fitToObject()
                 }
             }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-
-                NumberField {
-                    label: qsTr("Offset X")
-                    decimals: 1
-                    value: section.offsetX * 100
-                    onEdited: number => section.inspector.propertyEdited("box_collider", "offset_x", "float", number / 100)
-                }
-
-                NumberField {
-                    label: qsTr("Offset Y")
-                    decimals: 1
-                    value: section.offsetY * 100
-                    onEdited: number => section.inspector.propertyEdited("box_collider", "offset_y", "float", number / 100)
-                }
-            }
-
-            AppButton {
-                Layout.fillWidth: true
-                implicitHeight: 32
-                icon: "fit_screen"
-                text: qsTr("Fit to the object's size")
-                onClicked: section.fitToObject()
-            }
+    
         }
     }
 }

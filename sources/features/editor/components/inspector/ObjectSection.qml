@@ -24,6 +24,8 @@ Rectangle {
     readonly property bool hasRenderLayer: !!modelData.renderLayer
     readonly property real drawOrder: valueOf(modelData.renderLayer, "order", 0)
 
+    readonly property bool expanded: inspector.isExpanded("object")
+
     Layout.fillWidth: true
     implicitHeight: column.implicitHeight + 24
     radius: Theme.radius
@@ -37,7 +39,14 @@ Rectangle {
         spacing: 12
 
         RowLayout {
+            Layout.fillWidth: true
             spacing: 8
+
+            MuiIcon {
+                name: section.expanded ? "expand_more" : "chevron_right"
+                font.pixelSize: 16
+                color: Theme.grey
+            }
 
             MuiIcon {
                 name: "open_with"
@@ -46,56 +55,67 @@ Rectangle {
             }
 
             Text {
+                Layout.fillWidth: true
                 text: qsTr("Object")
                 font.pixelSize: 13
                 font.weight: Font.DemiBold
                 color: Theme.white
             }
+
+            // The whole header folds / unfolds the card.
+            TapHandler { onTapped: section.inspector.toggleExpanded("object") }
+            HoverHandler { cursorShape: Qt.PointingHandCursor }
         }
 
-        AppTextField {
+        ColumnLayout {
+            visible: section.expanded
             Layout.fillWidth: true
-            label: qsTr("Name")
-            text: section.objectName
-            onAccepted: if (text.trim() !== "" && text.trim() !== section.objectName)
-                            section.inspector.propertyEdited("name_component", "name", "string", text.trim())
-            field.onEditingFinished: if (text.trim() !== "" && text.trim() !== section.objectName)
-                            section.inspector.propertyEdited("name_component", "name", "string", text.trim())
-        }
+            spacing: 12
+            AppTextField {
+                Layout.fillWidth: true
+                label: qsTr("Name")
+                text: section.objectName
+                onAccepted: if (text.trim() !== "" && text.trim() !== section.objectName)
+                                section.inspector.propertyEdited("name_component", "name", "string", text.trim())
+                field.onEditingFinished: if (text.trim() !== "" && text.trim() !== section.objectName)
+                                section.inspector.propertyEdited("name_component", "name", "string", text.trim())
+            }
 
-        Text {
-            text: qsTr("Position (pixels, 100 pixels = 1 unit in your code)")
-            font.pixelSize: 11
-            color: Theme.darkGrey
-        }
+            Text {
+                text: qsTr("Position (pixels, 100 pixels = 1 unit in your code)")
+                font.pixelSize: 11
+                color: Theme.darkGrey
+            }
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 8
 
-            NumberField {
-                label: qsTr("X")
-                decimals: 1
-                value: section.position[0] * 100
-                onEdited: number => section.inspector.propertyEdited("transform", "position", "vec3",
-                                                                      [number / 100, section.position[1], section.position[2]])
+                NumberField {
+                    label: qsTr("X")
+                    decimals: 1
+                    value: section.position[0] * 100
+                    onEdited: number => section.inspector.propertyEdited("transform", "position", "vec3",
+                                                                          [number / 100, section.position[1], section.position[2]])
+                }
+
+                NumberField {
+                    label: qsTr("Y (up is positive)")
+                    decimals: 1
+                    value: section.position[1] * 100
+                    onEdited: number => section.inspector.propertyEdited("transform", "position", "vec3",
+                                                                          [section.position[0], number / 100, section.position[2]])
+                }
             }
 
             NumberField {
-                label: qsTr("Y (up is positive)")
-                decimals: 1
-                value: section.position[1] * 100
-                onEdited: number => section.inspector.propertyEdited("transform", "position", "vec3",
-                                                                      [section.position[0], number / 100, section.position[2]])
+                visible: section.hasRenderLayer
+                label: qsTr("Draw order (higher is in front of lower)")
+                decimals: 0
+                value: section.drawOrder
+                onEdited: number => section.inspector.propertyEdited("render_layer", "order", "float", number)
             }
-        }
-
-        NumberField {
-            visible: section.hasRenderLayer
-            label: qsTr("Draw order (higher is in front of lower)")
-            decimals: 0
-            value: section.drawOrder
-            onEdited: number => section.inspector.propertyEdited("render_layer", "order", "float", number)
+    
         }
     }
 }

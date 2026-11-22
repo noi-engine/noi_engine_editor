@@ -397,7 +397,7 @@ Rectangle {
     function isExpanded(componentType) {
         const value = root.expandedSections[componentType];
         // Open by default: the material, and the simple sections (sprite look, scripts).
-        return value === undefined ? (componentType === "material" || componentType === "sprite" || componentType === "script_component") : value;
+        return value === undefined ? (componentType === "material" || componentType === "sprite" || componentType === "script_component" || componentType === "object" || componentType === "physics") : value;
     }
 
     function toggleExpanded(componentType) {
