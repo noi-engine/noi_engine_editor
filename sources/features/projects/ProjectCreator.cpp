@@ -21,7 +21,15 @@ namespace noi_engine_editor
         const QString& editorBridgeVersion
     ) -> bool
     {
-        const auto projectPath = QDir(location).filePath(name);
+        const auto trimmedName = name.trimmed();
+        if (trimmedName.isEmpty() || trimmedName == QStringLiteral(".") || trimmedName == QStringLiteral("..")
+            || trimmedName.contains('/') || trimmedName.contains('\\'))
+        {
+            emit projectCreationFailed(tr("Invalid project name (no slashes, and not empty)"));
+            return false;
+        }
+
+        const auto projectPath = QDir(location).filePath(trimmedName);
         if (const QDir root(projectPath); root.exists())
         {
             emit projectCreationFailed(tr("A folder with this name already exists"));
@@ -31,15 +39,17 @@ namespace noi_engine_editor
         try
         {
             const auto templatePath = PathResolver::templateAbsolutePath(templateId, templateVersion);
+            QDir().mkpath(location);
             Templi::generate_with_templi_config(
                 templatePath.toStdString(),
                 projectPath.toStdString(),
-                [name, engineVersion, editorBridgeVersion](const Templi::Placeholder& placeholder) -> std::string
+                [trimmedName, engineVersion, resourceCompilerVersion, editorBridgeVersion](const Templi::Placeholder& placeholder) -> std::string
                 {
-                    if (placeholder.m_name == "PROJECT_NAME") return name.toStdString();
+                    if (placeholder.m_name == "PROJECT_NAME") return trimmedName.toStdString();
                     if (placeholder.m_name == "PROJECT_VERSION") return "0.0.1";
                     if (placeholder.m_name == "PROJECT_CATEGORY") return "2D";
                     if (placeholder.m_name == "ENGINE_VERSION") return engineVersion.toStdString();
+                    if (placeholder.m_name == "RESOURCES_COMPILER_VERSION") return resourceCompilerVersion.toStdString();
                     if (placeholder.m_name == "EDITOR_BRIDGE_VERSION") return editorBridgeVersion.toStdString();
                     return "";
                 }
@@ -66,15 +76,17 @@ namespace noi_engine_editor
         catch (const std::exception& exception)
         {
             QDir(projectPath).removeRecursively();
-
-            emit projectCreationFailed(
-                QString::fromUtf8(exception.what())
-            );
-
+            emit projectCreationFailed(QString::fromUtf8(exception.what()));
+            return false;
+        }
+        catch (...)
+        {
+            QDir(projectPath).removeRecursively();
+            emit projectCreationFailed(tr("Unknown error while creating the project"));
             return false;
         }
 
-        emit projectCreated(name, projectPath);
+        emit projectCreated(trimmedName, projectPath);
         return true;
     }
 }

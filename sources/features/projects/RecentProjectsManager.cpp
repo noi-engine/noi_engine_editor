@@ -1,5 +1,7 @@
 #include "RecentProjectsManager.hpp"
 
+#include <QDebug>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QStandardPaths>
@@ -84,7 +86,14 @@ namespace noi_engine_editor
         {
             array.append(Json::serialize<ProjectInfo>(project));
         }
-        JsonIO::write(PathResolver::recentProjectsPath(), QJsonDocument(array));
+        try
+        {
+            JsonIO::write(PathResolver::recentProjectsPath(), QJsonDocument(array));
+        }
+        catch (const std::exception& e)
+        {
+            qWarning() << "[RecentProjectsManager] Failed to save recent projects:" << e.what();
+        }
     }
 
     auto RecentProjectsManager::loadFromDisk() -> void
@@ -103,7 +112,10 @@ namespace noi_engine_editor
 
         for (const auto array = doc.array(); const auto& value : array)
         {
-            m_projects.append(Json::deserialize<ProjectInfo>(value.toObject()));
+            if (const auto project = Json::deserialize<ProjectInfo>(value.toObject()); !project.path.isEmpty())
+            {
+                m_projects.append(project);
+            }
         }
         emit projectsChanged();
     }

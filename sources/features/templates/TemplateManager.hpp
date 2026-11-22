@@ -29,13 +29,14 @@ namespace noi_engine_editor
         auto fetchFailed(const QString& error) -> void;
 
     private:
-        auto fetchIndividualTemplate(const QString& repositoryUrl) -> void;
+        auto fetchIndividualTemplate(const QString& repositoryUrl, int generation) -> void;
         auto checkCompletion() -> void;
         auto setPending(bool pending) -> void;
 
         QNetworkAccessManager m_networkManager;
         QVariantList m_templates;
         int m_pendingRequests = 0;
+        int m_generation = 0;
         bool m_isPending = false;
     };
 }

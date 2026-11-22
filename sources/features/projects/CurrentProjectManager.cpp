@@ -2,9 +2,10 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonObject>
 
-#include "../../common/utils/EditorBridgeResolver.hpp"
+#include "../tools/EditorBridgeResolver.hpp"
 #include "../../common/utils/JsonSerializer.hpp"
 #include "../../common/utils/JsonIO.hpp"
 #include "../../common/utils/PathResolver.hpp"
@@ -71,6 +72,7 @@ namespace noi_engine_editor
         emit windowWidthChanged();
         emit windowHeightChanged();
         emit engineVersionChanged();
+        emit editorViewChanged();
         return true;
     }
 
@@ -84,8 +86,32 @@ namespace noi_engine_editor
 
         try
         {
-            const QJsonObject json = Json::serialize(m_project);
-            JsonIO::write(PathResolver::projectFilePath(m_path), QJsonDocument(json));
+            const auto filePath = PathResolver::projectFilePath(m_path);
+
+            // Start from what's on disk so keys the editor doesn't know about (written by the
+            // template or by hand) survive a save.
+            QJsonObject json;
+            try
+            {
+                json = JsonIO::read(filePath).object();
+            }
+            catch (const std::exception&)
+            {
+            }
+
+            // "path" and "lastOpened" belong to the recent-projects list, not to the project file
+            // (a stored path goes stale as soon as the folder is moved).
+            json.remove("path");
+            json.remove("lastOpened");
+            for (const auto serialized = Json::serialize(m_project); const auto& key : serialized.keys())
+            {
+                if (key != "path" && key != "lastOpened")
+                {
+                    json[key] = serialized.value(key);
+                }
+            }
+
+            JsonIO::write(filePath, QJsonDocument(json));
             return true;
         }
         catch (const std::exception& e)
@@ -107,7 +133,23 @@ namespace noi_engine_editor
             return {};
         }
 
-        return QDir(this->m_path).filePath(m_project.scriptsLibrary);
+        // The project file stores one platform's file name (libgame_scripts.so); a project built
+        // or shared on another OS needs that platform's spelling of the same library.
+        const QFileInfo declared(QDir(this->m_path).filePath(m_project.scriptsLibrary));
+        auto baseName = declared.completeBaseName();
+        if (baseName.startsWith(QStringLiteral("lib")))
+        {
+            baseName = baseName.mid(3);
+        }
+
+#if defined(Q_OS_WIN)
+        const auto fileName = baseName + QStringLiteral(".dll");
+#elif defined(Q_OS_MACOS)
+        const auto fileName = QStringLiteral("lib") + baseName + QStringLiteral(".dylib");
+#else
+        const auto fileName = QStringLiteral("lib") + baseName + QStringLiteral(".so");
+#endif
+        return declared.absoluteDir().filePath(fileName);
     }
 
     auto CurrentProjectManager::bridgeLibraryPath() const -> QString
@@ -143,7 +185,14 @@ namespace noi_engine_editor
         m_project = ProjectInfo{};
 
         emit projectChanged();
+        emit nameChanged();
+        emit versionChanged();
+        emit categoryChanged();
+        emit startSceneChanged();
+        emit windowWidthChanged();
+        emit windowHeightChanged();
         emit engineVersionChanged();
+        emit editorViewChanged();
     }
 
     auto CurrentProjectManager::lastOpenError() const -> QString

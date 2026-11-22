@@ -40,16 +40,23 @@ namespace noi_engine_editor
         m_templates.clear();
         emit templatesChanged();
 
+        // Answers still in flight from a previous fetch must not touch this one's counters.
+        const auto generation = ++m_generation;
         m_pendingRequests = 0;
         setPending(true);
 
         const QUrl indexUrl(TemplateUrlResolver::templatesJsonUrl());
         QNetworkRequest request(indexUrl);
         request.setRawHeader("User-Agent", "noi_engine_editor");
+        request.setTransferTimeout(30'000);
         QNetworkReply* reply = m_networkManager.get(request);
 
-        connect(reply, &QNetworkReply::finished, this, [this, reply, indexUrl]() -> void {
+        connect(reply, &QNetworkReply::finished, this, [this, reply, indexUrl, generation]() -> void {
             reply->deleteLater();
+            if (generation != m_generation)
+            {
+                return;
+            }
 
             if (reply->error() != QNetworkReply::NoError)
             {
@@ -72,26 +79,32 @@ namespace noi_engine_editor
             if (repoList.isEmpty())
             {
                 setPending(false);
+                emit templatesChanged();
                 return;
             }
 
             m_pendingRequests = repoList.size();
             for (const auto& value : repoList)
             {
-                fetchIndividualTemplate(value.toString());
+                fetchIndividualTemplate(value.toString(), generation);
             }
         });
     }
 
-    auto TemplateManager::fetchIndividualTemplate(const QString& repositoryUrl) -> void
+    auto TemplateManager::fetchIndividualTemplate(const QString& repositoryUrl, const int generation) -> void
     {
         const QUrl detailUrl(TemplateUrlResolver::templateJsonUrl(repositoryUrl));
         QNetworkRequest request(detailUrl);
         request.setRawHeader("User-Agent", "noi_engine_editor");
+        request.setTransferTimeout(30'000);
         QNetworkReply* reply = m_networkManager.get(request);
 
-        connect(reply, &QNetworkReply::finished, this, [this, reply, repositoryUrl, detailUrl]() -> void {
+        connect(reply, &QNetworkReply::finished, this, [this, reply, repositoryUrl, detailUrl, generation]() -> void {
             reply->deleteLater();
+            if (generation != m_generation)
+            {
+                return;
+            }
 
             if (reply->error() == QNetworkReply::NoError) {
                 const auto doc = QJsonDocument::fromJson(reply->readAll());

@@ -1,3 +1,4 @@
+#include <QDebug>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 
@@ -14,7 +15,16 @@ auto main(int argc, char* argv[]) -> int
 
     app.setOrganizationName("noi_engine");
     app.setApplicationName("noi_engine_editor");
-    PathResolver::init();
+
+    try
+    {
+        PathResolver::init();
+    }
+    catch (const std::exception& e)
+    {
+        qCritical() << "[main] Can't prepare the editor's data folders:" << e.what();
+        return EXIT_FAILURE;
+    }
 
     QQmlApplicationEngine engine;
     QObject::connect(

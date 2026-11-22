@@ -1,9 +1,13 @@
 #pragma once
 
+#include <QList>
 #include <QObject>
 #include <QQmlEngine>
 #include <QString>
+#include <QStringList>
 #include <functional>
+
+class QProcess;
 
 namespace noi_engine_editor
 {
@@ -21,11 +25,13 @@ namespace noi_engine_editor
 
     public:
         explicit ProjectBuilder(QObject* parent = nullptr);
+        ~ProjectBuilder() override;
 
         // Debug build: the one the viewport runs (scripts library), bumps compileGeneration.
         Q_INVOKABLE auto compile(const QString& projectPath) -> void;
-        // Release build of the game (compiled resources) in build/release/bin. Doesn't touch the
-        // debug build's state.
+        // Release build of the game (compiled resources), then its package (archive of the
+        // game folder, ready to ship) in build/release/packages when the project defines one.
+        // Doesn't touch the debug build's state.
         Q_INVOKABLE auto compileRelease(const QString& projectPath) -> void;
         Q_INVOKABLE auto clearOutput() -> void;
 
@@ -45,6 +51,13 @@ namespace noi_engine_editor
         void releaseFinished(bool success, const QString& outputPath);
 
     private:
+        struct Step
+        {
+            QString program;
+            QStringList arguments;
+        };
+
+        QProcess* m_process{nullptr};
         bool m_isCompiling{false};
         QString m_output;
         int m_compileGeneration{0};
@@ -54,6 +67,8 @@ namespace noi_engine_editor
         auto setCompiling(bool compiling) -> void;
         auto setLastCompileFailed(bool failed) -> void;
         auto appendOutput(const QString& text) -> void;
-        auto build(const QString& projectPath, const QString& preset, const std::function<void(bool)>& onFinished) -> void;
+        [[nodiscard]] static auto presetSteps(const QString& preset) -> QList<Step>;
+        auto runSteps(const QString& projectPath, const QList<Step>& steps,
+                      const std::function<void(bool)>& onFinished, int index = 0) -> void;
     };
 }

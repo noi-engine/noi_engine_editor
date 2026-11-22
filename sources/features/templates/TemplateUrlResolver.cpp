@@ -58,3 +58,17 @@ auto noi_engine_editor::TemplateUrlResolver::zipUrl(const QString& repositoryUrl
         "https://github.com/%1/%2/archive/refs/heads/%3.zip"
     ).arg(repository.owner, repository.name, branch);
 }
+
+auto noi_engine_editor::TemplateUrlResolver::zipUrlForVersion(const QString& repositoryUrl, const QString& version) -> QString
+{
+    GithubRepository repository;
+    if (!parseGithubRepository(repositoryUrl, repository))
+    {
+        return {};
+    }
+
+    const auto tag = version.startsWith("v") ? version : "v" + version;
+    return QString(
+        "https://github.com/%1/%2/archive/refs/tags/%3.zip"
+    ).arg(repository.owner, repository.name, tag);
+}

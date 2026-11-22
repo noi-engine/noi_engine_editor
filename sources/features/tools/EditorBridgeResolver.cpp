@@ -1,6 +1,7 @@
 #include "EditorBridgeResolver.hpp"
 #include "JsonIO.hpp"
 #include "PathResolver.hpp"
+#include "Version.hpp"
 
 #include <QDir>
 #include <QJsonObject>
@@ -9,24 +10,6 @@
 
 namespace noi_engine_editor
 {
-    auto EditorBridgeResolver::compareVersions(const QString& a, const QString& b) -> int
-    {
-        const auto partsA = a.split('.');
-        const auto partsB = b.split('.');
-        const auto count = std::max(partsA.size(), partsB.size());
-
-        for (qsizetype i = 0; i < count; ++i)
-        {
-            const auto valueA = i < partsA.size() ? partsA[i].toInt() : 0;
-            const auto valueB = i < partsB.size() ? partsB[i].toInt() : 0;
-            if (valueA != valueB)
-            {
-                return valueA < valueB ? -1 : 1;
-            }
-        }
-        return 0;
-    }
-
     auto EditorBridgeResolver::resolve(const QString& bridgeVersion, const QString& engineVersion) -> Resolution
     {
         if (bridgeVersion.isEmpty())
@@ -58,7 +41,8 @@ namespace noi_engine_editor
         const auto minEngine = engineRange.value("min").toString();
         const auto maxEngine = engineRange.value("max").toString();
 
-        if (compareVersions(engineVersion, minEngine) < 0 || compareVersions(engineVersion, maxEngine) > 0)
+        if ((!minEngine.isEmpty() && Version::compare(engineVersion, minEngine) < 0)
+            || (!maxEngine.isEmpty() && Version::compare(engineVersion, maxEngine) > 0))
         {
             return {.error = QObject::tr("Editor bridge v%1 supports noi_engine %2 to %3, the project uses %4")
                                  .arg(bridgeVersion, minEngine, maxEngine, engineVersion)};

@@ -27,18 +27,16 @@ namespace noi_engine_editor
             LOG_TAG,
             [targetPath, onFinished](const QByteArray& zipData)
             {
-                const auto success = zip_install::extractZipData(targetPath, zipData, LOG_TAG);
+                const auto success = zip_install::installZipData(targetPath, zipData, LOG_TAG);
                 if (!success)
                 {
                     qWarning() << LOG_TAG << "Extraction failed for target:" << targetPath;
-                    zip_install::removeDirectory(targetPath, LOG_TAG);
                 }
                 onFinished(success);
             },
             [targetPath, onFinished]()
             {
                 qWarning() << LOG_TAG << "Download failed for target:" << targetPath;
-                zip_install::removeDirectory(targetPath, LOG_TAG);
                 onFinished(false);
             }
         );

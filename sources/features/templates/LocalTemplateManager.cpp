@@ -1,6 +1,7 @@
 #include "LocalTemplateManager.hpp"
 #include "PathResolver.hpp"
 #include "TemplateInfo.hpp"
+#include "Version.hpp"
 
 #include <QDir>
 #include <QFile>
@@ -14,43 +15,6 @@
 #include "TemplateInstaller.hpp"
 
 #include <algorithm>
-
-namespace
-{
-    // Compares dot-separated, numeric version strings (e.g. "0.0.9" vs "0.0.10").
-    // Falls back to plain string comparison for any non-numeric segment.
-    auto compareVersions(const QString& lhs, const QString& rhs) -> int
-    {
-        const auto lhsParts = lhs.split('.');
-        const auto rhsParts = rhs.split('.');
-        const auto count = std::max(lhsParts.size(), rhsParts.size());
-
-        for (int i = 0; i < count; ++i)
-        {
-            const auto lhsPart = i < lhsParts.size() ? lhsParts[i] : QString("0");
-            const auto rhsPart = i < rhsParts.size() ? rhsParts[i] : QString("0");
-
-            bool lhsIsNumber = false;
-            bool rhsIsNumber = false;
-            const auto lhsNumber = lhsPart.toLongLong(&lhsIsNumber);
-            const auto rhsNumber = rhsPart.toLongLong(&rhsIsNumber);
-
-            if (lhsIsNumber && rhsIsNumber)
-            {
-                if (lhsNumber != rhsNumber)
-                {
-                    return lhsNumber < rhsNumber ? -1 : 1;
-                }
-            }
-            else if (const auto cmp = lhsPart.compare(rhsPart); cmp != 0)
-            {
-                return cmp < 0 ? -1 : 1;
-            }
-        }
-
-        return 0;
-    }
-}
 
 namespace noi_engine_editor
 {
@@ -80,8 +44,9 @@ namespace noi_engine_editor
         const QDir templateRootDir(PathResolver::templateRootPath(templateId));
 
         auto versions = templateRootDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        versions.removeIf([](const QString& version) { return version.endsWith(QStringLiteral(".part")); });
         std::sort(versions.begin(), versions.end(), [](const QString& lhs, const QString& rhs) {
-            return compareVersions(lhs, rhs) > 0;
+            return Version::compare(lhs, rhs) > 0;
         });
 
         QVariantList result;
@@ -191,7 +156,7 @@ namespace noi_engine_editor
                 }
 
                 const auto info = TemplateInfo::deserialize(doc.object(), "");
-                if (!found || compareVersions(info.version, latest.version) > 0)
+                if (!found || Version::compare(info.version, latest.version) > 0)
                 {
                     latest = info;
                     found = true;

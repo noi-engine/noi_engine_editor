@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Noi Engine Editor
+Comment=Build 2D games visually with the Noi Engine
+Exec=noi_engine_editor
+Icon=noi_engine_editor
+Categories=Development;IDE;
+Terminal=false

@@ -95,7 +95,11 @@ namespace noi_engine_editor
         QVariantList result;
         for (const auto& version : QDir(PathResolver::noiEngineRootPath()).entryList(QDir::Dirs | QDir::NoDotAndDotDot))
         {
-            result.append(version);
+            // Skips leftovers of an interrupted install (including ".part" staging folders).
+            if (QDir(PathResolver::noiEngineContentPath(version)).exists())
+            {
+                result.append(version);
+            }
         }
         return result;
     }
@@ -103,10 +107,13 @@ namespace noi_engine_editor
     auto ToolsManager::installedResourceCompilerVersions() const -> QVariantList
     {
         QVariantList result;
-        for (const auto& version : QDir(PathResolver::resourceCompilerRootPath()).entryList(
-                 QDir::Dirs | QDir::NoDotAndDotDot))
+        for (const auto& version : QDir(PathResolver::resourceCompilerRootPath()).entryList(QDir::Dirs | QDir::NoDotAndDotDot))
         {
-            result.append(version);
+            // Skips leftovers of an interrupted install (including ".part" staging folders).
+            if (QDir(PathResolver::resourceCompilerContentPath(version)).exists())
+            {
+                result.append(version);
+            }
         }
         return result;
     }
@@ -114,10 +121,13 @@ namespace noi_engine_editor
     auto ToolsManager::installedEditorBridgeVersions() const -> QVariantList
     {
         QVariantList result;
-        for (const auto& version : QDir(PathResolver::editorBridgeRootPath()).entryList(
-                 QDir::Dirs | QDir::NoDotAndDotDot))
+        for (const auto& version : QDir(PathResolver::editorBridgeRootPath()).entryList(QDir::Dirs | QDir::NoDotAndDotDot))
         {
-            result.append(version);
+            // Skips leftovers of an interrupted install (including ".part" staging folders).
+            if (QDir(PathResolver::editorBridgeContentPath(version)).exists())
+            {
+                result.append(version);
+            }
         }
         return result;
     }
@@ -151,6 +161,10 @@ namespace noi_engine_editor
             [this, version](const bool success)
             {
                 const auto installed = success && flattenScriptsDir(PathResolver::resourceCompilerPath(version));
+                if (success && !installed)
+                {
+                    QDir(PathResolver::resourceCompilerPath(version)).removeRecursively();
+                }
                 setInstallingResourceCompiler(false);
                 emit installFinished("resource_compiler", version, installed);
             }

@@ -73,7 +73,7 @@ namespace noi_engine_editor
         const std::function<void(bool success)>& onFinished
     ) -> void
     {
-        const auto downloadUrl = TemplateUrlResolver::zipUrl(repositoryUrl);
+        const auto downloadUrl = TemplateUrlResolver::zipUrlForVersion(repositoryUrl, version);
         const auto targetPath = PathResolver::templateAbsolutePath(templateId, version);
 
         zip_install::downloadZip(
@@ -85,15 +85,13 @@ namespace noi_engine_editor
                 const auto success = extractAndUnwrap(targetPath, zipData);
                 if (!success)
                 {
-                    qWarning() << LOG_TAG << "Extraction/Unwrapping failed for template:" << templateId << "- cleaning target path:" << targetPath;
-                    zip_install::removeDirectory(targetPath, LOG_TAG);
+                    qWarning() << LOG_TAG << "Extraction/Unwrapping failed for template:" << templateId;
                 }
                 onFinished(success);
             },
             [targetPath, templateId, onFinished]()
             {
-                qWarning() << LOG_TAG << "Download failed for template:" << templateId << "- cleaning target path:" << targetPath;
-                zip_install::removeDirectory(targetPath, LOG_TAG);
+                qWarning() << LOG_TAG << "Download failed for template:" << templateId;
                 onFinished(false);
             }
         );
@@ -101,6 +99,6 @@ namespace noi_engine_editor
 
     auto TemplateInstaller::extractAndUnwrap(const QString& targetPath, const QByteArray& zipData) -> bool
     {
-        return zip_install::extractZipData(targetPath, zipData, LOG_TAG) && postProcessExtraction(targetPath);
+        return zip_install::installZipData(targetPath, zipData, LOG_TAG, postProcessExtraction);
     }
 }

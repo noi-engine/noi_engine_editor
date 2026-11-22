@@ -2,6 +2,7 @@
 #include "ZipExtractor.hpp"
 
 #include <QDir>
+#include <QFileInfo>
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QTemporaryFile>
@@ -20,6 +21,8 @@ namespace noi_engine_editor::zip_install
         QNetworkRequest request((QUrl(downloadUrl)));
         request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
         request.setRawHeader("User-Agent", "noi_engine_editor");
+        // Without a timeout a stalled connection keeps the "installing" state on forever.
+        request.setTransferTimeout(60'000);
 
         auto* reply = networkManager.get(request);
 
@@ -51,12 +54,44 @@ namespace noi_engine_editor::zip_install
             return false;
         }
 
-        tempZip.write(zipData);
-        tempZip.flush();
+        if (tempZip.write(zipData) != zipData.size() || !tempZip.flush())
+        {
+            qWarning() << logTag << "Failed to write the downloaded ZIP to disk.";
+            return false;
+        }
 
-        if (!noi_engine::zip_utils::unzip(tempZip.fileName(), targetPath))
+        if (!zip_utils::unzip(tempZip.fileName(), targetPath))
         {
             qWarning() << logTag << "Failed to unzip file:" << tempZip.fileName() << "to destination:" << targetPath;
+            return false;
+        }
+
+        return true;
+    }
+
+    auto installZipData(
+        const QString& targetPath,
+        const QByteArray& zipData,
+        const char* logTag,
+        const std::function<bool(const QString& stagingPath)>& postProcess
+    ) -> bool
+    {
+        const auto stagingPath = targetPath + QStringLiteral(".part");
+        removeDirectory(stagingPath, logTag);
+
+        const auto stagedOk = extractZipData(stagingPath, zipData, logTag) && (!postProcess || postProcess(stagingPath));
+        if (!stagedOk)
+        {
+            removeDirectory(stagingPath, logTag);
+            return false;
+        }
+
+        removeDirectory(targetPath, logTag);
+        QDir().mkpath(QFileInfo(targetPath).absolutePath());
+        if (!QDir().rename(stagingPath, targetPath))
+        {
+            qWarning() << logTag << "Failed to move" << stagingPath << "to" << targetPath;
+            removeDirectory(stagingPath, logTag);
             return false;
         }
 

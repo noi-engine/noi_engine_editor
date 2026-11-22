@@ -15,7 +15,4 @@ namespace noi_engine_editor::EditorBridgeResolver
     };
 
     [[nodiscard]] auto resolve(const QString& bridgeVersion, const QString& engineVersion) -> Resolution;
-
-    // Compares dotted numeric versions ("0.0.109"): negative, zero or positive like strcmp.
-    [[nodiscard]] auto compareVersions(const QString& a, const QString& b) -> int;
 }

@@ -1,0 +1,155 @@
+name: release
+
+# Publishes the editor for each platform when a "v*" tag is pushed:
+#   noi_engine_editor-linux-x64.AppImage
+#   noi_engine_editor-macos-arm64.dmg
+#   noi_engine_editor-windows-x64.zip   (experimental, see below)
+#
+# The tag must match the project version in CMakeLists.txt (project(... VERSION x.y.z)).
+#
+# The editor is only half of a release: the games it builds are packaged by the game template's
+# own release workflow (template-basic-2d/.github/workflows/release.yml). See RELEASING.md.
+
+on:
+  push:
+    tags: [ "v*" ]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag to publish (ex: v0.0.2)'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: '6.10.*'
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_os: linux
+            artifact_arch: x64
+            experimental: false
+          - os: macos-latest
+            artifact_os: macos
+            artifact_arch: arm64
+            experimental: false
+          # The Windows build has never been run: a failure there doesn't block the other platforms.
+          - os: windows-latest
+            artifact_os: windows
+            artifact_arch: x64
+            experimental: true
+
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Check the tag matches the CMake version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -oE 'project\(noi_engine_editor VERSION [0-9.]+' CMakeLists.txt | grep -oE '[0-9.]+$')
+          TAG="${{ github.event_name == 'push' && github.ref_name || inputs.tag_name }}"
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "Tag $TAG does not match the CMake project version $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          cache: true
+
+      - name: Install latest CMake and Ninja
+        uses: lukka/get-cmake@latest
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y clang libgl1-mesa-dev libxkbcommon-dev libfuse2 imagemagick
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgGitCommitId: 'fd3dde77905b1b1890df3c8daa496d9b2fe44f7f'
+
+      - name: Configure and build
+        uses: lukka/run-cmake@v10
+        with:
+          configurePreset: release
+          # The preset asks for clang++; Qt's Windows build needs the MSVC compiler.
+          configurePresetAdditionalArgs: "${{ runner.os == 'Windows' && '[''-DCMAKE_CXX_COMPILER=cl'']' || '[]' }}"
+          buildPreset: release
+
+      - name: Package (Linux AppImage)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          convert resources/images/hero.png -resize 256x256 -background none -gravity center -extent 256x256 packaging/linux/noi_engine_editor.png
+          curl -fsSL -o linuxdeploy https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          curl -fsSL -o linuxdeploy-plugin-qt https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy linuxdeploy-plugin-qt
+          mkdir -p final_dist
+          QML_SOURCES_PATHS="$PWD" ./linuxdeploy --appimage-extract-and-run \
+            --appdir AppDir \
+            --executable build/release/bin/noi_engine_editor \
+            --desktop-file packaging/linux/noi_engine_editor.desktop \
+            --icon-file packaging/linux/noi_engine_editor.png \
+            --plugin qt \
+            --output appimage
+          mv Noi_Engine_Editor*.AppImage "final_dist/noi_engine_editor-${{ matrix.artifact_os }}-${{ matrix.artifact_arch }}.AppImage"
+
+      - name: Package (macOS dmg)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p final_dist
+          APP=$(find build/release -maxdepth 3 -name 'noi_engine_editor.app' | head -n 1)
+          macdeployqt "$APP" -qmldir="$PWD" -dmg
+          mv "$(dirname "$APP")/noi_engine_editor.dmg" "final_dist/noi_engine_editor-${{ matrix.artifact_os }}-${{ matrix.artifact_arch }}.dmg"
+
+      - name: Package (Windows zip)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/noi_engine_editor, final_dist | Out-Null
+          Copy-Item build/release/bin/noi_engine_editor.exe dist/noi_engine_editor/
+          windeployqt --release --qmldir . dist/noi_engine_editor/noi_engine_editor.exe
+          Compress-Archive -Path dist/noi_engine_editor -DestinationPath "final_dist/noi_engine_editor-${{ matrix.artifact_os }}-${{ matrix.artifact_arch }}.zip"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: noi_engine_editor-${{ matrix.artifact_os }}-${{ matrix.artifact_arch }}
+          path: final_dist/*
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'push' && github.ref_name || inputs.tag_name }}
+          name: ${{ github.event_name == 'push' && github.ref_name || inputs.tag_name }}
+          generate_release_notes: true
+          files: dist/*

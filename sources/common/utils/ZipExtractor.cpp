@@ -4,7 +4,7 @@
 #include <QDebug>
 #include <zip.h>
 
-namespace noi_engine::zip_utils
+namespace noi_engine_editor::zip_utils
 {
     auto unzip(const QString& zipFilePath, const QString& destinationDir) -> bool
     {

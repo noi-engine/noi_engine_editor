@@ -1,10 +1,23 @@
 #include "ProjectBuilder.hpp"
 
 #include <QDir>
+#include <QFile>
 #include <QProcess>
+#include <memory>
 
 noi_engine_editor::ProjectBuilder::ProjectBuilder(QObject* parent) : QObject(parent)
 {
+}
+
+noi_engine_editor::ProjectBuilder::~ProjectBuilder()
+{
+    // Closing the editor mid-build must not leave cmake running in the background.
+    if (m_process != nullptr)
+    {
+        m_process->disconnect(this);
+        m_process->kill();
+        m_process->waitForFinished(2000);
+    }
 }
 
 auto noi_engine_editor::ProjectBuilder::isCompiling() const -> bool
@@ -82,7 +95,14 @@ auto noi_engine_editor::ProjectBuilder::clearOutput() -> void
 
 auto noi_engine_editor::ProjectBuilder::compile(const QString& projectPath) -> void
 {
-    build(projectPath, QStringLiteral("debug"), [this](const bool success)
+    if (m_isCompiling || projectPath.isEmpty())
+    {
+        return;
+    }
+
+    clearOutput();
+    setCompiling(true);
+    runSteps(projectPath, presetSteps(QStringLiteral("debug")), [this](const bool success)
     {
         if (success)
         {
@@ -90,26 +110,12 @@ auto noi_engine_editor::ProjectBuilder::compile(const QString& projectPath) -> v
             emit compileGenerationChanged();
         }
         setLastCompileFailed(!success);
+        setCompiling(false);
         emit compileFinished(success);
     });
 }
 
 auto noi_engine_editor::ProjectBuilder::compileRelease(const QString& projectPath) -> void
-{
-    build(projectPath, QStringLiteral("release"), [this, projectPath](const bool success)
-    {
-        const auto outputPath = QDir(projectPath).filePath(QStringLiteral("build/release/bin"));
-        if (success)
-        {
-            appendOutput(QStringLiteral("Release build ready in %1\n").arg(outputPath));
-        }
-        emit releaseFinished(success, outputPath);
-    });
-}
-
-// cmake --preset <preset> then cmake --build --preset <preset>, output streamed to output().
-auto noi_engine_editor::ProjectBuilder::build(const QString& projectPath, const QString& preset,
-                                              const std::function<void(bool)>& onFinished) -> void
 {
     if (m_isCompiling || projectPath.isEmpty())
     {
@@ -118,54 +124,130 @@ auto noi_engine_editor::ProjectBuilder::build(const QString& projectPath, const 
 
     clearOutput();
     setCompiling(true);
-    appendOutput(QStringLiteral("$ cmake --preset %1\n").arg(preset));
 
-    auto* configure = new QProcess(this);
-    configure->setWorkingDirectory(projectPath);
-    configure->setProcessChannelMode(QProcess::MergedChannels);
-    configure->setProgram("cmake");
-    configure->setArguments({"--preset", preset});
+    const auto buildDir = QDir(projectPath).filePath(QStringLiteral("build/release"));
+    runSteps(projectPath, presetSteps(QStringLiteral("release")), [this, projectPath, buildDir](const bool built)
+    {
+        if (!built)
+        {
+            setCompiling(false);
+            emit releaseFinished(false, {});
+            return;
+        }
 
-    connect(configure, &QProcess::readyReadStandardOutput, this,
-            [this, configure]() { appendOutput(QString::fromUtf8(configure->readAllStandardOutput())); });
+        // Projects made from an up-to-date template define a CPack package (the game folder,
+        // zipped). Older ones only have the raw build output.
+        const auto packagesDir = QDir(buildDir).filePath(QStringLiteral("packages"));
+        const auto canPackage = QFile::exists(QDir(buildDir).filePath(QStringLiteral("CPackConfig.cmake")));
+        if (!canPackage)
+        {
+            const auto outputPath = QDir(buildDir).filePath(QStringLiteral("bin"));
+            appendOutput(QStringLiteral("\nRelease build ready in %1\n"
+                                        "(this project has no packaging setup: update it from the latest template to get an "
+                                        "installable archive)\n").arg(outputPath));
+            setCompiling(false);
+            emit releaseFinished(true, outputPath);
+            return;
+        }
 
-    connect(configure, &QProcess::finished, this,
-            [this, projectPath, preset, onFinished, configure](const int exitCode, const QProcess::ExitStatus status)
+        const QList<Step> packageSteps{
+            {QStringLiteral("cmake"), {"--build", "--preset", "release", "--target", "package"}},
+        };
+        runSteps(projectPath, packageSteps, [this, packagesDir](const bool packaged)
+        {
+            if (packaged)
             {
-                configure->deleteLater();
+                appendOutput(QStringLiteral("\nGame package ready in %1\n").arg(packagesDir));
+            }
+            setCompiling(false);
+            emit releaseFinished(packaged, packagesDir);
+        });
+    });
+}
+
+auto noi_engine_editor::ProjectBuilder::presetSteps(const QString& preset) -> QList<Step>
+{
+    return {
+        {QStringLiteral("cmake"), {"--preset", preset}},
+        {QStringLiteral("cmake"), {"--build", "--preset", preset}},
+    };
+}
+
+// Runs the steps one after the other, streaming their output to output(). Stops at the first
+// failing step. A program that can't even start (cmake not installed) counts as a failure, so
+// the "compiling" state can never be left on.
+auto noi_engine_editor::ProjectBuilder::runSteps(const QString& projectPath, const QList<Step>& steps,
+                                                 const std::function<void(bool)>& onFinished, const int index) -> void
+{
+    if (index >= steps.size())
+    {
+        appendOutput(QStringLiteral("\nBuild succeeded.\n"));
+        onFinished(true);
+        return;
+    }
+
+    const auto& step = steps[index];
+    appendOutput(QStringLiteral("%1$ %2 %3\n").arg(index == 0 ? QString() : QStringLiteral("\n"), step.program,
+                                                    step.arguments.join(' ')));
+
+    auto* process = new QProcess(this);
+    m_process = process;
+    process->setWorkingDirectory(projectPath);
+    process->setProcessChannelMode(QProcess::MergedChannels);
+
+    // finished and errorOccurred can both fire for one process; only the first one counts.
+    const auto settled = std::make_shared<bool>(false);
+    const auto settle = [this, process, settled, onFinished](const bool ok, const QString& failure)
+    {
+        if (*settled)
+        {
+            return;
+        }
+        *settled = true;
+        if (m_process == process)
+        {
+            m_process = nullptr;
+        }
+        process->deleteLater();
+
+        if (!ok)
+        {
+            appendOutput(failure);
+            onFinished(false);
+        }
+    };
+
+    connect(process, &QProcess::readyReadStandardOutput, this,
+            [this, process]() { appendOutput(QString::fromUtf8(process->readAllStandardOutput())); });
+
+    connect(process, &QProcess::errorOccurred, this,
+            [process, step, settle](const QProcess::ProcessError error)
+            {
+                if (error == QProcess::FailedToStart)
+                {
+                    settle(false, QStringLiteral("\nCan't run '%1' (%2). Is it installed and in your PATH?\n")
+                                      .arg(step.program, process->errorString()));
+                }
+            });
+
+    connect(process, &QProcess::finished, this,
+            [this, projectPath, steps, onFinished, index, process, settle](const int exitCode,
+                                                                           const QProcess::ExitStatus status)
+            {
+                appendOutput(QString::fromUtf8(process->readAllStandardOutput()));
 
                 if (exitCode != 0 || status != QProcess::NormalExit)
                 {
-                    appendOutput(QStringLiteral("\nConfigure failed.\n"));
-                    setCompiling(false);
-                    onFinished(false);
+                    settle(false, QStringLiteral("\n%1 failed.\n").arg(steps[index].arguments.contains("--build")
+                                                                              ? QStringLiteral("Build")
+                                                                              : QStringLiteral("Configure")));
                     return;
                 }
 
-                appendOutput(QStringLiteral("\n$ cmake --build --preset %1\n").arg(preset));
-
-                auto* buildProcess = new QProcess(this);
-                buildProcess->setWorkingDirectory(projectPath);
-                buildProcess->setProcessChannelMode(QProcess::MergedChannels);
-                buildProcess->setProgram("cmake");
-                buildProcess->setArguments({"--build", "--preset", preset});
-
-                connect(buildProcess, &QProcess::readyReadStandardOutput, this,
-                        [this, buildProcess]() { appendOutput(QString::fromUtf8(buildProcess->readAllStandardOutput())); });
-
-                connect(buildProcess, &QProcess::finished, this,
-                        [this, onFinished, buildProcess](const int buildExitCode, const QProcess::ExitStatus buildStatus)
-                        {
-                            const auto success = buildExitCode == 0 && buildStatus == QProcess::NormalExit;
-                            appendOutput(success ? QStringLiteral("\nBuild succeeded.\n")
-                                                 : QStringLiteral("\nBuild failed.\n"));
-                            buildProcess->deleteLater();
-                            setCompiling(false);
-                            onFinished(success);
-                        });
-
-                buildProcess->start();
+                settle(true, {});
+                // The next step starts after this process is released.
+                runSteps(projectPath, steps, onFinished, index + 1);
             });
 
-    configure->start();
+    process->start(step.program, step.arguments);
 }
