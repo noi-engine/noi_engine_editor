@@ -33,6 +33,11 @@ configure_file(
 
 add_subdirectory(external/zip EXCLUDE_FROM_ALL)
 add_subdirectory(external/Templi)
+# Templi's parser.cpp uses std::stringstream without including <sstream>, which libc++ (macOS)
+# rejects. Remove once the Templi submodule includes it.
+if (NOT MSVC)
+    target_compile_options(Templi PRIVATE -include sstream)
+endif ()
 
 qt_add_executable(${NOI_ENGINE_EDITOR_PROJECT_NAME} resources.qrc main.cpp)
 
