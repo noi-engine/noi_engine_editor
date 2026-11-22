@@ -509,6 +509,11 @@ namespace noi_engine_editor
                     QFile::remove(snapshot.path);
                 }
             }
+            if (!success)
+            {
+                qWarning() << "[undo] snapshot failed:" << snapshot.path << "scene:" << m_currentPath
+                           << "handle:" << (this->m_gameHandle != nullptr);
+            }
             view->confirmSnapshot(snapshot.path, success);
         }
     }

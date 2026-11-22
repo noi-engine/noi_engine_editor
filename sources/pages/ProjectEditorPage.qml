@@ -648,14 +648,14 @@ CustomPage {
                                 }
                                 if (success) root.sceneDirty = true;
                             }
-                            onCameraEdited: root.sceneDirty = true
+                            onCameraEdited: root.touch()
                             onImageDropped: (filePath, x, y) => root.createImageSprite(filePath, false, x, y)
                             onSceneCameraChanged: {
                                 if (root.pendingCameraSize && root.isStartSceneOpen() && sceneCamera.valid) {
                                     root.setCameraSize(root.pendingCameraSize.width, root.pendingCameraSize.height);
                                 }
                             }
-                            onEntityMoved: root.sceneDirty = true
+                            onEntityMoved: root.touch()
                             onEntityPicked: (entityId, entityGeneration) => {
                                 for (const entity of viewportPanel.loadedEntities || []) {
                                     if (entity.id === entityId && entity.generation === entityGeneration) {
