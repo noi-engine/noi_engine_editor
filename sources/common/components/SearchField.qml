@@ -15,7 +15,7 @@ Rectangle {
     Layout.fillWidth: true
     Layout.preferredHeight: 46
 
-    radius: 10
+    radius: Theme.radius
 
     color: Theme.bgSecondary
 

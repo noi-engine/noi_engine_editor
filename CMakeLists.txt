@@ -46,6 +46,7 @@ set(NOI_ENGINE_EDITOR_QML_SINGLETONS
         sources/common/components/Theme.qml
         sources/common/components/icons/IconLoader.qml
         sources/common/components/fonts/CustomFont.qml
+        sources/common/components/Notifier.qml
 )
 
 set_source_files_properties(${NOI_ENGINE_EDITOR_QML_SINGLETONS} PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -62,7 +63,10 @@ set_source_files_properties(sources/features/editor/components/viewport/Viewport
 #   sources/pages/        top-level pages, assembled from the features
 file(GLOB_RECURSE NOI_ENGINE_EDITOR_QML_FILES
         RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
-        Main.qml sources/*.qml sources/*.js)
+        sources/*.qml sources/*.js)
+# Main.qml is listed by hand: a recursive glob of a bare file name would also match the copies
+# that build folders inside the source tree hold.
+list(PREPEND NOI_ENGINE_EDITOR_QML_FILES Main.qml)
 file(GLOB_RECURSE NOI_ENGINE_EDITOR_CPP_FILES
         RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
         sources/*.hpp sources/*.cpp)

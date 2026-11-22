@@ -36,7 +36,14 @@ auto noi_engine_editor::EditorLogger::clear() -> void
 auto noi_engine_editor::EditorLogger::messageHandler(
     const QtMsgType type, const QMessageLogContext& context, const QString& message) -> void
 {
-    if (s_previousHandler)
+    // Development aid: NOI_LOG_STDERR=1 always mirrors the editor's log to the terminal.
+    static const bool forceStderr = qEnvironmentVariableIsSet("NOI_LOG_STDERR");
+    if (forceStderr)
+    {
+        fprintf(stderr, "%s\n", qFormatLogMessage(type, context, message).toLocal8Bit().constData());
+        fflush(stderr);
+    }
+    else if (s_previousHandler)
     {
         s_previousHandler(type, context, message);
     }
