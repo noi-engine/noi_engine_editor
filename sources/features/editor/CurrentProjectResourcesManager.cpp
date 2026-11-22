@@ -1,5 +1,6 @@
 #include "CurrentProjectResourcesManager.hpp"
 #include <QDir>
+#include <QFileInfo>
 #include <QDirIterator>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -278,6 +279,11 @@ namespace noi_engine_editor
                 collectFolders(QDir(path), depth + 1, out);
             }
         }
+    }
+
+    bool CurrentProjectResourcesManager::fileExists(const QString& path) const
+    {
+        return QFileInfo::exists(path);
     }
 
     QVariantList CurrentProjectResourcesManager::folderTree(const QString& rootPath) const

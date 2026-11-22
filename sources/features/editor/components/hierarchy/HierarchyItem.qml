@@ -12,6 +12,7 @@ Rectangle {
     property string subtitle: "" // folder path, shown in search results
     property int depth: 0
     property bool selected: false
+    property var componentTypes: []
     property bool isLocked: false // camera entity - not renameable/deletable, but still duplicable
     property bool inFolder: false
 
@@ -26,6 +27,18 @@ Rectangle {
     signal dragMoved(real x, real y)
     signal dragEnded(real x, real y)
     property bool dropTarget: false
+
+    // The icon says what kind of object it is (camera, sprite, background, body, collider, script...).
+    function kindIcon() {
+        const types = root.componentTypes || [];
+        if (root.isLocked || types.indexOf("camera_2d") >= 0 || types.indexOf("camera_3d") >= 0) return "videocam";
+        if (types.indexOf("fill_screen") >= 0) return "wallpaper";
+        if (types.indexOf("gravity") >= 0) return "sports_basketball";
+        if (types.indexOf("mesh_renderer") >= 0) return "image";
+        if (types.indexOf("box_collider") >= 0) return "crop_free";
+        if (types.indexOf("script_component") >= 0) return "code";
+        return "radio_button_unchecked";
+    }
 
     Layout.fillWidth: true
     height: 30
@@ -43,7 +56,7 @@ Rectangle {
         spacing: 8
 
         MuiIcon {
-            name: root.isLocked ? "videocam" : "category"
+            name: root.kindIcon()
             font.pixelSize: 15
             color: root.selected ? Theme.primaryColor : Theme.grey
         }

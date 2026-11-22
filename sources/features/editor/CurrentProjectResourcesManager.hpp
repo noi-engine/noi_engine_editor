@@ -20,6 +20,7 @@ namespace noi_engine_editor
         Q_INVOKABLE [[nodiscard]] auto deleteItem(const QString& itemPath) -> bool;
         Q_INVOKABLE [[nodiscard]] auto importPaths(const QList<QString>& paths, const QString& targetFolderPath) -> bool;
         Q_INVOKABLE QStringList getAllScenesRecursively(const QString& rootPath);
+        Q_INVOKABLE [[nodiscard]] bool fileExists(const QString& path) const;
         // Every folder under rootPath, depth first and sorted: [{path, name, depth}] (rootPath itself
         // first, depth 0). Hidden folders (the editor's scratch space) are left out.
         Q_INVOKABLE [[nodiscard]] QVariantList folderTree(const QString& rootPath) const;

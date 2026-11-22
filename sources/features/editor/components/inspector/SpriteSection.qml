@@ -29,6 +29,7 @@ Rectangle {
     readonly property var scale: valueOf(modelData.transform, "scale", [1, 1, 1])
     readonly property var textures: inspector.resourceLabelsFor("texture")
     property bool keepRatio: true
+    readonly property bool fillsWindow: (inspector.componentsData || []).some(c => c.type === "fill_screen")
 
     function useColor() {
         inspector.propertyEdited("mesh_renderer", "material", "resourceRef", "materials:color");
@@ -151,6 +152,22 @@ Rectangle {
                         if (section.imageMode) return;
                         if (section.textures.length > 0) section.useImage(section.textures[0]);
                         else importTexture.pick();
+                    }
+                }
+            }
+
+            // A background: always the size of the window, drawn behind everything else.
+            CheckBox {
+                text: qsTr("Fill the window (background)")
+                font.pixelSize: 12
+                checked: section.fillsWindow
+                onToggled: {
+                    if (checked) {
+                        inspector.componentAddRequested("fill_screen");
+                        inspector.propertyEdited("render_layer", "order", "float", -100);
+                    } else {
+                        inspector.componentRemoved("fill_screen");
+                        inspector.propertyEdited("render_layer", "order", "float", 0);
                     }
                 }
             }

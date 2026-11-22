@@ -11,14 +11,15 @@ Item {
     property string filePath: ""
     property bool isDir: false
     property bool isSelected: false
+    property bool isMainScene: false
     property real iconScale: 1.0
 
     signal selected()
     signal doubleClicked()
     signal renameRequested()
     signal deleteRequested()
-    // Image files: put the image in the open scene, as a sprite or as the background.
-    signal spriteRequested(bool background)
+    // Scene files: the scene the game starts on.
+    signal mainSceneRequested()
 
     readonly property bool isImage: !root.isDir && /\.(png|jpe?g|bmp|tga|gif)$/i.test(root.fileName)
     readonly property bool isScene: !root.isDir && /\.scene$/i.test(root.fileName)
@@ -80,6 +81,25 @@ Item {
                 cache: true
             }
 
+            // The scene the game starts on.
+            Rectangle {
+                visible: root.isMainScene
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: 3
+                width: 16
+                height: 16
+                radius: 8
+                color: Theme.primaryColor
+
+                MuiIcon {
+                    anchors.centerIn: parent
+                    name: "play_arrow"
+                    font.pixelSize: 11
+                    color: Theme.black
+                }
+            }
+
             MuiIcon {
                 anchors.centerIn: parent
                 visible: !root.isImage
@@ -128,17 +148,18 @@ Item {
     Menu {
         id: resourceMenu
         MenuItem {
-            visible: root.isImage
+            visible: root.isScene
             height: visible ? implicitHeight : 0
-            text: qsTr("Create Sprite in Scene")
-            onTriggered: root.spriteRequested(false)
+            text: qsTr("Open scene")
+            onTriggered: root.doubleClicked()
         }
         MenuItem {
-            visible: root.isImage
+            visible: root.isScene
             height: visible ? implicitHeight : 0
-            text: qsTr("Use as Background")
-            onTriggered: root.spriteRequested(true)
+            text: qsTr("Set as main scene")
+            onTriggered: root.mainSceneRequested()
         }
+        MenuSeparator { visible: root.isScene }
         MenuItem {
             text: qsTr("Rename")
             onTriggered: root.renameRequested()

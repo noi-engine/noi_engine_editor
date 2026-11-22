@@ -340,7 +340,7 @@ Item {
                 wrapMode: Text.WordWrap
                 text: ProjectBuilder.isCompiling ? qsTr("The project is building. Your scene opens when it's done.")
                     : ProjectBuilder.lastCompileFailed ? qsTr("The build failed, so scenes can't open yet. Open “Console” to see why.")
-                    : qsTr("A scene is one screen of your game. Open an existing one or create a new one.")
+                    : qsTr("A scene is one screen of your game. Double-click a scene in the Project panel, or press + above to create one.")
                 color: Theme.darkGrey
                 font.pixelSize: 12
             }
@@ -350,7 +350,7 @@ Item {
                 visible: !ProjectBuilder.isCompiling && !ProjectBuilder.lastCompileFailed
                 primary: true
                 icon: "landscape"
-                text: qsTr("Browse scenes")
+                text: qsTr("Show scenes in Project")
                 onClicked: root.scenesRequested()
             }
         }

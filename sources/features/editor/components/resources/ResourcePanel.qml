@@ -8,8 +8,6 @@ import "../../../../common/utils/LocalPathAndUrlConverter.js" as UrlConverter
 Item {
     id: rootItem
 
-    // An image to put in the open scene (see ProjectEditorPage.createImageSprite()).
-    signal imageSpriteRequested(string filePath, bool background)
     // A scene file was double-clicked: open it in the editor.
     signal sceneOpenRequested(string filePath)
 
@@ -21,6 +19,19 @@ Item {
     Component.onCompleted: {
         if (rootItem.currentFolder === "")
             rootItem.currentFolder = rootItem.rootFolder;
+    }
+
+    function relativePath(filePath) {
+        return filePath.replace(rootItem.rootFolder + "/", "");
+    }
+
+    function setMainScene(filePath) {
+        CurrentProjectManager.startScene = rootItem.relativePath(filePath);
+        if (CurrentProjectManager.saveProject()) {
+            Notifier.success(qsTr("The game will start on “%1”.").arg(filePath.substring(filePath.lastIndexOf("/") + 1)));
+        } else {
+            Notifier.error(qsTr("Couldn't save the project file."));
+        }
     }
 
     function enterFolder(targetFolder) {
@@ -203,7 +214,7 @@ Item {
                     anchors.fill: parent
                     anchors.margins: 6
                     anchors.leftMargin: 12
-                    text: qsTr("Your project's files (images, sounds…). To use an image in the scene, drag it onto the viewport, or right-click it and choose “Create Sprite in Scene” or “Use as Background”. Drop files here to import them.")
+                    text: qsTr("Drag an image from here into the scene (or the scene objects list) to create a sprite. Double-click a scene to open it. Drop files from your computer to import them.")
                     color: Theme.darkGrey
                     font.pixelSize: 11
                     wrapMode: Text.WordWrap
@@ -251,7 +262,8 @@ Item {
                             rootItem.sceneOpenRequested(model.filePath);
                     }
                     onRenameRequested: renameDialog.openFor(filePath, fileName)
-                    onSpriteRequested: background => rootItem.imageSpriteRequested(filePath, background)
+                    isMainScene: isScene && rootItem.relativePath(filePath) === CurrentProjectManager.startScene
+                    onMainSceneRequested: rootItem.setMainScene(filePath)
                     onDeleteRequested: deleteDialog.openFor(filePath, fileName)
                 }
 

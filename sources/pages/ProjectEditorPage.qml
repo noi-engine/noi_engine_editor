@@ -507,7 +507,7 @@ CustomPage {
             onStopRequested: viewportPanel.setPlaying(false)
             onSaveRequested: root.saveCurrentScene()
             onSearchRequested: globalSearch.open()
-            onScenesRequested: root.activeBottomPanel = (root.activeBottomPanel === "scenes") ? "" : "scenes"
+            onScenesRequested: root.activeBottomPanel = "resources"
             onBuildHelpRequested: prerequisitesDialog.open()
             canUndo: root.canUndo
             canRedo: root.canRedo
@@ -565,6 +565,7 @@ CustomPage {
                         anchors.fill: parent
                         enabled: !viewportPanel.playing
                         entities: viewportPanel.loadedEntities
+                        onImageDropped: filePath => root.createImageSprite(filePath, false, viewportPanel.viewX, viewportPanel.viewY)
                         sceneName: root.sceneName(root.currentScenePath)
                         sceneDirty: root.sceneDirty
                         selectedEntity: root.selectedEntity
@@ -632,7 +633,7 @@ CustomPage {
                             inspectedMaterialId: root.selectedMaterial ? root.selectedMaterial.id : 0
                             inspectedMaterialGeneration: root.selectedMaterial ? root.selectedMaterial.generation : 0
 
-                            onScenesRequested: root.activeBottomPanel = "scenes"
+                            onScenesRequested: root.activeBottomPanel = "resources"
                             onSnapshotTaken: (path, success) => {
                                 if (success) return;
                                 // No file to go back to: forget that step.
@@ -790,7 +791,6 @@ CustomPage {
                             Repeater {
                                 model: [
                                     { id: "resources", label: qsTr("Project"), icon: "folder" },
-                                    { id: "scenes", label: qsTr("Scenes"), icon: "landscape" },
                                     { id: "output", label: qsTr("Console"), icon: "terminal" },
                                     { id: "logs", label: qsTr("Logs"), icon: "receipt_long" },
                                     { id: "loadedResources", label: qsTr("In memory"), icon: "memory" }
@@ -841,6 +841,8 @@ CustomPage {
 
                     SceneBrowserPanel {
                         id: scenePanel
+                        // No tab of its own any more (the Project panel lists the scenes); it
+                        // still owns the New scene dialog behind the "+" of the scene tabs.
                         sceneDirty: root.sceneDirty
                         currentScenePath: root.currentScenePath
                         onSceneOpenRequested: function(filePath) {
@@ -856,8 +858,6 @@ CustomPage {
                     ResourcePanel {
                         id: resourcePanel
                         onSceneOpenRequested: filePath => root.openScene(filePath)
-                        onImageSpriteRequested: (filePath, background) =>
-                            root.createImageSprite(filePath, background, viewportPanel.viewX, viewportPanel.viewY)
                     }
 
                     CompilerOutputPanel {
@@ -914,7 +914,7 @@ CustomPage {
                         if (ProjectBuilder.isCompiling) return qsTr("Building…")
                         if (ProjectBuilder.lastCompileFailed) return qsTr("Build failed — open “Console”")
                         if (!PrerequisitesManager.canBuild) return qsTr("Tools missing — you can't build yet")
-                        if (root.currentScenePath === "") return qsTr("No scene open — open the Scenes tab")
+                        if (root.currentScenePath === "") return qsTr("No scene open — double-click a scene in Project")
                         if (root.sceneDirty) return qsTr("Unsaved changes — Ctrl+S to save")
                         return qsTr("All changes saved")
                     }

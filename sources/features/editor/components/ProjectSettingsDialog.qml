@@ -17,10 +17,18 @@ AppDialog {
 
     property string errorText: ""
 
+    property var sceneChoices: []
+
     onAboutToShow: {
         errorText = "";
         nameInput.text = CurrentProjectManager.name;
-        sceneInput.text = CurrentProjectManager.startScene;
+        const root_ = CurrentProjectManager.resourcesPath() + "/";
+        sceneChoices = CurrentProjectResourcesManager.getAllScenesRecursively(CurrentProjectManager.resourcesPath())
+            .map(path => path.replace(root_, ""));
+        if (CurrentProjectManager.startScene !== "" && sceneChoices.indexOf(CurrentProjectManager.startScene) < 0) {
+            sceneChoices = sceneChoices.concat([CurrentProjectManager.startScene]);
+        }
+        sceneInput.currentIndex = Math.max(0, sceneChoices.indexOf(CurrentProjectManager.startScene));
         widthInput.text = CurrentProjectManager.windowWidth.toString();
         heightInput.text = CurrentProjectManager.windowHeight.toString();
         nameInput.error = "";
@@ -39,7 +47,7 @@ AppDialog {
         const resolutionEdited = width !== CurrentProjectManager.windowWidth || height !== CurrentProjectManager.windowHeight
 
         CurrentProjectManager.name = nameInput.text.trim()
-        CurrentProjectManager.startScene = sceneInput.text.trim()
+        if (sceneInput.currentIndex >= 0 && sceneInput.currentIndex < sceneChoices.length) CurrentProjectManager.startScene = sceneChoices[sceneInput.currentIndex]
         CurrentProjectManager.windowWidth = width
         CurrentProjectManager.windowHeight = height
 
@@ -68,11 +76,31 @@ AppDialog {
         readOnly: true
     }
 
-    AppTextField {
-        id: sceneInput
+    ColumnLayout {
         Layout.fillWidth: true
-        label: qsTr("Start scene")
-        hint: qsTr("The scene the game opens first, relative to the resources folder (for example scenes/main.scene).")
+        spacing: 4
+
+        Text {
+            text: qsTr("Main scene")
+            color: Theme.darkGrey
+            font.pixelSize: 12
+            font.weight: Font.Medium
+        }
+
+        ComboBox {
+            id: sceneInput
+            Layout.fillWidth: true
+            model: root.sceneChoices
+            font.pixelSize: 13
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: qsTr("The scene the game opens first. You can also right-click a scene in the Project panel and choose “Set as main scene”.")
+            color: Theme.grey
+            font.pixelSize: 11
+            wrapMode: Text.WordWrap
+        }
     }
 
     Text {

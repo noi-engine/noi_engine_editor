@@ -17,6 +17,8 @@ Rectangle {
     property bool sceneDirty: false
 
     signal entitySelected(var entity)
+    // An image dragged from the Project panel: becomes a sprite.
+    signal imageDropped(string filePath)
     // folder: where to file the new entity ("" = root); preset: see EntityPresetMenu.
     signal entityCreateRequested(string name, string folder, string preset)
 
@@ -35,6 +37,18 @@ Rectangle {
     }
 
     color: Theme.bgSecondary
+
+    DropArea {
+        anchors.fill: parent
+        keys: ["text/uri-list"]
+        onDropped: drop => {
+            if (!drop.hasUrls) return;
+            const path = decodeURIComponent(drop.urls[0].toString().replace(/^file:\/\//, ""));
+            if (!/\.(png|jpe?g|bmp|tga|gif)$/i.test(path)) return;
+            root.imageDropped(path);
+            drop.accept(Qt.CopyAction);
+        }
+    }
 
     // Folders created with "New Folder" that hold no entity yet (not saved until they do).
     property var emptyFolders: []
@@ -288,10 +302,10 @@ Rectangle {
                 text: qsTr("Add")
                 primary: true
                 tooltip: qsTr("Add an object to the scene: an image, a platform, a character…")
-                onClicked: newEntityMenu.popup(addObjectButton, 0, addObjectButton.height + 4)
+                onClicked: createObjectDialog.open()
 
-                EntityPresetMenu {
-                    id: newEntityMenu
+                CreateObjectDialog {
+                    id: createObjectDialog
                     onPresetChosen: preset => root.entityCreateRequested(root.presetName(preset), "", preset)
                 }
             }
@@ -417,6 +431,7 @@ Rectangle {
                         subtitle: rowLoader.modelData.subtitle
                         depth: rowLoader.modelData.depth
                         isLocked: entity.name === "main_camera"
+                        componentTypes: entity.componentTypes || []
                         inFolder: (entity.folder || "") !== ""
 
                         selected: root.selectedEntity !== null

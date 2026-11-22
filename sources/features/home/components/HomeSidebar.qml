@@ -100,11 +100,7 @@ Rectangle {
                 Layout.preferredWidth: 40
                 Layout.preferredHeight: 40
                 radius: 12
-                gradient: Gradient {
-                    orientation: Gradient.Vertical
-                    GradientStop { position: 0; color: Theme.gradientStart }
-                    GradientStop { position: 1; color: Theme.gradientEnd }
-                }
+                color: Theme.primaryColor
 
                 MuiIcon {
                     anchors.centerIn: parent

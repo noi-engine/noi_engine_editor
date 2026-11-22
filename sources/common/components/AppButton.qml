@@ -29,39 +29,16 @@ Rectangle {
 
     readonly property bool filled: primary || danger
 
-    gradient: Gradient {
-        orientation: Gradient.Horizontal
-        GradientStop {
-            position: 0
-            color: root.danger ? Theme.error
-                 : root.primary ? (mouseArea.containsMouse ? Theme.primaryLightA : Theme.gradientStart)
-                 : (mouseArea.containsMouse ? Theme.bgElevated : Theme.bgTertiary)
-        }
-        GradientStop {
-            position: 1
-            color: root.danger ? Qt.darker(Theme.error, 1.2)
-                 : root.primary ? (mouseArea.containsMouse ? Theme.gradientStart : Theme.gradientEnd)
-                 : (mouseArea.containsMouse ? Theme.bgElevated : Theme.bgTertiary)
-        }
-    }
+    color: danger ? (mouseArea.containsMouse ? Qt.lighter(Theme.error, 1.1) : Theme.error)
+         : primary ? (mouseArea.containsMouse ? Theme.primaryLightA : Theme.primaryColor)
+         : (mouseArea.containsMouse ? Theme.bgElevated : Theme.bgTertiary)
+    Behavior on color { ColorAnimation { duration: 110 } }
 
     border.color: filled ? "transparent" : (mouseArea.containsMouse ? Theme.borderStrong : Theme.borderColor)
     border.width: filled ? 0 : 1
     activeFocusOnTab: true
     Keys.onReturnPressed: if (root.enabled) root.clicked()
     Keys.onSpacePressed: if (root.enabled) root.clicked()
-
-    // Glow under primary buttons.
-    Rectangle {
-        z: -1
-        visible: root.primary && root.enabled
-        anchors.fill: parent
-        anchors.margins: -3
-        radius: root.radius + 3
-        color: Theme.glow
-        opacity: mouseArea.containsMouse ? 1 : 0.55
-        Behavior on opacity { NumberAnimation { duration: 140 } }
-    }
 
     Rectangle {
         anchors.fill: parent

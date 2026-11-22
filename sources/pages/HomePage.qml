@@ -279,31 +279,32 @@ CustomPage {
                     }
 
                     Item { Layout.fillWidth: true }
-                }
 
-                GridLayout {
-                    id: grid
+                    AppButton {
+                        implicitHeight: 34
+                        icon: "folder_open"
+                        text: qsTr("Open…")
+                        onClicked: openProjectFolderDialog.open()
+                    }
 
-                    readonly property int cardMinWidth: 250
-                    // From the page's width, not the grid's own (which depends on its children).
-                    columns: Math.max(1, Math.floor((page.width + columnSpacing) / (cardMinWidth + columnSpacing)))
-                    columnSpacing: 18
-                    rowSpacing: 18
-                    Layout.fillWidth: true
-                    // Every card has the same width, even when a row isn't full.
-                    readonly property real cellWidth: Math.max(cardMinWidth, Math.floor((page.width - (columns - 1) * columnSpacing) / columns))
-
-                    NewProjectCard {
-                        Layout.preferredWidth: grid.cellWidth
-                        visible: searchField.text.trim() === ""
+                    AppButton {
+                        implicitHeight: 34
+                        primary: true
+                        icon: "add"
+                        text: qsTr("New project")
                         onClicked: createProjectDialog.open()
                     }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
 
                     Repeater {
                         id: recentRepeater
                         model: recentProjectsModel
 
-                        delegate: ProjectCard {
+                        delegate: ProjectRow {
                             required property string name
                             required property string path
                             required property string lastOpened
@@ -312,7 +313,7 @@ CustomPage {
                             projectPath: path
                             projectDate: lastOpened
 
-                            Layout.preferredWidth: grid.cellWidth
+                            Layout.fillWidth: true
 
                             visible: searchField.text.trim() === "" ||
                                      name.toLowerCase().includes(searchField.text.trim().toLowerCase())
