@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(noi_engine_editor VERSION 0.0.2 DESCRIPTION "noi_engine_editor" LANGUAGES CXX)
+project(noi_engine_editor VERSION 0.0.3 DESCRIPTION "noi_engine_editor" LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
