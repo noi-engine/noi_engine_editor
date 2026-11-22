@@ -113,7 +113,29 @@ namespace noi_engine_editor
         {
             if (auto* f = QOpenGLContext::currentContext()->functions())
             {
-                f->glViewport(0, 0, this->m_width, this->m_height);
+                int x = 0;
+                int y = 0;
+                int width = this->m_width;
+                int height = this->m_height;
+
+                // Play: the game is drawn at the shape of its camera (what the red frame shows),
+                // centred, with bars around it - like the game window does on another screen shape.
+                if (m_wasPlaying && m_cameraAspect > 0.0f && width > 0 && height > 0)
+                {
+                    const auto viewportAspect = static_cast<float>(width) / static_cast<float>(height);
+                    if (viewportAspect > m_cameraAspect)
+                    {
+                        width = static_cast<int>(static_cast<float>(height) * m_cameraAspect);
+                        x = (this->m_width - width) / 2;
+                    }
+                    else
+                    {
+                        height = static_cast<int>(static_cast<float>(width) / m_cameraAspect);
+                        y = (this->m_height - height) / 2;
+                    }
+                }
+
+                f->glViewport(x, y, width, height);
             }
 
             m_bridge.run(this->m_gameHandle);
@@ -954,6 +976,10 @@ namespace noi_engine_editor
         const auto sceneCamera = this->m_gameHandle ? this->annotateEntities(loadedEntities, entityLayout) : QVariantMap{};
         view->setLoadedResources(loadedResources);
         view->setLoadedEntities(loadedEntities);
+        if (const auto aspect = sceneCamera.value(QStringLiteral("aspectRatio")).toFloat(); aspect > 0.0f)
+        {
+            m_cameraAspect = aspect;
+        }
         view->setSceneCamera(sceneCamera);
         view->setEntityLayout(entityLayout);
         view->setInspectedComponents(this->buildInspectedComponents(view, loadedEntities));

@@ -21,7 +21,21 @@ Rectangle {
 
     readonly property string objectName: valueOf(modelData.name, "name", "")
     readonly property var position: valueOf(modelData.transform, "position", [0, 0, 0])
+    readonly property var scale: valueOf(modelData.transform, "scale", [1, 1, 1])
     readonly property bool hasRenderLayer: !!modelData.renderLayer
+
+    // Whether the object is inside what the scene camera sees: outside, it won't be on screen
+    // when the game runs.
+    readonly property var camera: inspector.sceneCamera
+    readonly property bool outsideCamera: {
+        const cam = camera;
+        if (!cam || !cam.valid || !modelData.renderLayer) return false; // invisible objects (triggers...) don't matter
+        const halfH = cam.orthographicSize / cam.zoom;
+        const halfW = halfH * cam.aspectRatio;
+        const objectHalfW = Math.abs(scale[0]) / 2, objectHalfH = Math.abs(scale[1]) / 2;
+        return position[0] + objectHalfW < cam.x - halfW || position[0] - objectHalfW > cam.x + halfW
+            || position[1] + objectHalfH < cam.y - halfH || position[1] - objectHalfH > cam.y + halfH;
+    }
     readonly property real drawOrder: valueOf(modelData.renderLayer, "order", 0)
 
     readonly property bool expanded: inspector.isExpanded("object")
@@ -106,6 +120,17 @@ Rectangle {
                     onEdited: number => section.inspector.propertyEdited("transform", "position", "vec3",
                                                                           [section.position[0], number / 100, section.position[2]])
                 }
+            }
+
+            Banner {
+                Layout.fillWidth: true
+                visible: section.outsideCamera
+                kind: "warning"
+                title: qsTr("Outside the camera's view")
+                text: qsTr("It won't be on screen when the game runs.")
+                actionText: qsTr("Move into view")
+                onActionTriggered: section.inspector.propertyEdited("transform", "position", "vec3",
+                                                                    [section.camera.x, section.camera.y, section.position[2]])
             }
 
             NumberField {

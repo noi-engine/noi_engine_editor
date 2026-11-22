@@ -122,6 +122,27 @@ Rectangle {
                 }
 
                 MuiIcon {
+                    name: "edit_note"
+                    font.pixelSize: 16
+                    color: openArea.containsMouse ? Theme.primaryColor : Theme.grey
+                    ToolTip.visible: openArea.containsMouse
+                    ToolTip.text: qsTr("Edit this script's code in your code editor")
+
+                    MouseArea {
+                        id: openArea
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            const file = CodeEditorLauncher.scriptFile(CurrentProjectManager.path, modelData);
+                            if (!CodeEditorLauncher.open(CurrentProjectManager.path, file))
+                                Notifier.error(qsTr("Couldn't start a code editor. Set the command in Settings > General."));
+                        }
+                    }
+                }
+
+                MuiIcon {
                     name: "close"
                     font.pixelSize: 14
                     color: Theme.grey
@@ -190,9 +211,12 @@ Rectangle {
 
             AppButton {
                 implicitHeight: 28
-                icon: "folder_open"
-                text: qsTr("Open code folder")
-                onClicked: Qt.openUrlExternally("file://" + CurrentProjectManager.path + "/sources/scripts")
+                icon: "code"
+                text: qsTr("Open in code editor")
+                onClicked: {
+                    if (!CodeEditorLauncher.open(CurrentProjectManager.path, ""))
+                        Notifier.error(qsTr("Couldn't start a code editor. Set the command in Settings > General."));
+                }
             }
         }
     }

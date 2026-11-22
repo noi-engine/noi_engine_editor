@@ -190,6 +190,33 @@ CustomPage {
                     }
                 }
 
+                ColumnLayout {
+                    visible: root.category === "general"
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: qsTr("The editor you write your scripts in. “Open code” in the toolbar and the script buttons use it.")
+                        font.pixelSize: 13
+                        color: Theme.darkGrey
+                        wrapMode: Text.WordWrap
+                    }
+
+                    AppTextField {
+                        Layout.fillWidth: true
+                        label: qsTr("Code editor command")
+                        placeholderText: qsTr("empty = automatic")
+                        text: SettingsManager.codeEditorCommand
+                        hint: SettingsManager.codeEditorCommand === ""
+                              ? (CodeEditorLauncher.detectedEditor() !== ""
+                                 ? qsTr("Found on this computer: %1").arg(CodeEditorLauncher.detectedEditor())
+                                 : qsTr("No known editor found: your system's default app opens the files. You can type a command, for example: code"))
+                              : qsTr("Started with the project folder (and the script file) as arguments.")
+                        onEdited: SettingsManager.codeEditorCommand = text
+                    }
+                }
+
                 // ---- Build tools
                 ColumnLayout {
                     visible: root.category === "build"

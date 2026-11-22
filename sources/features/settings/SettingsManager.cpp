@@ -10,6 +10,7 @@ namespace noi_engine_editor
     namespace
     {
         constexpr auto DEFAULT_PROJECTS_PATH_KEY = "defaultProjectsPath";
+        constexpr auto CODE_EDITOR_COMMAND_KEY = "codeEditorCommand";
     }
 
     SettingsManager::SettingsManager(QObject* parent) : QObject(parent)
@@ -18,6 +19,7 @@ namespace noi_engine_editor
         const auto fallback = PathResolver::fallBackDefaultProjectsPath();
 
         m_defaultProjectsPath = settings.value(DEFAULT_PROJECTS_PATH_KEY, fallback).toString();
+        m_codeEditorCommand = settings.value(CODE_EDITOR_COMMAND_KEY).toString();
     }
 
     auto SettingsManager::defaultProjectsPath() const -> QString
@@ -38,5 +40,25 @@ namespace noi_engine_editor
         settings.setValue(DEFAULT_PROJECTS_PATH_KEY, path);
 
         emit defaultProjectsPathChanged();
+    }
+
+    auto SettingsManager::codeEditorCommand() const -> QString
+    {
+        return m_codeEditorCommand;
+    }
+
+    auto SettingsManager::setCodeEditorCommand(const QString& command) -> void
+    {
+        if (m_codeEditorCommand == command)
+        {
+            return;
+        }
+
+        m_codeEditorCommand = command;
+
+        QSettings settings;
+        settings.setValue(CODE_EDITOR_COMMAND_KEY, command);
+
+        emit codeEditorCommandChanged();
     }
 }

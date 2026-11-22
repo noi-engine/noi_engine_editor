@@ -16,6 +16,7 @@ Rectangle {
     signal searchRequested()
     signal scenesRequested()
     signal buildHelpRequested()
+    signal codeRequested()
     signal undoRequested()
     signal redoRequested()
 
@@ -178,6 +179,15 @@ Rectangle {
             implicitHeight: 36
             primary: root.sceneDirty
             onClicked: root.saveRequested()
+        }
+
+        AppButton {
+            icon: "code"
+            compact: true
+            implicitHeight: 36
+            text: qsTr("Open code")
+            tooltip: qsTr("Open the project in your code editor (set it in Settings)")
+            onClicked: root.codeRequested()
         }
 
         AppButton {

@@ -76,6 +76,9 @@ namespace noi_engine_editor
         // world can have changed: something was queued, the game is running, the selection or the
         // scene changed. A few extra frames after each change let it settle.
         int m_refreshFrames{4};
+        // Aspect ratio of the scene camera (width / height): in Play the game is shown at this shape,
+        // with bars around it when the viewport has another one.
+        float m_cameraAspect{0.0f};
         QString m_lastInspectionKey;
         bool m_wasPlaying{false};
         QVariantList m_lastPushedEditorView{};

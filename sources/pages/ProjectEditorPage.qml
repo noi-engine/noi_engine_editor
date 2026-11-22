@@ -363,6 +363,14 @@ CustomPage {
 
     // Play saves the scene first (like "save before running" in other editors), so what runs is
     // exactly what is on disk and nothing is lost if the game misbehaves.
+    // Opens the project (and a script's source file when given) in the user's code editor.
+    function openCode(scriptName) {
+        const file = scriptName !== "" ? CodeEditorLauncher.scriptFile(CurrentProjectManager.path, scriptName) : "";
+        if (!CodeEditorLauncher.open(CurrentProjectManager.path, file)) {
+            Notifier.error(qsTr("Couldn't start a code editor. Set the command in Settings > General (for example “code”)."));
+        }
+    }
+
     function startPlay() {
         if (root.currentScenePath === "" || viewportPanel.playing) return;
         if (root.sceneDirty) {
@@ -666,6 +674,7 @@ CustomPage {
             onSearchRequested: globalSearch.open()
             onScenesRequested: root.activeBottomPanel = "resources"
             onBuildHelpRequested: prerequisitesDialog.open()
+            onCodeRequested: root.openCode("")
             canUndo: root.canUndo
             canRedo: root.canRedo
             onUndoRequested: root.undo()
@@ -879,6 +888,7 @@ CustomPage {
                         enabled: !viewportPanel.playing
                         entity: root.selectedEntity
                         componentsData: viewportPanel.inspectedComponents
+                        sceneCamera: viewportPanel.sceneCamera
                         loadedResources: viewportPanel.loadedResources
                         material: root.selectedMaterial
                         materialProperties: viewportPanel.inspectedMaterialProperties

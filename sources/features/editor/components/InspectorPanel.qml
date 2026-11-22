@@ -9,6 +9,8 @@ Rectangle {
 
     property var entity: null
     property var componentsData: []
+    // The scene camera (x, y, orthographicSize, zoom, aspectRatio, valid): to tell when an object is out of view.
+    property var sceneCamera: ({})
     property var loadedResources: []
     property string resourcesPath: ""
     property string currentScenePath: ""
