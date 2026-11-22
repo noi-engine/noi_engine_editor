@@ -224,7 +224,7 @@ CustomPage {
 
                             AppButton {
                                 primary: true
-                                icon: "rocket_launch"
+                                icon: "add_box"
                                 text: qsTr("Create a project")
                                 onClicked: createProjectDialog.open()
                             }
@@ -352,7 +352,7 @@ CustomPage {
                             { n: "1", icon: "add_circle", t: qsTr("Create"), d: qsTr("Start from a template: a small game that already runs.") },
                             { n: "2", icon: "edit", t: qsTr("Edit your scene"), d: qsTr("Add objects, drag images in, move them in the viewport.") },
                             { n: "3", icon: "play_arrow", t: qsTr("Save and Play"), d: qsTr("Ctrl+S saves. Play runs the game inside the editor.") },
-                            { n: "4", icon: "rocket_launch", t: qsTr("Build a release"), d: qsTr("Packs your game as an archive anyone can unzip and run.") }
+                            { n: "4", icon: "inventory_2", t: qsTr("Build a release"), d: qsTr("Packs your game as an archive anyone can unzip and run.") }
                         ]
 
                         delegate: Card {

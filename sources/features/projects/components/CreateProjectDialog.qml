@@ -400,7 +400,7 @@ AppDialog {
         AppButton {
             primary: true
             text: root.busy ? qsTr("Creating…") : qsTr("Create project")
-            icon: root.busy ? "" : "rocket_launch"
+            icon: root.busy ? "" : "add_box"
             enabled: !root.busy && root.selectedTemplate !== null
             onClicked: root.startCreate()
         }

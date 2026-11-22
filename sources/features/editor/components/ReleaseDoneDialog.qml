@@ -19,7 +19,7 @@ AppDialog {
     title: qsTr("Your game is ready")
     subtitle: packaged ? qsTr("The game was packed into an archive you can share.")
                        : qsTr("The game was built, but not packed into an archive.")
-    icon: "rocket_launch"
+    icon: "inventory_2"
     preferredWidth: 560
 
     Banner {
