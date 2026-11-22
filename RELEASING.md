@@ -55,7 +55,7 @@ To publish a game on GitHub, push a tag `v<version>` (it must match `version` in
 | --- | --- | --- |
 | Linux x64 | workflow written | built and packaged locally |
 | macOS arm64 | workflow written, never run | workflow written, never run |
-| Windows x64 | experimental (never run) | blocked: `noi_engine` publishes no Windows build yet (its release workflow has the entry commented out), then the game's workflow has a commented entry to enable |
+| Windows x64 | disabled (first run failed, commented out in the workflow) | blocked: `noi_engine` publishes no Windows build yet (its release workflow has the entry commented out), then the game's workflow has a commented entry to enable |
 
 ## Known gaps
 

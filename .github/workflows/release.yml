@@ -3,7 +3,6 @@ name: release
 # Publishes the editor for each platform when a "v*" tag is pushed:
 #   noi_engine_editor-linux-x64.AppImage
 #   noi_engine_editor-macos-arm64.dmg
-#   noi_engine_editor-windows-x64.zip   (experimental, see below)
 #
 # The tag must match the project version in CMakeLists.txt (project(... VERSION x.y.z)).
 #
@@ -39,11 +38,11 @@ jobs:
             artifact_os: macos
             artifact_arch: arm64
             experimental: false
-          # The Windows build has never been run: a failure there doesn't block the other platforms.
-          - os: windows-latest
-            artifact_os: windows
-            artifact_arch: x64
-            experimental: true
+          # Windows is disabled for now (its build failed on the first run and isn't a target yet).
+          # - os: windows-latest
+          #   artifact_os: windows
+          #   artifact_arch: x64
+          #   experimental: true
 
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
