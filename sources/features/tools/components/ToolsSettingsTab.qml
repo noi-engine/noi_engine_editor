@@ -7,16 +7,58 @@ import noi_engine_editor
 ColumnLayout {
     id: root
 
-    spacing: 20
+    spacing: Theme.spacingLarge
+
+    // The last download that failed, so it can be explained and retried.
+    property string failedTool: ""
+    property string failedVersion: ""
+
+    function retryFailed() {
+        const tool = root.failedTool, version = root.failedVersion;
+        root.failedTool = "";
+        root.failedVersion = "";
+        if (tool === "noi_engine") ToolsManager.installNoiEngine(version);
+        else if (tool === "resource_compiler") ToolsManager.installResourceCompiler(version);
+        else if (tool === "editor_bridge") ToolsManager.installEditorBridge(version);
+    }
 
     Connections {
         target: ToolsManager
 
-        function onInstallFinished() {
+        function onInstallFinished(tool, version, success) {
             noiEngineSection.model = ToolsManager.installedNoiEngineVersions()
             resourceCompilerSection.model = ToolsManager.installedResourceCompilerVersions()
             editorBridgeSection.model = ToolsManager.installedEditorBridgeVersions()
+            if (success) {
+                if (root.failedTool === tool) root.failedTool = "";
+            } else {
+                root.failedTool = tool;
+                root.failedVersion = version;
+            }
         }
+    }
+
+    PrerequisitesDialog { id: prerequisitesDialog }
+
+    Banner {
+        Layout.fillWidth: true
+        visible: root.failedTool !== ""
+        kind: "error"
+        title: qsTr("A download failed")
+        text: qsTr("Couldn't download %1 v%2. Check your internet connection, then try again.")
+            .arg(root.failedTool === "noi_engine" ? qsTr("the Noi Engine")
+                 : root.failedTool === "editor_bridge" ? qsTr("the editor bridge") : qsTr("the resources compiler"))
+            .arg(root.failedVersion)
+        actionText: qsTr("Retry")
+        closable: true
+        onActionTriggered: root.retryFailed()
+        onClosed: root.failedTool = ""
+    }
+
+    Banner {
+        Layout.fillWidth: true
+        kind: "info"
+        text: qsTr("These are downloaded automatically when you create or open a project. Removing a version only frees disk space: it is downloaded again when a project needs it.")
     }
 
     component ToolSection: ColumnLayout {
@@ -24,6 +66,7 @@ ColumnLayout {
 
         property string icon: ""
         property string label: ""
+        property string description: ""
         property alias model: listView.model
 
         Layout.fillWidth: true
@@ -46,6 +89,15 @@ ColumnLayout {
                     color: Theme.white
                     font.bold: true
                     font.pixelSize: 15
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    visible: section.description !== ""
+                    text: section.description
+                    color: Theme.darkGrey
+                    font.pixelSize: 12
+                    wrapMode: Text.WordWrap
                 }
 
                 Text {
@@ -123,6 +175,7 @@ ColumnLayout {
 
         icon: "build"
         label: qsTr("Noi Engine")
+        description: qsTr("The engine that runs your game.")
         model: ToolsManager.installedNoiEngineVersions()
 
         onRemoveRequested: version => {
@@ -142,7 +195,8 @@ ColumnLayout {
         id: resourceCompilerSection
 
         icon: "terminal"
-        label: qsTr("Resource Compiler")
+        label: qsTr("Resources compiler")
+        description: qsTr("Packs your images and scenes when you build a release.")
         model: ToolsManager.installedResourceCompilerVersions()
 
         onRemoveRequested: version => {
@@ -162,7 +216,8 @@ ColumnLayout {
         id: editorBridgeSection
 
         icon: "cable"
-        label: qsTr("Editor Bridge")
+        label: qsTr("Editor bridge")
+        description: qsTr("Shows your scene live inside the editor.")
         model: ToolsManager.installedEditorBridgeVersions()
 
         onRemoveRequested: version => {
@@ -171,5 +226,41 @@ ColumnLayout {
         }
     }
 
-    Item { Layout.fillHeight: true }
+    Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 1
+        color: Theme.borderColor
+        opacity: 0.5
+    }
+
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: 12
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 0
+
+            Text {
+                text: qsTr("Programs installed on your computer")
+                color: Theme.white
+                font.bold: true
+                font.pixelSize: 15
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("CMake, Ninja, a C++ compiler, Python and flatc build your game. See which ones are missing.")
+                color: Theme.darkGrey
+                font.pixelSize: 12
+                wrapMode: Text.WordWrap
+            }
+        }
+
+        AppButton {
+            text: qsTr("Check")
+            icon: "build_circle"
+            onClicked: prerequisitesDialog.open()
+        }
+    }
 }

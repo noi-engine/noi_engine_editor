@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import noi_engine_editor
 
-Dialog {
+AppDialog {
     id: root
 
     property string targetPath: ""
@@ -16,56 +16,52 @@ Dialog {
         root.open()
     }
 
-    title: qsTr("New Folder")
-    modal: true
-    anchors.centerIn: Overlay.overlay
-    implicitWidth: 320
+    function confirm() {
+        const name = nameInput.text.trim()
+        if (name === "") {
+            nameInput.error = qsTr("Type a name for the folder.")
+            return
+        }
+        if (/[\\/:*?"<>|]/.test(name) || name === "." || name === "..") {
+            nameInput.error = qsTr("A folder name can't contain / \\ : * ? \" < > |")
+            return
+        }
+        root.confirmed(name)
+        root.accept()
+    }
+
+    title: qsTr("New folder")
+    subtitle: qsTr("Folders keep the images and files of your game organized.")
+    icon: "create_new_folder"
+    preferredWidth: 440
 
     onOpened: {
-        folderNameInput.text = root.defaultFolderName
-        folderNameInput.selectAll()
-        folderNameInput.forceActiveFocus()
+        nameInput.error = ""
+        nameInput.text = root.defaultFolderName
+        nameInput.field.forceActiveFocus()
+        nameInput.field.selectAll()
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: 14
-
-        Text {
-            Layout.fillWidth: true
-            text: qsTr("Folder name:")
-            font.pixelSize: 12
-            color: Theme.darkGrey
-        }
-
-        TextField {
-            id: folderNameInput
-            Layout.fillWidth: true
-            font.pixelSize: 13
-            color: Theme.white
-            selectByMouse: true
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Item { Layout.fillWidth: true }
-
-            AppButton {
-                text: qsTr("Cancel")
-                onClicked: root.reject()
-            }
-
-            AppButton {
-                text: qsTr("Create")
-                onClicked: {
-                    if (folderNameInput.text.trim() !== "") {
-                        root.confirmed(folderNameInput.text.trim())
-                    }
-                    root.accept()
-                }
-            }
-        }
+    AppTextField {
+        id: nameInput
+        Layout.fillWidth: true
+        label: qsTr("Folder name")
+        hint: root.targetPath !== "" ? qsTr("Created in %1").arg(root.targetPath) : ""
+        onEdited: error = ""
+        onAccepted: root.confirm()
     }
+
+    footerContent: [
+        Item { Layout.fillWidth: true },
+        AppButton {
+            text: qsTr("Cancel")
+            onClicked: root.reject()
+        },
+        AppButton {
+            text: qsTr("Create folder")
+            icon: "create_new_folder"
+            primary: true
+            onClicked: root.confirm()
+        }
+    ]
 }

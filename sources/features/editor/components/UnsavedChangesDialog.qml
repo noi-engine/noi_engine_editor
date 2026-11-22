@@ -6,7 +6,7 @@ import noi_engine_editor
 
 // Leaving a scene with unsaved changes (opening another one, going back home): save them,
 // drop them, or stay.
-Dialog {
+AppDialog {
     id: root
 
     property string sceneName: ""
@@ -21,50 +21,42 @@ Dialog {
         root.open();
     }
 
-    title: qsTr("Unsaved changes")
-    modal: true
-    anchors.centerIn: Overlay.overlay
-    implicitWidth: 420
+    title: qsTr("Save your changes?")
+    subtitle: qsTr("%1 has changes that are not saved yet.").arg(root.sceneName)
+    icon: "save"
+    preferredWidth: 460
+    showClose: false
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: 12
-
-        Text {
-            Layout.fillWidth: true
-            wrapMode: Text.WordWrap
-            font.pixelSize: 12
-            color: Theme.white
-            text: qsTr("%1 has unsaved changes. Save them before %2?").arg(root.sceneName).arg(root.actionText)
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Item { Layout.fillWidth: true }
-
-            AppButton {
-                text: qsTr("Cancel")
-                onClicked: root.reject()
-            }
-
-            AppButton {
-                text: qsTr("Don't save")
-                onClicked: {
-                    root.discardRequested();
-                    root.accept();
-                }
-            }
-
-            AppButton {
-                text: qsTr("Save")
-                primary: true
-                onClicked: {
-                    root.saveRequested();
-                    root.accept();
-                }
-            }
-        }
+    Text {
+        Layout.fillWidth: true
+        wrapMode: Text.WordWrap
+        font.pixelSize: 13
+        color: Theme.white
+        text: qsTr("Before %1, do you want to save %2? If you don't save, the changes you made since the last save are lost.")
+            .arg(root.actionText).arg(root.sceneName)
     }
+
+    footerContent: [
+        Item { Layout.fillWidth: true },
+        AppButton {
+            text: qsTr("Cancel")
+            onClicked: root.reject()
+        },
+        AppButton {
+            text: qsTr("Don't save")
+            onClicked: {
+                root.discardRequested();
+                root.accept();
+            }
+        },
+        AppButton {
+            text: qsTr("Save")
+            icon: "save"
+            primary: true
+            onClicked: {
+                root.saveRequested();
+                root.accept();
+            }
+        }
+    ]
 }

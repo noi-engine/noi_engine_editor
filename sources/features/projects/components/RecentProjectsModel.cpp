@@ -1,5 +1,7 @@
 #include "RecentProjectsModel.hpp"
 
+#include <QLocale>
+
 namespace noi_engine_editor
 {
     RecentProjectsModel::RecentProjectsModel(QObject* parent)
@@ -61,7 +63,7 @@ namespace noi_engine_editor
         {
         case NameRole: return project.name;
         case PathRole: return project.path;
-        case LastOpenedRole: return project.lastOpened;
+        case LastOpenedRole: return project.lastOpened.isValid() ? QLocale().toString(project.lastOpened, QStringLiteral("d MMM yyyy, HH:mm")) : QString();
         default: return {};
         }
     }

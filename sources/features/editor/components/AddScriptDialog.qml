@@ -8,7 +8,7 @@ import noi_engine_editor
 // there is nothing to wire by hand: scriptCreated() is emitted, the Inspector compiles the
 // project and attaches the script to the selected entity. Editing its code is done outside the
 // editor.
-Dialog {
+AppDialog {
     id: root
 
     readonly property string scriptsFolder: CurrentProjectManager.path + "/sources/scripts"
@@ -78,134 +78,82 @@ Dialog {
         root.scriptCreated(root.className);
     }
 
-    title: qsTr("Add Script")
-    modal: true
-    anchors.centerIn: Overlay.overlay
-    implicitWidth: 360
-    standardButtons: Dialog.NoButton
+    title: root.done ? qsTr("Script created") : qsTr("New script")
+    subtitle: root.done
+        ? qsTr("Your script is ready to be filled with code.")
+        : qsTr("A script is the code that makes an object move or react (a player, an enemy, a door...).")
+    icon: "code"
+    preferredWidth: 500
 
     onOpened: {
         root.done = false;
         root.errorText = "";
         nameInput.text = "";
-        nameInput.forceActiveFocus();
+        nameInput.field.forceActiveFocus();
     }
 
-    background: Rectangle {
-        color: Theme.bgTertiary
-        border.color: Theme.borderColor
-        border.width: 1
-        radius: 8
+    // ---- Step 1: name
+    AppTextField {
+        id: nameInput
+        visible: !root.done
+        Layout.fillWidth: true
+        label: qsTr("Script name")
+        placeholderText: qsTr("enemy")
+        hint: root.trimmedName === ""
+            ? qsTr("Use letters, numbers and underscores (for example enemy).")
+            : root.validName ? qsTr("Creates sources/scripts/%1.hpp and %1.cpp").arg(root.className) : ""
+        error: root.trimmedName !== "" && !root.validName
+            ? qsTr("Use letters, numbers and underscores only, starting with a letter or underscore.") : ""
+        onEdited: root.errorText = ""
+        onAccepted: root.createScript()
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: 14
+    Banner {
+        Layout.fillWidth: true
+        kind: "error"
+        visible: !root.done && root.errorText !== ""
+        title: qsTr("The script couldn't be created")
+        text: root.errorText + " " + qsTr("Pick another name.")
+    }
 
-        ColumnLayout {
+    // ---- Step 2: created
+    Banner {
+        Layout.fillWidth: true
+        visible: root.done
+        kind: "success"
+        title: root.className
+        text: qsTr("Created %1 and %2.").arg(root.createdHppPath).arg(root.createdCppPath)
+    }
+
+    Text {
+        Layout.fillWidth: true
+        visible: root.done
+        text: qsTr("What happens next: the project compiles, then %1 is attached to the selected object. Write what it does in these two files (with your code editor), and press Compile again to try it.").arg(root.className)
+        font.pixelSize: 12
+        color: Theme.darkGrey
+        wrapMode: Text.WordWrap
+    }
+
+    footerContent: [
+        Item { Layout.fillWidth: true },
+        AppButton {
             visible: !root.done
-            Layout.fillWidth: true
-            spacing: 10
-
-            Text {
-                Layout.fillWidth: true
-                text: qsTr("Script name (e.g. \"enemy\"):")
-                font.pixelSize: 12
-                color: Theme.darkGrey
-            }
-
-            TextField {
-                id: nameInput
-                Layout.fillWidth: true
-                font.pixelSize: 13
-                color: Theme.white
-                selectByMouse: true
-                placeholderText: qsTr("enemy")
-                onAccepted: root.createScript()
-            }
-
-            Text {
-                Layout.fillWidth: true
-                visible: root.trimmedName !== ""
-                text: root.validName
-                    ? qsTr("Creates sources/scripts/%1.hpp and .cpp").arg(root.className)
-                    : qsTr("Use letters, numbers, and underscores only - must start with a letter or underscore.")
-                font.pixelSize: 10
-                font.italic: true
-                color: root.validName ? Theme.grey : Theme.error
-                wrapMode: Text.WordWrap
-            }
-
-            Text {
-                Layout.fillWidth: true
-                visible: root.errorText !== ""
-                text: root.errorText
-                font.pixelSize: 10
-                color: Theme.error
-                wrapMode: Text.WordWrap
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-
-                Item { Layout.fillWidth: true }
-
-                AppButton {
-                    text: qsTr("Cancel")
-                    onClicked: root.reject()
-                }
-
-                AppButton {
-                    text: qsTr("Create")
-                    enabled: root.validName
-                    onClicked: root.createScript()
-                }
-            }
-        }
-
-        ColumnLayout {
+            text: qsTr("Cancel")
+            onClicked: root.reject()
+        },
+        AppButton {
+            visible: !root.done
+            text: qsTr("Create script")
+            icon: "add"
+            primary: true
+            enabled: root.validName
+            onClicked: root.createScript()
+        },
+        AppButton {
             visible: root.done
-            Layout.fillWidth: true
-            spacing: 10
-
-            Text {
-                Layout.fillWidth: true
-                text: qsTr("Script created:")
-                font.pixelSize: 12
-                font.weight: Font.DemiBold
-                color: Theme.white
-            }
-
-            Text {
-                Layout.fillWidth: true
-                text: root.createdHppPath + "\n" + root.createdCppPath
-                font.pixelSize: 11
-                font.family: "monospace"
-                color: Theme.grey
-                wrapMode: Text.WrapAnywhere
-            }
-
-            Text {
-                Layout.fillWidth: true
-                text: qsTr("The project is compiling: %1 is attached to the entity as soon as it's built. Write its code in these files, then Compile again.").arg(root.className)
-                font.pixelSize: 10
-                font.italic: true
-                color: Theme.grey
-                wrapMode: Text.WordWrap
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-
-                Item { Layout.fillWidth: true }
-
-                AppButton {
-                    text: qsTr("Close")
-                    onClicked: root.accept()
-                }
-            }
+            text: qsTr("Close")
+            primary: true
+            onClicked: root.accept()
         }
-    }
+    ]
 }

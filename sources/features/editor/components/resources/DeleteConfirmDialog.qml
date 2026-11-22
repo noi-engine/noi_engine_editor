@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import noi_engine_editor
 
-Dialog {
+AppDialog {
     id: root
 
     property string targetPath: ""
@@ -16,41 +16,33 @@ Dialog {
         root.open()
     }
 
-    title: qsTr("Delete Resource")
-    modal: true
-    anchors.centerIn: Overlay.overlay
-    implicitWidth: 340
+    title: qsTr("Delete %1?").arg(root.targetName)
+    subtitle: root.targetPath
+    icon: "delete"
+    preferredWidth: 460
+    showClose: false
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: 14
-
-        Text {
-            Layout.fillWidth: true
-            text: qsTr("Are you sure you want to delete '%1'?").arg(root.targetName)
-            font.pixelSize: 12
-            color: Theme.white
-            wrapMode: Text.Wrap
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Item { Layout.fillWidth: true }
-
-            AppButton {
-                text: qsTr("No")
-                onClicked: root.reject()
-            }
-
-            AppButton {
-                text: qsTr("Yes")
-                onClicked: {
-                    root.confirmed()
-                    root.accept()
-                }
-            }
-        }
+    Banner {
+        Layout.fillWidth: true
+        kind: "warning"
+        title: qsTr("This can't be undone")
+        text: qsTr("%1 is removed from your project folder for good (a folder is removed with everything inside it). Scenes that use it will show an error until you pick another file.").arg(root.targetName)
     }
+
+    footerContent: [
+        Item { Layout.fillWidth: true },
+        AppButton {
+            text: qsTr("Keep it")
+            onClicked: root.reject()
+        },
+        AppButton {
+            text: qsTr("Delete")
+            icon: "delete"
+            primary: true
+            onClicked: {
+                root.confirmed()
+                root.accept()
+            }
+        }
+    ]
 }

@@ -10,7 +10,7 @@ import noi_engine_editor
 // u_texture at that resource; leaving it on "(none)" keeps today's plain-color-quad behavior.
 // textureLabels is expected to be a live binding (not a one-time snapshot) so it picks up a
 // texture just brought in via "Import Texture..." once the scene reload finishes.
-Dialog {
+AppDialog {
     id: root
 
     property var textureLabels: []
@@ -31,23 +31,15 @@ Dialog {
         }
     }
 
-    title: qsTr("Add Sprite")
-    modal: true
-    anchors.centerIn: Overlay.overlay
-    implicitWidth: 340
-    standardButtons: Dialog.NoButton
+    title: qsTr("Add a sprite")
+    subtitle: qsTr("A sprite is an object that shows a picture (or a plain color) in your scene.")
+    icon: "image"
+    preferredWidth: 480
 
     onOpened: {
         textureCombo.currentIndex = 0;
         root.pendingSelectLabel = "";
         importTexture.errorText = "";
-    }
-
-    background: Rectangle {
-        color: Theme.bgTertiary
-        border.color: Theme.borderColor
-        border.width: 1
-        radius: 8
     }
 
     ImportTextureDialog {
@@ -67,71 +59,63 @@ Dialog {
         }
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: 14
+    Text {
+        Layout.fillWidth: true
+        text: qsTr("Picture")
+        font.pixelSize: 12
+        font.weight: Font.Medium
+        color: Theme.darkGrey
+    }
 
-        Text {
+    RowLayout {
+        Layout.fillWidth: true
+        spacing: Theme.spacingSmall
+
+        ComboBox {
+            id: textureCombo
             Layout.fillWidth: true
-            text: qsTr("Texture:")
-            font.pixelSize: 12
-            color: Theme.darkGrey
+            model: root.comboItems
         }
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            ComboBox {
-                id: textureCombo
-                Layout.fillWidth: true
-                model: root.comboItems
-            }
-
-            AppButton {
-                text: qsTr("Import...")
-                enabled: !importTexture.busy
-                onClicked: importTexture.pick()
-            }
-        }
-
-        Text {
-            Layout.fillWidth: true
-            visible: root.textureLabels.length === 0 && importTexture.errorText === ""
-            text: qsTr("No textures loaded yet. Import an image, or add a plain-color sprite now.")
-            color: Theme.grey
-            font.pixelSize: 10
-            font.italic: true
-            wrapMode: Text.WordWrap
-        }
-
-        Text {
-            Layout.fillWidth: true
-            visible: importTexture.errorText !== ""
-            text: importTexture.errorText
-            color: Theme.error
-            font.pixelSize: 10
-            wrapMode: Text.WordWrap
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-
-            Item { Layout.fillWidth: true }
-
-            AppButton {
-                text: qsTr("Cancel")
-                onClicked: root.reject()
-            }
-
-            AppButton {
-                text: qsTr("Add")
-                onClicked: {
-                    root.confirmed(textureCombo.currentIndex === 0 ? "" : textureCombo.currentText)
-                    root.accept()
-                }
-            }
+        AppButton {
+            text: importTexture.busy ? qsTr("Importing...") : qsTr("Import an image...")
+            icon: "upload"
+            enabled: !importTexture.busy
+            onClicked: importTexture.pick()
         }
     }
+
+    Text {
+        Layout.fillWidth: true
+        visible: root.textureLabels.length === 0 && importTexture.errorText === ""
+        text: qsTr("No picture is loaded in this scene yet. Import an image, or add a plain-color sprite and change its color later.")
+        color: Theme.darkGrey
+        font.pixelSize: 12
+        wrapMode: Text.WordWrap
+    }
+
+    Banner {
+        Layout.fillWidth: true
+        kind: "error"
+        visible: importTexture.errorText !== ""
+        title: qsTr("The image couldn't be imported")
+        text: importTexture.errorText
+    }
+
+    footerContent: [
+        Item { Layout.fillWidth: true },
+        AppButton {
+            text: qsTr("Cancel")
+            onClicked: root.reject()
+        },
+        AppButton {
+            text: qsTr("Add sprite")
+            icon: "add"
+            primary: true
+            onClicked: {
+                root.confirmed(textureCombo.currentIndex === 0 ? "" : textureCombo.currentText)
+                root.accept()
+            }
+        }
+    ]
 }
