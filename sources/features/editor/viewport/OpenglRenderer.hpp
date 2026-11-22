@@ -72,6 +72,11 @@ namespace noi_engine_editor
         bool m_bridgeLoadWarned{false};
         // Render-thread-owned confirmed ticking state - distinct from OpenGLView::isPlaying(),
         // which is the GUI-thread-requested state; see updatePlayState().
+        // The lists shown in the UI (entities, resources, inspector...) are rebuilt only when the
+        // world can have changed: something was queued, the game is running, the selection or the
+        // scene changed. A few extra frames after each change let it settle.
+        int m_refreshFrames{4};
+        QString m_lastInspectionKey;
         bool m_wasPlaying{false};
         QVariantList m_lastPushedEditorView{};
         PreviewBridgeLoader m_bridge{};

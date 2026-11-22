@@ -818,6 +818,18 @@ namespace noi_engine_editor
         }
 
         auto* view = static_cast<OpenGLView*>(item);
+
+        // Does anything below change the world? (see m_refreshFrames)
+        const auto inspectionKey = QStringLiteral("%1:%2:%3:%4:%5:%6")
+            .arg(view->hasInspectedEntity()).arg(view->inspectedEntityId()).arg(view->inspectedEntityGeneration())
+            .arg(view->hasInspectedMaterial()).arg(view->inspectedMaterialId()).arg(view->inspectedMaterialGeneration());
+        if (view->hasPendingWork() || view->isPlaying() || m_wasPlaying || view->stopRequested()
+            || inspectionKey != m_lastInspectionKey)
+        {
+            m_refreshFrames = 4;
+        }
+        m_lastInspectionKey = inspectionKey;
+
         const auto dpr = view->window() ? view->window()->devicePixelRatio() : 1.0;
         const auto realWidth = static_cast<int>(view->width() * dpr);
         const auto realHeight = static_cast<int>(view->height() * dpr);
@@ -837,6 +849,7 @@ namespace noi_engine_editor
             if (const auto newGeneration = view->scriptsGeneration();
                 m_scriptsGeneration != newGeneration && !view->isPlaying() && !m_wasPlaying)
             {
+                m_refreshFrames = 4;
                 const bool reloadScene = m_scriptsLoaded && !m_currentPath.isEmpty();
                 QString snapshotPath;
                 if (reloadScene)
@@ -885,6 +898,7 @@ namespace noi_engine_editor
         const auto newReloadToken = view->sceneReloadToken();
         if (m_scriptsLoaded && (m_currentPath != newPath || m_sceneReloadToken != newReloadToken))
         {
+            m_refreshFrames = 4;
             m_currentPath = newPath;
             m_sceneReloadToken = newReloadToken;
             if (!m_currentPath.isEmpty() && this->m_gameHandle)
@@ -916,6 +930,18 @@ namespace noi_engine_editor
         this->applyPendingMaterialPropertyEdits(view);
         this->applyPendingMaterialPropertyRemoves(view);
         this->applyPendingSceneSaves(view);
+
+        // Nothing can have changed: keep what the UI already shows (and skip walking the world).
+        if (m_refreshFrames <= 0)
+        {
+            if (logPerf)
+            {
+                ++perfCount;
+                perfNanos += syncTimer.nsecsElapsed();
+            }
+            return;
+        }
+        --m_refreshFrames;
 
         QVariantList loadedResources;
         QVariantList loadedEntities;

@@ -704,6 +704,17 @@ namespace noi_engine_editor
         Q_EMIT sceneSaved(success);
     }
 
+    bool OpenGLView::hasPendingWork() const
+    {
+        return !m_pendingPropertyEdits.isEmpty() || !m_pendingComponentAdds.isEmpty()
+            || !m_pendingMaterialPropertyEdits.isEmpty() || !m_pendingKeyEvents.isEmpty()
+            || !m_pendingSceneSaves.isEmpty() || !m_pendingComponentRemoves.isEmpty()
+            || !m_pendingComponentPropertyRemoves.isEmpty() || !m_pendingMaterialPropertyRemoves.isEmpty()
+            || !m_pendingEntityCreates.isEmpty() || !m_pendingEntityDestroys.isEmpty()
+            || !m_pendingEntityDuplicates.isEmpty() || !m_pendingSnapshots.isEmpty()
+            || !m_pendingRestores.isEmpty();
+    }
+
     void OpenGLView::snapshotScene(const QString& path)
     {
         if (m_scenePath.isEmpty() || path.isEmpty())

@@ -332,6 +332,10 @@ namespace noi_engine_editor
         // through the bridge. Emits sceneSaved(success) for QML to show a toast/error.
         void confirmSceneSaved(bool success);
 
+        // Renderer-only: whether anything is queued for the next synchronize() (so the renderer
+        // knows the world is about to change and the lists shown in the UI must be rebuilt).
+        [[nodiscard]] bool hasPendingWork() const;
+
         // Undo/redo support (see ProjectEditorPage): writes the live scene (unsaved edits included)
         // to `path`, or replaces the live scene by the one in `path`. Both must be inside the
         // project's resources folder. Applied before the other queued edits of the same frame, so
