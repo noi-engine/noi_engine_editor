@@ -350,6 +350,39 @@ CustomPage {
         }
     }
 
+    // Play saves the scene first (like "save before running" in other editors), so what runs is
+    // exactly what is on disk and nothing is lost if the game misbehaves.
+    function startPlay() {
+        if (root.currentScenePath === "" || viewportPanel.playing) return;
+        if (root.sceneDirty) {
+            root.afterSave = () => viewportPanel.setPlaying(true);
+            viewportPanel.saveScene();
+        } else {
+            viewportPanel.setPlaying(true);
+        }
+    }
+
+    function togglePlay() {
+        if (viewportPanel.playing) viewportPanel.setPlaying(false);
+        else root.startPlay();
+    }
+
+    function deleteSelectedEntity() {
+        const entity = root.selectedEntity;
+        if (!entity || entity.name === "main_camera" || viewportPanel.playing) return;
+        root.selectedEntity = null;
+        viewportPanel.destroyEntity(entity.id, entity.generation);
+        root.touch();
+    }
+
+    function duplicateSelectedEntity() {
+        const entity = root.selectedEntity;
+        if (!entity || viewportPanel.playing) return;
+        root.pendingCreates = root.pendingCreates.concat([{folder: null, preset: ""}]);
+        viewportPanel.duplicateEntity(entity.id, entity.generation, (entity.name || "Entity") + " copy");
+        root.touch();
+    }
+
     function saveCurrentScene() {
         if (root.currentScenePath === "" || viewportPanel.playing) {
             return;
@@ -370,6 +403,30 @@ CustomPage {
         sequences: [StandardKey.Redo, "Ctrl+Y"]
         enabled: root.canRedo && !root.typingInField
         onActivated: root.redo()
+    }
+
+    Shortcut {
+        sequence: "F5"
+        enabled: root.currentScenePath !== "" && !ProjectBuilder.isCompiling
+        onActivated: root.togglePlay()
+    }
+
+    Shortcut {
+        sequence: StandardKey.Delete
+        enabled: root.selectedEntity !== null && !root.typingInField && !viewportPanel.playing
+        onActivated: root.deleteSelectedEntity()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+D"
+        enabled: root.selectedEntity !== null && !root.typingInField && !viewportPanel.playing
+        onActivated: root.duplicateSelectedEntity()
+    }
+
+    Shortcut {
+        sequence: "Escape"
+        enabled: root.selectedEntity !== null && !root.typingInField
+        onActivated: root.selectedEntity = null
     }
 
     Shortcut {
@@ -503,7 +560,7 @@ CustomPage {
                 CurrentProjectManager.closeProject()
                 Router.replace("/")
             })
-            onPlayRequested: viewportPanel.setPlaying(true)
+            onPlayRequested: root.startPlay()
             onStopRequested: viewportPanel.setPlaying(false)
             onSaveRequested: root.saveCurrentScene()
             onSearchRequested: globalSearch.open()

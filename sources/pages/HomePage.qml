@@ -16,10 +16,6 @@ CustomPage {
         manager: RecentProjectsManager
     }
 
-    SettingsDialog {
-        id: settingsDialog
-    }
-
     PrerequisitesDialog {
         id: prerequisitesDialog
     }
@@ -31,7 +27,7 @@ CustomPage {
     // Development aid (screenshots): `--demo createProject|settings`.
     function demo(name) {
         if (name === "createProject") createProjectDialog.open();
-        else if (name === "settings") settingsDialog.open();
+        else if (name === "settings") Router.push("/settings");
         else if (name === "prerequisites") prerequisitesDialog.open();
     }
 
@@ -105,7 +101,7 @@ CustomPage {
 
             onNewProjectRequested: createProjectDialog.open()
             onOpenProjectRequested: openProjectFolderDialog.open()
-            onSettingsRequested: settingsDialog.open()
+            onSettingsRequested: Router.push("/settings")
             onToolsRequested: prerequisitesDialog.open()
         }
 

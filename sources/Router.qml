@@ -20,6 +20,7 @@ QtObject {
     readonly property var routes: ({
         "/": "pages/HomePage.qml",
         "/editor": "pages/ProjectEditorPage.qml",
+        "/settings": "pages/SettingsPage.qml",
     })
 
     function updateCurrentPath() {
