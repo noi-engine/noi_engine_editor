@@ -8,6 +8,7 @@
 #include <QFileInfo>
 #include <stdexcept>
 #include <QDebug>
+#include <QElapsedTimer>
 #include <QQuickWindow>
 #include <QVariantMap>
 
@@ -803,6 +804,19 @@ namespace noi_engine_editor
 
     void OpenGLRenderer::synchronize(QQuickFramebufferObject* item)
     {
+        // Development aid: NOI_LOG_PERF=1 prints, once a second, how many times the viewport was
+        // synchronised and how long that took in total.
+        static const bool logPerf = qEnvironmentVariableIsSet("NOI_LOG_PERF");
+        static QElapsedTimer perfClock;
+        static int perfCount = 0;
+        static qint64 perfNanos = 0;
+        QElapsedTimer syncTimer;
+        if (logPerf)
+        {
+            syncTimer.start();
+            if (!perfClock.isValid()) perfClock.start();
+        }
+
         auto* view = static_cast<OpenGLView*>(item);
         const auto dpr = view->window() ? view->window()->devicePixelRatio() : 1.0;
         const auto realWidth = static_cast<int>(view->width() * dpr);
@@ -918,5 +932,18 @@ namespace noi_engine_editor
         view->setEntityLayout(entityLayout);
         view->setInspectedComponents(this->buildInspectedComponents(view, loadedEntities));
         view->setInspectedMaterialProperties(this->buildInspectedMaterialProperties(view));
+
+        if (logPerf)
+        {
+            ++perfCount;
+            perfNanos += syncTimer.nsecsElapsed();
+            if (perfClock.elapsed() >= 1000)
+            {
+                fprintf(stderr, "[perf] synchronize: %d/s, %.1f ms total/s\n", perfCount, perfNanos / 1e6);
+                perfCount = 0;
+                perfNanos = 0;
+                perfClock.restart();
+            }
+        }
     }
 }

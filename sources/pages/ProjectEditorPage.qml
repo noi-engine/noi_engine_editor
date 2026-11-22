@@ -765,6 +765,7 @@ CustomPage {
                 PanelCard {
                     SplitView.fillWidth: true
                     SplitView.minimumWidth: 400
+                    clipContent: false // the viewport redraws constantly: no offscreen copy
                     ColumnLayout {
                         anchors.fill: parent
                         spacing: 0
@@ -1090,6 +1091,7 @@ CustomPage {
     }
 
     Rectangle {
+        id: buildingOverlay
         anchors.fill: parent
         visible: ProjectBuilder.isCompiling && !ProjectBuilder.hasCompiledOnce
         color: Qt.rgba(0, 0, 0, 0.75)
@@ -1100,7 +1102,8 @@ CustomPage {
 
             BusyIndicator {
                 Layout.alignment: Qt.AlignHCenter
-                running: true
+                // Only spins while shown: a running animation keeps the window redrawing at 60 fps.
+                running: buildingOverlay.visible
             }
 
             Text {

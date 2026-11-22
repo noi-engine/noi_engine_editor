@@ -12,6 +12,9 @@ Item {
     property int radius: 14
     property color color: Theme.bgSecondary
     property bool highlighted: false
+    // Rounded clipping renders the content into an offscreen texture every time it changes: fine
+    // for lists and forms, too costly for the viewport (which redraws all the time).
+    property bool clipContent: true
 
     Rectangle {
         anchors.fill: parent
@@ -27,7 +30,7 @@ Item {
         anchors.margins: 1
         // Rounded clipping needs shader effects: with the software renderer the content simply
         // keeps square corners.
-        layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software
+        layer.enabled: root.clipContent && GraphicsInfo.api !== GraphicsInfo.Software
         layer.effect: MultiEffect {
             maskEnabled: true
             maskSource: maskItem
@@ -38,7 +41,7 @@ Item {
         id: maskItem
         anchors.fill: holder
         visible: false
-        layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software
+        layer.enabled: root.clipContent && GraphicsInfo.api !== GraphicsInfo.Software
 
         Rectangle {
             anchors.fill: parent
