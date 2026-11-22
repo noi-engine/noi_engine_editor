@@ -45,6 +45,8 @@ namespace noi_engine_editor
         auto applyPendingEntityDuplicates(OpenGLView* view) -> void;
         auto applyPendingKeyEvents(OpenGLView* view) -> void;
         auto applyPendingSceneSaves(OpenGLView* view) -> void;
+        auto applyPendingSnapshots(OpenGLView* view) -> void;
+        auto applyPendingRestores(OpenGLView* view) -> void;
         auto updatePlayState(OpenGLView* view) -> void;
         auto buildInspectedComponents(OpenGLView* view, const QVariantList& loadedEntities) -> QVariantList;
         auto annotateEntities(QVariantList& loadedEntities, QVariantList& layout) -> QVariantMap;

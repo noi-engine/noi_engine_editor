@@ -26,6 +26,8 @@ Item {
 
     signal scenesRequested()
     signal sceneSaved(bool success)
+    signal snapshotTaken(string path, bool success)
+    signal sceneRestored(string path, bool success)
     signal entityCreated(int entityId, int entityGeneration)
     // The scene camera was moved / resized with its red border.
     signal cameraEdited()
@@ -40,6 +42,8 @@ Item {
     Connections {
         target: openGLView
         function onSceneSaved(success) { root.sceneSaved(success) }
+        function onSnapshotTaken(path, success) { root.snapshotTaken(path, success) }
+        function onSceneRestored(path, success) { root.sceneRestored(path, success) }
         function onEntityCreated(entityId, entityGeneration) { root.entityCreated(entityId, entityGeneration) }
     }
 
@@ -49,6 +53,15 @@ Item {
 
     function saveScene() {
         openGLView.saveScene()
+    }
+
+    // Undo/redo (see ProjectEditorPage): the live scene to / from a file in the resources folder.
+    function snapshotScene(path) {
+        openGLView.snapshotScene(path)
+    }
+
+    function restoreScene(path) {
+        openGLView.restoreScene(path)
     }
 
     // Forces a reload of the currently-open scene from disk - used after editor tooling (the

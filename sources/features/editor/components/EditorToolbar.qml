@@ -16,6 +16,11 @@ Rectangle {
     signal searchRequested()
     signal scenesRequested()
     signal buildHelpRequested()
+    signal undoRequested()
+    signal redoRequested()
+
+    property bool canUndo: false
+    property bool canRedo: false
 
     property string currentScenePath: ""
     property bool isPlaying: false
@@ -91,64 +96,6 @@ Rectangle {
             color: Theme.borderColor
         }
 
-        // The open scene. Click to see all scenes, create a new one or switch.
-        Rectangle {
-            id: sceneChip
-            Layout.preferredHeight: 36
-            implicitWidth: sceneRow.implicitWidth + 24
-            Layout.maximumWidth: 260
-            radius: Theme.radius
-            color: chipArea.containsMouse ? Theme.bgTertiary : "transparent"
-            border.color: Theme.borderColor
-
-            RowLayout {
-                id: sceneRow
-                anchors.centerIn: parent
-                spacing: 8
-
-                MuiIcon {
-                    name: "landscape"
-                    font.pixelSize: 16
-                    color: root.currentScenePath !== "" ? Theme.primaryColor : Theme.grey
-                }
-
-                Text {
-                    Layout.maximumWidth: 170
-                    text: root.currentSceneName
-                    font.pixelSize: 13
-                    font.bold: root.currentScenePath !== ""
-                    color: root.currentScenePath !== "" ? Theme.white : Theme.darkGrey
-                    elide: Text.ElideMiddle
-                }
-
-                Rectangle {
-                    visible: root.sceneDirty
-                    width: 8
-                    height: 8
-                    radius: 4
-                    color: Theme.warning
-                }
-
-                MuiIcon {
-                    name: "unfold_more"
-                    font.pixelSize: 16
-                    color: Theme.grey
-                }
-            }
-
-            MouseArea {
-                id: chipArea
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.scenesRequested()
-            }
-
-            ToolTip.visible: chipArea.containsMouse
-            ToolTip.delay: 450
-            ToolTip.text: qsTr("Scenes: switch, create or rename (a scene is one screen of your game)")
-        }
-
         Item { Layout.fillWidth: true }
 
         // Opens the global search (Ctrl+K).
@@ -202,6 +149,26 @@ Rectangle {
         }
 
         AppButton {
+            icon: "undo"
+            compact: true
+            implicitHeight: 36
+            text: qsTr("Undo")
+            tooltip: qsTr("Undo (Ctrl+Z)")
+            enabled: root.canUndo
+            onClicked: root.undoRequested()
+        }
+
+        AppButton {
+            icon: "redo"
+            compact: true
+            implicitHeight: 36
+            text: qsTr("Redo")
+            tooltip: qsTr("Redo (Ctrl+Shift+Z)")
+            enabled: root.canRedo
+            onClicked: root.redoRequested()
+        }
+
+        AppButton {
             id: saveButton
             icon: "save"
             text: root.sceneDirty ? qsTr("Save changes") : qsTr("Saved")
@@ -251,19 +218,6 @@ Rectangle {
         }
 
         AppButton {
-            icon: root.isPlaying ? "stop" : "play_arrow"
-            text: root.isPlaying ? qsTr("Stop") : qsTr("Play")
-            primary: !root.isPlaying
-            danger: root.isPlaying
-            tooltip: root.isPlaying ? qsTr("Stop the game and go back to editing")
-                                    : (root.playBlockedReason !== "" ? root.playBlockedReason : qsTr("Run the game in the editor"))
-            enabled: root.isPlaying || root.playBlockedReason === ""
-            implicitHeight: 36
-            Layout.preferredWidth: Math.max(implicitWidth, 96)
-            onClicked: root.isPlaying ? root.stopRequested() : root.playRequested()
-        }
-
-        AppButton {
             icon: "settings"
             compact: true
             text: qsTr("Project settings")
@@ -272,4 +226,19 @@ Rectangle {
             onClicked: root.settingsRequested()
         }
     }
+
+    // Play / Stop sits in the middle of the bar, like in other game editors.
+    AppButton {
+            icon: root.isPlaying ? "stop" : "play_arrow"
+            text: root.isPlaying ? qsTr("Stop") : qsTr("Play")
+            primary: !root.isPlaying
+            danger: root.isPlaying
+            tooltip: root.isPlaying ? qsTr("Stop the game and go back to editing")
+                                    : (root.playBlockedReason !== "" ? root.playBlockedReason : qsTr("Run the game in the editor"))
+            enabled: root.isPlaying || root.playBlockedReason === ""
+            implicitHeight: 36
+            width: Math.max(implicitWidth, 110)
+        anchors.centerIn: parent
+            onClicked: root.isPlaying ? root.stopRequested() : root.playRequested()
+        }
 }

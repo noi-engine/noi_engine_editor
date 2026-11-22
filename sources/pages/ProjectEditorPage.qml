@@ -11,7 +11,9 @@ CustomPage {
 
     property var selectedEntity: null
     property var selectedMaterial: null
-    property string activeBottomPanel: ""
+    property string activeBottomPanel: "resources"
+    property string lastBottomPanel: "resources"
+    onActiveBottomPanelChanged: if (activeBottomPanel !== "") lastBottomPanel = activeBottomPanel
     property string currentScenePath: ""
     property string pendingScenePath: ""
     property bool compileFailureDismissed: false
@@ -25,6 +27,91 @@ CustomPage {
     // ---- Images from the resources folder as sprites / backgrounds.
     // Waiting for the image's texture to be loaded (after the scene reload that declares it).
     property var pendingImageSprite: null
+
+    // ---- Undo / redo.
+    // Before an edit, the scene is written to a hidden file next to the scene file ("snapshot");
+    // undo puts such a file back. Edits that follow each other closely (dragging, typing in a
+    // field) are one step. The files are deleted when the scene is left or the editor closed.
+    property var undoStack: []
+    property var redoStack: []
+    property bool editBatchOpen: false
+    property bool restoring: false
+    property int snapshotCounter: 0
+    readonly property bool canUndo: undoStack.length > 0 && !viewportPanel.playing && !restoring
+    readonly property bool canRedo: redoStack.length > 0 && !viewportPanel.playing && !restoring
+    readonly property int maxUndoSteps: 50
+
+    function snapshotPath() {
+        const scene = root.currentScenePath;
+        const slash = scene.lastIndexOf("/");
+        root.snapshotCounter += 1;
+        return scene.substring(0, slash + 1) + "." + scene.substring(slash + 1) + ".undo" + root.snapshotCounter;
+    }
+
+    function removeSnapshots(paths) {
+        for (const path of paths) CurrentProjectResourcesManager.deleteItem(path);
+    }
+
+    function clearUndoHistory() {
+        root.removeSnapshots(root.undoStack);
+        root.removeSnapshots(root.redoStack);
+        root.undoStack = [];
+        root.redoStack = [];
+        root.editBatchOpen = false;
+    }
+
+    // Every scene edit goes through here: marks the scene as changed and opens an undo step.
+    function touch() {
+        root.sceneDirty = true;
+        if (viewportPanel.playing || root.restoring || root.currentScenePath === "") return;
+        if (!root.editBatchOpen) {
+            root.editBatchOpen = true;
+            const path = root.snapshotPath();
+            root.undoStack = root.undoStack.concat([path]);
+            root.removeSnapshots(root.redoStack);
+            root.redoStack = [];
+            viewportPanel.snapshotScene(path);
+            if (root.undoStack.length > root.maxUndoSteps) {
+                root.removeSnapshots([root.undoStack[0]]);
+                root.undoStack = root.undoStack.slice(1);
+            }
+        }
+        editBatchTimer.restart();
+    }
+
+    function undo() {
+        if (!root.canUndo) return;
+        const target = root.undoStack[root.undoStack.length - 1];
+        root.undoStack = root.undoStack.slice(0, -1);
+        const current = root.snapshotPath();
+        root.redoStack = root.redoStack.concat([current]);
+        root.restoring = true;
+        viewportPanel.snapshotScene(current); // the state we leave, for redo
+        viewportPanel.restoreScene(target);
+        root.pendingRestoreFile = target;
+    }
+
+    function redo() {
+        if (!root.canRedo) return;
+        const target = root.redoStack[root.redoStack.length - 1];
+        root.redoStack = root.redoStack.slice(0, -1);
+        const current = root.snapshotPath();
+        root.undoStack = root.undoStack.concat([current]);
+        root.restoring = true;
+        viewportPanel.snapshotScene(current);
+        viewportPanel.restoreScene(target);
+        root.pendingRestoreFile = target;
+    }
+
+    property string pendingRestoreFile: ""
+
+    Timer {
+        id: editBatchTimer
+        interval: 700
+        onTriggered: root.editBatchOpen = false
+    }
+
+    Component.onDestruction: root.clearUndoHistory()
 
     function imageName(path) {
         const file = path.substring(path.lastIndexOf("/") + 1);
@@ -70,7 +157,7 @@ CustomPage {
         root.pendingImageSprite = null;
         root.pendingCreates = root.pendingCreates.concat([{folder: null, preset: "image", image: pending}]);
         viewportPanel.createEntity(pending.name);
-        root.sceneDirty = true;
+        root.touch();
     }
 
     Image {
@@ -126,6 +213,14 @@ CustomPage {
             return;
         }
         const id = entity.id, gen = entity.generation;
+        if (preset === "trigger_zone") {
+            // Invisible area that only reports who enters it (coins, doors, damage zones...).
+            viewportPanel.addComponent(id, gen, "transform");
+            viewportPanel.addComponent(id, gen, "box_collider");
+            viewportPanel.setComponentProperty(id, gen, "box_collider", "is_static", "bool", true);
+            viewportPanel.setComponentProperty(id, gen, "box_collider", "is_trigger", "bool", true);
+            return;
+        }
         viewportPanel.addComponent(id, gen, "transform");
         viewportPanel.addComponent(id, gen, "render_layer");
         viewportPanel.addComponent(id, gen, "mesh_renderer");
@@ -182,7 +277,7 @@ CustomPage {
         root.pendingCameraSize = null;
         viewportPanel.setComponentProperty(cam.id, cam.generation, "camera_2d", "orthographic_size", "float", height / 200);
         viewportPanel.setComponentProperty(cam.id, cam.generation, "camera_2d", "aspect_ratio", "float", width / height);
-        root.sceneDirty = true;
+        root.touch();
     }
 
     function setEntityGroups(entity, groups) {
@@ -192,7 +287,7 @@ CustomPage {
             viewportPanel.addComponent(entity.id, entity.generation, "groups")
             viewportPanel.setComponentProperty(entity.id, entity.generation, "groups", "names", "string", groups.join(","))
         }
-        root.sceneDirty = true;
+        root.touch();
     }
 
     // Reloading the scene from disk (after an image import wrote it into the scene's resources)
@@ -216,7 +311,7 @@ CustomPage {
             viewportPanel.addComponent(entity.id, entity.generation, "folder")
             viewportPanel.setComponentProperty(entity.id, entity.generation, "folder", "path", "string", folder)
         }
-        root.sceneDirty = true;
+        root.touch();
     }
 
     // ---- Leaving the open scene: unsaved changes are saved (and the save confirmed by the
@@ -244,6 +339,7 @@ CustomPage {
     }
 
     function switchScene(filePath) {
+        root.clearUndoHistory();
         root.selectedEntity = null;
         root.selectedMaterial = null;
         if (ProjectBuilder.isCompiling || ProjectBuilder.lastCompileFailed) {
@@ -259,6 +355,21 @@ CustomPage {
             return;
         }
         viewportPanel.saveScene();
+    }
+
+    // Ctrl+Z / Ctrl+Shift+Z, except while typing in a text field (which has its own undo).
+    readonly property bool typingInField: !!Window.activeFocusItem && Window.activeFocusItem.hasOwnProperty("cursorPosition")
+
+    Shortcut {
+        sequence: StandardKey.Undo
+        enabled: root.canUndo && !root.typingInField
+        onActivated: root.undo()
+    }
+
+    Shortcut {
+        sequences: [StandardKey.Redo, "Ctrl+Y"]
+        enabled: root.canRedo && !root.typingInField
+        onActivated: root.redo()
     }
 
     Shortcut {
@@ -398,6 +509,10 @@ CustomPage {
             onSearchRequested: globalSearch.open()
             onScenesRequested: root.activeBottomPanel = (root.activeBottomPanel === "scenes") ? "" : "scenes"
             onBuildHelpRequested: prerequisitesDialog.open()
+            canUndo: root.canUndo
+            canRedo: root.canRedo
+            onUndoRequested: root.undo()
+            onRedoRequested: root.redo()
         }
 
         SplitView {
@@ -459,19 +574,19 @@ CustomPage {
                         onEntityCreateRequested: (name, folder, preset) => {
                             root.pendingCreates = root.pendingCreates.concat([{folder: folder === "" ? null : folder, preset: preset}]);
                             viewportPanel.createEntity(name)
-                            root.sceneDirty = true;
+                            root.touch();
                         }
 
                         onEntityRenameRequested: (entity, newName) => {
                             viewportPanel.setComponentProperty(entity.id, entity.generation,
                                 "name_component", "name", "string", newName)
-                            root.sceneDirty = true;
+                            root.touch();
                         }
 
                         onEntityDuplicateRequested: (entity, newName, folder) => {
                             root.pendingCreates = root.pendingCreates.concat([{folder: folder, preset: ""}]);
                             viewportPanel.duplicateEntity(entity.id, entity.generation, newName)
-                            root.sceneDirty = true;
+                            root.touch();
                         }
 
                         onEntityFolderChangeRequested: (entity, folder) => root.setEntityFolder(entity, folder)
@@ -482,7 +597,7 @@ CustomPage {
                                 root.selectedEntity = null;
                             }
                             viewportPanel.destroyEntity(entity.id, entity.generation)
-                            root.sceneDirty = true;
+                            root.touch();
                         }
                     }
                 }
@@ -490,72 +605,100 @@ CustomPage {
                 PanelCard {
                     SplitView.fillWidth: true
                     SplitView.minimumWidth: 400
-                    ViewportPanel {
+                    ColumnLayout {
                         anchors.fill: parent
-                        id: viewportPanel
-                        scenePath: root.currentScenePath
-                        selectedEntity: root.selectedEntity
-                        hasInspectedEntity: root.selectedEntity !== null
-                        inspectedEntityId: root.selectedEntity ? root.selectedEntity.id : 0
-                        inspectedEntityGeneration: root.selectedEntity ? root.selectedEntity.generation : 0
-                        hasInspectedMaterial: root.selectedMaterial !== null
-                        inspectedMaterialId: root.selectedMaterial ? root.selectedMaterial.id : 0
-                        inspectedMaterialGeneration: root.selectedMaterial ? root.selectedMaterial.generation : 0
+                        spacing: 0
 
-                        onScenesRequested: root.activeBottomPanel = "scenes"
-                        onCameraEdited: root.sceneDirty = true
-                        onImageDropped: (filePath, x, y) => root.createImageSprite(filePath, false, x, y)
-                        onSceneCameraChanged: {
-                            if (root.pendingCameraSize && root.isStartSceneOpen() && sceneCamera.valid) {
-                                root.setCameraSize(root.pendingCameraSize.width, root.pendingCameraSize.height);
-                            }
-                        }
-                        onEntityMoved: root.sceneDirty = true
-                        onEntityPicked: (entityId, entityGeneration) => {
-                            for (const entity of viewportPanel.loadedEntities || []) {
-                                if (entity.id === entityId && entity.generation === entityGeneration) {
-                                    root.selectedMaterial = null;
-                                    root.selectedEntity = entity;
-                                    return;
-                                }
-                            }
+                        SceneTabs {
+                            Layout.fillWidth: true
+                            currentScenePath: root.currentScenePath
+                            sceneDirty: root.sceneDirty
+                            onSceneChosen: filePath => root.openScene(filePath)
+                            onNewSceneRequested: scenePanel.openNewSceneDialog()
                         }
 
-                        onSceneSaved: (success) => {
-                            if (success) {
-                                root.sceneDirty = false;
-                                root.syncWindowToCamera();
-                                if (root.reloadAfterSave) {
-                                    root.reloadAfterSave = false;
-                                    viewportPanel.reloadScene();
-                                }
-                                if (root.afterSave) {
-                                    const action = root.afterSave;
-                                    root.afterSave = null;
-                                    action();
-                                }
-                                console.log("Scene saved: " + root.currentScenePath);
-                                Notifier.success(qsTr("Scene saved"));
-                            } else {
-                                console.warn("Failed to save scene: " + root.currentScenePath);
-                                Notifier.error(qsTr("Couldn't save the scene. Check that the file isn't read-only, then press Save again."));
-                                root.afterSave = null; // stay on the scene: its changes aren't saved
-                            }
-                        }
+                        ViewportPanel {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            id: viewportPanel
+                            scenePath: root.currentScenePath
+                            selectedEntity: root.selectedEntity
+                            hasInspectedEntity: root.selectedEntity !== null
+                            inspectedEntityId: root.selectedEntity ? root.selectedEntity.id : 0
+                            inspectedEntityGeneration: root.selectedEntity ? root.selectedEntity.generation : 0
+                            hasInspectedMaterial: root.selectedMaterial !== null
+                            inspectedMaterialId: root.selectedMaterial ? root.selectedMaterial.id : 0
+                            inspectedMaterialGeneration: root.selectedMaterial ? root.selectedMaterial.generation : 0
 
-                        onEntityCreated: (id, gen) => {
-                            const pending = root.pendingCreates.length > 0 ? root.pendingCreates[0] : {folder: null, preset: ""};
-                            root.pendingCreates = root.pendingCreates.slice(1);
-                            if (pending.folder !== null && pending.folder !== undefined) {
-                                root.setEntityFolder({id: id, generation: gen}, pending.folder);
+                            onScenesRequested: root.activeBottomPanel = "scenes"
+                            onSnapshotTaken: (path, success) => {
+                                if (success) return;
+                                // No file to go back to: forget that step.
+                                root.undoStack = root.undoStack.filter(p => p !== path);
+                                root.redoStack = root.redoStack.filter(p => p !== path);
                             }
-                            root.applyEntityPreset({id: id, generation: gen}, pending.preset, pending.image);
-                            const items = viewportPanel.loadedEntities || [];
-                            for (let i = 0; i < items.length; i++) {
-                                if (items[i].id === id && items[i].generation === gen) {
-                                    root.selectedMaterial = null;
-                                    root.selectedEntity = items[i];
-                                    break;
+                            onSceneRestored: (path, success) => {
+                                root.restoring = false;
+                                if (root.pendingRestoreFile !== "") {
+                                    root.removeSnapshots([root.pendingRestoreFile]);
+                                    root.pendingRestoreFile = "";
+                                }
+                                if (success) root.sceneDirty = true;
+                            }
+                            onCameraEdited: root.sceneDirty = true
+                            onImageDropped: (filePath, x, y) => root.createImageSprite(filePath, false, x, y)
+                            onSceneCameraChanged: {
+                                if (root.pendingCameraSize && root.isStartSceneOpen() && sceneCamera.valid) {
+                                    root.setCameraSize(root.pendingCameraSize.width, root.pendingCameraSize.height);
+                                }
+                            }
+                            onEntityMoved: root.sceneDirty = true
+                            onEntityPicked: (entityId, entityGeneration) => {
+                                for (const entity of viewportPanel.loadedEntities || []) {
+                                    if (entity.id === entityId && entity.generation === entityGeneration) {
+                                        root.selectedMaterial = null;
+                                        root.selectedEntity = entity;
+                                        return;
+                                    }
+                                }
+                            }
+
+                            onSceneSaved: (success) => {
+                                if (success) {
+                                    root.sceneDirty = false;
+                                    root.syncWindowToCamera();
+                                    if (root.reloadAfterSave) {
+                                        root.reloadAfterSave = false;
+                                        viewportPanel.reloadScene();
+                                    }
+                                    if (root.afterSave) {
+                                        const action = root.afterSave;
+                                        root.afterSave = null;
+                                        action();
+                                    }
+                                    console.log("Scene saved: " + root.currentScenePath);
+                                    Notifier.success(qsTr("Scene saved"));
+                                } else {
+                                    console.warn("Failed to save scene: " + root.currentScenePath);
+                                    Notifier.error(qsTr("Couldn't save the scene. Check that the file isn't read-only, then press Save again."));
+                                    root.afterSave = null; // stay on the scene: its changes aren't saved
+                                }
+                            }
+
+                            onEntityCreated: (id, gen) => {
+                                const pending = root.pendingCreates.length > 0 ? root.pendingCreates[0] : {folder: null, preset: ""};
+                                root.pendingCreates = root.pendingCreates.slice(1);
+                                if (pending.folder !== null && pending.folder !== undefined) {
+                                    root.setEntityFolder({id: id, generation: gen}, pending.folder);
+                                }
+                                root.applyEntityPreset({id: id, generation: gen}, pending.preset, pending.image);
+                                const items = viewportPanel.loadedEntities || [];
+                                for (let i = 0; i < items.length; i++) {
+                                    if (items[i].id === id && items[i].generation === gen) {
+                                        root.selectedMaterial = null;
+                                        root.selectedEntity = items[i];
+                                        break;
+                                    }
                                 }
                             }
                         }
@@ -590,42 +733,101 @@ CustomPage {
                                 viewportPanel.setComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
                                     componentType, propertyName, propertyType, value)
                             }
-                            root.sceneDirty = true;
+                            root.touch();
                         }
 
                         onComponentAddRequested: (componentType) => {
                             viewportPanel.addComponent(root.selectedEntity.id, root.selectedEntity.generation, componentType)
-                            root.sceneDirty = true;
+                            root.touch();
                         }
 
                         onComponentRemoved: (componentType) => {
                             if (root.selectedEntity) {
                                 viewportPanel.removeComponent(root.selectedEntity.id, root.selectedEntity.generation, componentType)
-                                root.sceneDirty = true;
+                                root.touch();
                             }
                         }
 
                         onPropertyRemoved: (componentType, propertyName) => {
                             if (root.selectedMaterial) {
                                 viewportPanel.removeMaterialProperty(root.selectedMaterial.id, root.selectedMaterial.generation, propertyName)
-                                root.sceneDirty = true;
+                                root.touch();
                             } else if (root.selectedEntity) {
                                 viewportPanel.removeComponentProperty(root.selectedEntity.id, root.selectedEntity.generation,
                                     componentType, propertyName)
-                                root.sceneDirty = true;
+                                root.touch();
                             }
                         }
                     }
                 }
             }
 
+            // Bottom dock (Unity's Project / Console): always there, tabs on top, collapsible.
             PanelCard {
-                SplitView.preferredHeight: 240
-                SplitView.minimumHeight: 130
-                visible: root.activeBottomPanel !== ""
+                id: dock
+                readonly property bool collapsed: root.activeBottomPanel === ""
+                SplitView.preferredHeight: collapsed ? 40 : 270
+                SplitView.minimumHeight: collapsed ? 40 : 140
+                SplitView.maximumHeight: collapsed ? 40 : 100000
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 0
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 40
+                        color: Theme.bgSecondary
+
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 8
+                            anchors.rightMargin: 8
+                            spacing: 2
+
+                            Repeater {
+                                model: [
+                                    { id: "resources", label: qsTr("Project"), icon: "folder" },
+                                    { id: "scenes", label: qsTr("Scenes"), icon: "landscape" },
+                                    { id: "output", label: qsTr("Console"), icon: "terminal" },
+                                    { id: "logs", label: qsTr("Logs"), icon: "receipt_long" },
+                                    { id: "loadedResources", label: qsTr("In memory"), icon: "memory" }
+                                ]
+
+                                delegate: DockTab {
+                                    required property var modelData
+                                    text: modelData.label
+                                    icon: modelData.icon
+                                    isOpen: root.activeBottomPanel === modelData.id
+                                    attention: modelData.id === "output" && ProjectBuilder.lastCompileFailed
+                                    onClicked: root.activeBottomPanel = (root.activeBottomPanel === modelData.id) ? "" : modelData.id
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            AppButton {
+                                compact: true
+                                implicitHeight: 28
+                                icon: dock.collapsed ? "keyboard_arrow_up" : "keyboard_arrow_down"
+                                text: dock.collapsed ? qsTr("Show panel") : qsTr("Hide panel")
+                                onClicked: root.activeBottomPanel = dock.collapsed ? root.lastBottomPanel : ""
+                            }
+                        }
+
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            width: parent.width
+                            height: 1
+                            color: Theme.borderColor
+                            visible: !dock.collapsed
+                        }
+                    }
 
                 StackLayout {
-                    anchors.fill: parent
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    visible: !dock.collapsed
                     currentIndex: {
                         if (root.activeBottomPanel === "scenes") return 0;
                         if (root.activeBottomPanel === "resources") return 1;
@@ -677,6 +879,7 @@ CustomPage {
                         }
                     }
                 }
+                }
             }
         }
 
@@ -697,36 +900,6 @@ CustomPage {
                 anchors.leftMargin: 10
                 anchors.rightMargin: 10
                 spacing: 16
-
-                BottomTabButton {
-                    text: qsTr("Scenes")
-                    isOpen: root.activeBottomPanel === "scenes"
-                    onClicked: root.activeBottomPanel = (root.activeBottomPanel === "scenes") ? "" : "scenes"
-                }
-
-                BottomTabButton {
-                    text: qsTr("Resources")
-                    isOpen: root.activeBottomPanel === "resources"
-                    onClicked: root.activeBottomPanel = (root.activeBottomPanel === "resources") ? "" : "resources"
-                }
-
-                BottomTabButton {
-                    text: qsTr("Build output")
-                    isOpen: root.activeBottomPanel === "output"
-                    onClicked: root.activeBottomPanel = (root.activeBottomPanel === "output") ? "" : "output"
-                }
-
-                BottomTabButton {
-                    text: qsTr("Logs")
-                    isOpen: root.activeBottomPanel === "logs"
-                    onClicked: root.activeBottomPanel = (root.activeBottomPanel === "logs") ? "" : "logs"
-                }
-
-                BottomTabButton {
-                    text: qsTr("In memory")
-                    isOpen: root.activeBottomPanel === "loadedResources"
-                    onClicked: root.activeBottomPanel = (root.activeBottomPanel === "loadedResources") ? "" : "loadedResources"
-                }
 
                 Item { Layout.fillWidth: true }
 

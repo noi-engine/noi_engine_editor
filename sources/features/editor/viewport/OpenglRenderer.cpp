@@ -491,6 +491,45 @@ namespace noi_engine_editor
         }
     }
 
+    void OpenGLRenderer::applyPendingSnapshots(OpenGLView* view)
+    {
+        const auto snapshots = view->takePendingSnapshots();
+        for (const auto& snapshot : snapshots)
+        {
+            bool success = false;
+            if (this->m_gameHandle && !m_currentPath.isEmpty())
+            {
+                // Same recipe as the Play snapshot: start from the scene file (it carries what the
+                // bridge doesn't rewrite), then write the live world over it.
+                QFile::remove(snapshot.path);
+                success = QFile::copy(m_currentPath, snapshot.path)
+                          && m_bridge.saveScene(this->m_gameHandle, snapshot.path);
+                if (!success)
+                {
+                    QFile::remove(snapshot.path);
+                }
+            }
+            view->confirmSnapshot(snapshot.path, success);
+        }
+    }
+
+    void OpenGLRenderer::applyPendingRestores(OpenGLView* view)
+    {
+        const auto restores = view->takePendingRestores();
+        for (const auto& restore : restores)
+        {
+            bool success = false;
+            if (this->m_gameHandle && QFile::exists(restore.path))
+            {
+                const auto relativeScenePath = getSceneResourceDotPath(this->m_resourcesPath, restore.path);
+                m_bridge.setScene2d(this->m_gameHandle, relativeScenePath);
+                m_bridge.onResize(this->m_gameHandle, m_width, m_height);
+                success = true;
+            }
+            view->confirmRestore(restore.path, success);
+        }
+    }
+
     void OpenGLRenderer::updatePlayState(OpenGLView* view)
     {
         if (!this->m_gameHandle)
@@ -845,6 +884,9 @@ namespace noi_engine_editor
         }
 
         this->updatePlayState(view);
+        // Undo/redo snapshots first: they must see the scene as it was before this frame's edits.
+        this->applyPendingSnapshots(view);
+        this->applyPendingRestores(view);
         this->applyPendingEntityCreates(view);
         this->applyPendingEntityDuplicates(view);
         this->applyPendingEntityDestroys(view);

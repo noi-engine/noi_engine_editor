@@ -704,6 +704,52 @@ namespace noi_engine_editor
         Q_EMIT sceneSaved(success);
     }
 
+    void OpenGLView::snapshotScene(const QString& path)
+    {
+        if (m_scenePath.isEmpty() || path.isEmpty())
+        {
+            Q_EMIT snapshotTaken(path, false);
+            return;
+        }
+        m_pendingSnapshots.append(PendingSnapshot{path});
+        update();
+    }
+
+    void OpenGLView::restoreScene(const QString& path)
+    {
+        if (m_scenePath.isEmpty() || path.isEmpty())
+        {
+            Q_EMIT sceneRestored(path, false);
+            return;
+        }
+        m_pendingRestores.append(PendingRestore{path});
+        update();
+    }
+
+    QVector<PendingSnapshot> OpenGLView::takePendingSnapshots()
+    {
+        auto snapshots = std::move(m_pendingSnapshots);
+        m_pendingSnapshots.clear();
+        return snapshots;
+    }
+
+    QVector<PendingRestore> OpenGLView::takePendingRestores()
+    {
+        auto restores = std::move(m_pendingRestores);
+        m_pendingRestores.clear();
+        return restores;
+    }
+
+    void OpenGLView::confirmSnapshot(const QString& path, const bool success)
+    {
+        Q_EMIT snapshotTaken(path, success);
+    }
+
+    void OpenGLView::confirmRestore(const QString& path, const bool success)
+    {
+        Q_EMIT sceneRestored(path, success);
+    }
+
     void OpenGLView::queueKeyEvent(const int keyCode, const bool pressed)
     {
         if (keyCode < 0)

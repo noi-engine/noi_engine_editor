@@ -57,6 +57,17 @@ namespace noi_engine_editor
         QString targetPath;
     };
 
+    // Undo/redo: the live scene written to / replaced from a file next to the scene file.
+    struct PendingSnapshot
+    {
+        QString path;
+    };
+
+    struct PendingRestore
+    {
+        QString path;
+    };
+
     // Entity/component CRUD - same queue-until-synchronize() rationale as every struct above.
     struct PendingEntityCreate
     {
@@ -321,6 +332,19 @@ namespace noi_engine_editor
         // through the bridge. Emits sceneSaved(success) for QML to show a toast/error.
         void confirmSceneSaved(bool success);
 
+        // Undo/redo support (see ProjectEditorPage): writes the live scene (unsaved edits included)
+        // to `path`, or replaces the live scene by the one in `path`. Both must be inside the
+        // project's resources folder. Applied before the other queued edits of the same frame, so
+        // a snapshot requested just before an edit holds the state from before that edit.
+        Q_INVOKABLE void snapshotScene(const QString& path);
+        Q_INVOKABLE void restoreScene(const QString& path);
+
+        // Renderer-only counterparts of the above.
+        QVector<PendingSnapshot> takePendingSnapshots();
+        QVector<PendingRestore> takePendingRestores();
+        void confirmSnapshot(const QString& path, bool success);
+        void confirmRestore(const QString& path, bool success);
+
         [[nodiscard]] Renderer* createRenderer() const override;
 
     protected:
@@ -349,6 +373,8 @@ namespace noi_engine_editor
         void inspectedMaterialPropertiesChanged();
         void playingChanged();
         void sceneSaved(bool success);
+        void snapshotTaken(const QString& path, bool success);
+        void sceneRestored(const QString& path, bool success);
         // Emitted once a queued createEntity()/duplicateEntity() has actually been applied
         // through the bridge, so QML can auto-select the new entity in the Hierarchy.
         void entityCreated(quint32 entityId, quint32 entityGeneration);
@@ -387,6 +413,8 @@ namespace noi_engine_editor
         QSet<int> m_pressedQtKeys;
         QVector<PendingKeyEvent> m_pendingKeyEvents;
         QVector<PendingSceneSave> m_pendingSceneSaves;
+        QVector<PendingSnapshot> m_pendingSnapshots;
+        QVector<PendingRestore> m_pendingRestores;
         QVector<PendingComponentRemove> m_pendingComponentRemoves;
         QVector<PendingComponentPropertyRemove> m_pendingComponentPropertyRemoves;
         QVector<PendingMaterialPropertyRemove> m_pendingMaterialPropertyRemoves;

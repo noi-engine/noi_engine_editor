@@ -110,6 +110,38 @@ Rectangle {
             }
         }
 
+        // Box collider helpers: fit the box to the object's size, and say what the fields do.
+        ColumnLayout {
+            visible: section.expanded && section.componentType === "box_collider" && !section.forcedReadOnly
+            Layout.fillWidth: true
+            spacing: 6
+
+            AppButton {
+                Layout.fillWidth: true
+                icon: "fit_screen"
+                implicitHeight: 32
+                text: qsTr("Fit to the object's size")
+                tooltip: qsTr("Sets the box to the size of the object (its Transform scale) and centres it")
+                onClicked: {
+                    const transform = (inspector.componentsData || []).find(c => c.type === "transform");
+                    const scale = transform ? (transform.properties || []).find(p => p.name === "scale") : null;
+                    const value = scale && scale.value ? scale.value : [1, 1, 1];
+                    inspector.propertyEdited("box_collider", "half_width", "float", Math.abs(value[0]) / 2);
+                    inspector.propertyEdited("box_collider", "half_height", "float", Math.abs(value[1]) / 2);
+                    inspector.propertyEdited("box_collider", "offset_x", "float", 0);
+                    inspector.propertyEdited("box_collider", "offset_y", "float", 0);
+                }
+            }
+
+            Text {
+                Layout.fillWidth: true
+                wrapMode: Text.WordWrap
+                font.pixelSize: 10
+                color: Theme.grey
+                text: qsTr("Is static: never moves (floors, walls). Is trigger: nothing is pushed, it only reports overlaps to scripts. Layer / Mask: which groups it belongs to and collides with (numbers used as bit masks).")
+            }
+        }
+
         Text {
             visible: section.expanded && section.componentProperties.length === 0
             text: qsTr("No editable fields")

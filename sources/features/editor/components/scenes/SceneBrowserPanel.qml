@@ -39,6 +39,10 @@ Item {
 
     Component.onCompleted: refreshScenes()
 
+    function openNewSceneDialog() {
+        newSceneDialog.openFor(rootItem.rawRootFolder + "/scenes");
+    }
+
     function duplicateScene(filePath, fileName) {
         const dotIndex = fileName.lastIndexOf(".");
         const stem = dotIndex >= 0 ? fileName.substring(0, dotIndex) : fileName;
