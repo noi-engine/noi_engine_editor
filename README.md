@@ -98,7 +98,7 @@ cmake --preset debug
 cmake --build --preset debug
 ```
 
-The editor also needs **Qt 6.10+**.
+The editor also needs **Qt 6.12+**.
 
 ## Toolchain used
 
@@ -108,7 +108,7 @@ The editor also needs **Qt 6.10+**.
 | cmake | 4.3.4 |
 | ninja | 1.13.2 |
 | vcpkg | 2026-07-13 |
-| Qt (editor) | 6.10+ |
+| Qt (editor) | 6.12+ |
 
 Dependencies come from vcpkg: SDL2, glm, stb, tinyobjloader, nlohmann-json, flatbuffers, gtest.
 

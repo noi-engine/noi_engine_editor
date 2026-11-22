@@ -14,7 +14,7 @@ set(QML_IMPORT_PATH "${CMAKE_BINARY_DIR}" CACHE STRING "QML Import Path" FORCE)
 
 find_package(Qt6 REQUIRED COMPONENTS Core Quick OpenGL)
 
-qt_standard_project_setup(REQUIRES 6.10)
+qt_standard_project_setup(REQUIRES 6.12)
 
 set(NOI_ENGINE_EDITOR_NAME noi_engine_editor)
 set(NOI_ENGINE_EDITOR_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
