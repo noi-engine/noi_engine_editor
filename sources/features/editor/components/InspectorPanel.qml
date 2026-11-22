@@ -219,9 +219,9 @@ Rectangle {
     // Components the simple view doesn't cover (cameras, culling, fill screen...): reachable
     // through "Show all components".
     readonly property bool hasHiddenComponents: root.entity !== null && !root.isCameraEntity && !root.showGroupComponents
-        && (root.componentsData || []).some(c => ["name_component", "transform", "render_layer", "mesh_renderer",
-                                                  "mesh_renderer_properties", "gravity", "box_collider",
-                                                  "script_component", "world_matrix"].indexOf(c.type) === -1)
+        && (root.entity.componentTypes || []).some(t => ["name_component", "transform", "render_layer", "mesh_renderer",
+                                                         "mesh_renderer_properties", "gravity", "box_collider",
+                                                         "script_component", "scripts", "world_matrix"].indexOf(t) === -1)
 
     readonly property string headerTitle: root.material
         ? (root.material.label !== "" ? root.material.label : ("Material #" + root.material.id))

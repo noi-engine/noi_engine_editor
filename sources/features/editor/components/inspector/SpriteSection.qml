@@ -50,7 +50,8 @@ Rectangle {
         return found ? inspector.resourcesPath + "/" + found.path : "";
     }
     property bool keepRatio: true
-    readonly property bool fillsWindow: (inspector.componentsData || []).some(c => c.type === "fill_screen")
+    // fill_screen has no properties, so it is not in componentsData: read the entity's component types.
+    readonly property bool fillsWindow: !!inspector.entity && (inspector.entity.componentTypes || []).indexOf("fill_screen") >= 0
 
     function useColor() {
         inspector.propertyEdited("mesh_renderer", "material", "resourceRef", "materials:color");
